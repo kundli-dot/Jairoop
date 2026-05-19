@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IMS Dashboard — Jai Roop Textiles (V7)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<?!= include('Stylesheet'); ?>
+</head>
+<body>
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay">
+  <div class="card">
+    <h2 id="login-company">JAI ROOP TEXTILES</h2>
+    <p>IMS Tracking System V7 — Enterprise Edition</p>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px" id="login-email">Loading...</div>
+    <input type="password" id="login-pin" placeholder="••••" maxlength="6" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn btn-gold" style="width:100%;justify-content:center;padding:12px" onclick="doLogin()">
+      <i class="fas fa-sign-in-alt"></i> Enter
+    </button>
+    <p style="margin-top:14px;font-size:10px">Default PIN for first admin: <b>1234</b></p>
+  </div>
+</div>
+
+<!-- LOADER -->
+<div id="loader" style="display:none">
+  <div class="loader-logo">JAI ROOP TEXTILES</div>
+  <div class="loader-sub">IMS TRACKING SYSTEM V7</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-box">
+      <img id="companyLogo" src="" alt="Logo">
+      <div class="logo-text" id="logoFallback">JAI ROOP<br>TEXTILES</div>
+    </div>
+    <div class="brand-sub">IMS V7 Enterprise</div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <button class="nav-item active" id="nav-dashboard" onclick="switchTab('dashboard')"><i class="fas fa-chart-line"></i> <span>Dashboard</span></button>
+    <div class="nav-section">Operations</div>
+    <button class="nav-item" id="nav-inventory" onclick="switchTab('inventory')"><i class="fas fa-warehouse"></i> <span>Inventory</span></button>
+    <button class="nav-item" id="nav-orderbook" onclick="switchTab('orderbook')"><i class="fas fa-book-open"></i> <span>Order Book</span></button>
+    <button class="nav-item" id="nav-jobwork" onclick="switchTab('jobwork')"><i class="fas fa-tools"></i> <span>Job Work</span></button>
+    <button class="nav-item" id="nav-dispatch" onclick="switchTab('dispatch')"><i class="fas fa-truck"></i> <span>Dispatch</span></button>
+    <button class="nav-item" id="nav-purchase" onclick="switchTab('purchase')"><i class="fas fa-shopping-cart"></i> <span>Purchase Orders</span></button>
+    <div class="nav-section">Parties</div>
+    <button class="nav-item" id="nav-clients" onclick="switchTab('clients')"><i class="fas fa-users"></i> <span>Clients</span></button>
+    <button class="nav-item" id="nav-vendors" onclick="switchTab('vendors')"><i class="fas fa-store"></i> <span>Vendors</span></button>
+    <button class="nav-item" id="nav-workers" onclick="switchTab('workers')"><i class="fas fa-user-hard-hat"></i> <span>Workers</span></button>
+    <div class="nav-section">Finance</div>
+    <button class="nav-item" id="nav-payments" onclick="switchTab('payments')"><i class="fas fa-money-bill-wave"></i> <span>Payments</span></button>
+    <button class="nav-item" id="nav-receivables" onclick="switchTab('receivables')"><i class="fas fa-file-invoice-dollar"></i> <span>Receivables</span></button>
+    <div class="nav-section">Analytics</div>
+    <button class="nav-item" id="nav-reports" onclick="switchTab('reports')"><i class="fas fa-chart-pie"></i> <span>Reports</span></button>
+    <button class="nav-item" id="nav-alerts" onclick="switchTab('alerts')"><i class="fas fa-bell"></i> <span>Alerts</span></button>
+    <div class="nav-section">Admin</div>
+    <button class="nav-item" id="nav-settings" onclick="switchTab('settings')"><i class="fas fa-cog"></i> <span>Settings</span></button>
+    <button class="nav-item" id="nav-audit" onclick="switchTab('audit')"><i class="fas fa-history"></i> <span>Audit Log</span></button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-pill" id="userPill">—</div>
+    <div>v7.0 Enterprise</div>
+    <div class="sync-time" id="lastSyncTime">—</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main>
+  <header>
+    <div class="header-left">
+      <h1 id="tab-title">Dashboard Overview</h1>
+      <p id="tab-sub">Real-time KPIs &amp; Analytics</p>
+    </div>
+    <div class="header-right">
+      <div class="global-search no-print">
+        <i class="fas fa-search" style="color:var(--text-muted);font-size:11px"></i>
+        <input type="text" id="globalSearch" placeholder="Search anything..." oninput="globalSearch(this.value)">
+      </div>
+      <button class="toggle-dark" onclick="toggleDark()" title="Toggle Dark Mode"><div class="knob"></div></button>
+      <button class="btn btn-ghost btn-sm" onclick="refreshAll()"><i class="fas fa-sync-alt"></i> Sync</button>
+    </div>
+  </header>
+  <div id="content"></div>
+</main>
+
+<!-- DATALISTS shared by all modals -->
+<datalist id="dl-clients"></datalist>
+<datalist id="dl-items"></datalist>
+<datalist id="dl-orders"></datalist>
+<datalist id="dl-workers"></datalist>
+<datalist id="dl-vendors"></datalist>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal wide">
+    <div class="modal-head"><h4><i class="fas fa-plus-circle" style="color:var(--accent);margin-right:8px"></i>Add New Order</h4><button class="close-x" onclick="closeModal('orderModal')"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Order Date</label><input type="date" id="f-order-date"></div>
+        <div class="form-group"><label>Expected Delivery</label><input type="date" id="f-order-expected"></div>
+        <div class="form-group"><label>Client Name</label><input type="text" id="f-order-client" list="dl-clients"></div>
+        <div class="form-group"><label>Sales Person</label><input type="text" id="f-order-sp"></div>
+        <div class="form-group"><label>Item Code</label><input type="text" id="f-order-item" list="dl-items"></div>
+        <div class="form-group"><label>Qty (Mtr)</label><input type="number" id="f-order-qty" min="0" step="0.01"></div>
+        <div class="form-group"><label>Rate / Mtr (₹)</label><input type="number" id="f-order-rate" min="0" step="0.01"></div>
+        <div class="form-group"><label>Advance Received (₹)</label><input type="number" id="f-order-advance" min="0" step="0.01"></div>
+        <div class="form-group"><label>Priority</label><select id="f-order-priority"><option>Normal</option><option>High</option><option>Urgent</option></select></div>
+        <div class="form-group"><label>Status</label><select id="f-order-status"><option value="Pending">Pending</option><option value="In Production">In Production</option></select></div>
+        <div class="form-group full"><label>Remarks</label><input type="text" id="f-order-remarks"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('orderModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="submitOrder()"><i class="fas fa-save"></i> Save Order</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="jobModal">
+  <div class="modal wide">
+    <div class="modal-head"><h4><i class="fas fa-hammer" style="color:var(--accent);margin-right:8px"></i>Add Job Work Entry</h4><button class="close-x" onclick="closeModal('jobModal')"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Date</label><input type="date" id="f-job-date"></div>
+        <div class="form-group"><label>Order ID</label><input type="text" id="f-job-orderid" list="dl-orders"></div>
+        <div class="form-group"><label>Worker</label><input type="text" id="f-job-worker" list="dl-workers"></div>
+        <div class="form-group"><label>Item Code</label><input type="text" id="f-job-item" list="dl-items"></div>
+        <div class="form-group"><label>Sent Qty (Mtr)</label><input type="number" id="f-job-sent" min="0" step="0.01"></div>
+        <div class="form-group"><label>Received (Mtr)</label><input type="number" id="f-job-received" min="0" step="0.01"></div>
+        <div class="form-group"><label>Wastage (Mtr)</label><input type="number" id="f-job-wastage" min="0" step="0.01"></div>
+        <div class="form-group"><label>Rate ₹/Mtr</label><input type="number" id="f-job-rate" min="0" step="0.01"></div>
+        <div class="form-group"><label>Total Payment (₹)</label><input type="number" id="f-job-payment" min="0" step="0.01"></div>
+        <div class="form-group"><label>Quality Grade</label><select id="f-job-grade"><option>A</option><option>B</option><option>C</option></select></div>
+        <div class="form-group"><label>Status</label><select id="f-job-status"><option value="Out">Out</option><option value="Completed">Completed</option></select></div>
+        <div class="form-group full"><label>Remarks</label><input type="text" id="f-job-remarks"></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('jobModal')">Cancel</button><button class="btn btn-gold" onclick="submitJobWork()"><i class="fas fa-save"></i> Save</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="dispatchModal">
+  <div class="modal wide">
+    <div class="modal-head"><h4><i class="fas fa-truck" style="color:var(--accent);margin-right:8px"></i>Log New Dispatch</h4><button class="close-x" onclick="closeModal('dispatchModal')"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Order ID</label><input type="text" id="f-disp-orderid" list="dl-orders"></div>
+        <div class="form-group"><label>Client</label><input type="text" id="f-disp-client" list="dl-clients"></div>
+        <div class="form-group"><label>Item Code</label><input type="text" id="f-disp-item" list="dl-items"></div>
+        <div class="form-group"><label>Dispatched Qty (Mtr)</label><input type="number" id="f-disp-qty" min="0" step="0.01"></div>
+        <div class="form-group"><label>Dispatch Date</label><input type="date" id="f-disp-date"></div>
+        <div class="form-group"><label>Challan / DC No.</label><input type="text" id="f-disp-challan"></div>
+        <div class="form-group"><label>Transporter</label><input type="text" id="f-disp-trans"></div>
+        <div class="form-group"><label>Vehicle No.</label><input type="text" id="f-disp-veh"></div>
+        <div class="form-group"><label>LR Number</label><input type="text" id="f-disp-lr"></div>
+        <div class="form-group"><label>Invoice Amount (₹)</label><input type="number" id="f-disp-inv-amt" min="0" step="0.01"></div>
+        <div class="form-group full" style="flex-direction:row;align-items:center;gap:10px">
+          <input type="checkbox" id="f-disp-complete" style="width:auto">
+          <label style="text-transform:none;font-size:12px;font-weight:600;color:var(--text)">Mark linked order as Completed</label>
+        </div>
+        <div class="form-group full"><label>Remarks</label><input type="text" id="f-disp-remarks"></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('dispatchModal')">Cancel</button><button class="btn btn-gold" onclick="submitDispatch()"><i class="fas fa-save"></i> Log Dispatch</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="poModal">
+  <div class="modal wide">
+    <div class="modal-head"><h4><i class="fas fa-shopping-cart" style="color:var(--accent);margin-right:8px"></i>Create Purchase Order</h4><button class="close-x" onclick="closeModal('poModal')"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Date</label><input type="date" id="f-po-date"></div>
+        <div class="form-group"><label>Expected Delivery</label><input type="date" id="f-po-exp"></div>
+        <div class="form-group"><label>Vendor</label><input type="text" id="f-po-vendor" list="dl-vendors"></div>
+        <div class="form-group"><label>Item Code</label><input type="text" id="f-po-item" list="dl-items"></div>
+        <div class="form-group"><label>Ordered Qty</label><input type="number" id="f-po-qty" min="0" step="0.01"></div>
+        <div class="form-group"><label>Rate ₹/Mtr</label><input type="number" id="f-po-rate" min="0" step="0.01"></div>
+        <div class="form-group"><label>GST %</label><input type="number" id="f-po-gst" value="5" min="0" step="0.01"></div>
+        <div class="form-group"><label>Status</label><select id="f-po-status"><option>Open</option><option>Partially Received</option><option>Received</option><option>Cancelled</option></select></div>
+        <div class="form-group full"><label>Remarks</label><input type="text" id="f-po-remarks"></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('poModal')">Cancel</button><button class="btn btn-gold" onclick="submitPO()"><i class="fas fa-save"></i> Save PO</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal">
+    <div class="modal-head"><h4><i class="fas fa-money-bill" style="color:var(--accent);margin-right:8px"></i>Record Payment</h4><button class="close-x" onclick="closeModal('paymentModal')"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Date</label><input type="date" id="f-pay-date"></div>
+        <div class="form-group"><label>Type</label><select id="f-pay-type"><option>Received</option><option>Paid</option></select></div>
+        <div class="form-group"><label>Party Type</label><select id="f-pay-ptype"><option>Client</option><option>Vendor</option><option>Worker</option></select></div>
+        <div class="form-group"><label>Party Name</label><input type="text" id="f-pay-pname"></div>
+        <div class="form-group"><label>Reference (Order/PO ID)</label><input type="text" id="f-pay-ref"></div>
+        <div class="form-group"><label>Amount (₹)</label><input type="number" id="f-pay-amt" min="0" step="0.01"></div>
+        <div class="form-group"><label>Mode</label><select id="f-pay-mode"><option>Bank Transfer</option><option>UPI</option><option>Cash</option><option>Cheque</option><option>RTGS/NEFT</option></select></div>
+        <div class="form-group"><label>Txn Reference</label><input type="text" id="f-pay-txn"></div>
+        <div class="form-group full"><label>Notes</label><input type="text" id="f-pay-notes"></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('paymentModal')">Cancel</button><button class="btn btn-gold" onclick="submitPayment()"><i class="fas fa-save"></i> Record</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="partyModal">
+  <div class="modal">
+    <div class="modal-head"><h4 id="partyTitle">Add</h4><button class="close-x" onclick="closeModal('partyModal')"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body"><div id="partyForm" class="form-grid"></div></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('partyModal')">Cancel</button><button class="btn btn-gold" onclick="submitParty()"><i class="fas fa-save"></i> Save</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="lifecycleModal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-head"><h4 id="lifecycleTitle">Order Lifecycle</h4><button class="close-x" onclick="closeModal('lifecycleModal')"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body" id="lifecycleBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="btn-gen-invoice" onclick="generateInvoice()"><i class="fas fa-file-invoice"></i> Generate Invoice</button>
+      <button class="btn btn-ghost" onclick="closeModal('lifecycleModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<?!= include('JavaScript'); ?>
+</body>
+</html>

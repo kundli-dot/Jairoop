@@ -1,0 +1,947 @@
+<script>
+// ============================================================
+// IMS V7 — Client-side controller
+// ============================================================
+let allData = {};
+let currentTab = 'dashboard';
+let charts = {};
+let currentLifecycleOrderId = null;
+
+window.onload = function() {
+  ['f-order-date','f-job-date','f-disp-date','f-po-date','f-pay-date'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = today();
+  });
+  document.getElementById('login-pin').focus();
+  google.script.run.withSuccessHandler(ctx => {
+    document.getElementById('login-email').innerText = ctx.email || '(no email)';
+  }).getCurrentUserContext();
+};
+
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function doLogin() {
+  const pin = document.getElementById('login-pin').value;
+  if (!pin) return toast('Enter PIN', 'error');
+  google.script.run
+    .withSuccessHandler(r => {
+      if (r.ok) {
+        document.getElementById('login-overlay').style.display = 'none';
+        refreshAll();
+      } else {
+        toast(r.message, 'error');
+      }
+    })
+    .withFailureHandler(err => toast(err.message, 'error'))
+    .verifyPin(pin);
+}
+
+function refreshAll() {
+  document.getElementById('loader').style.display = 'flex';
+  google.script.run
+    .withSuccessHandler(function(data) {
+      allData = data;
+      populateDataLists();
+      if (data.logoUrl && data.logoUrl.length > 50) {
+        document.getElementById('companyLogo').src = data.logoUrl;
+        document.getElementById('companyLogo').style.display = 'block';
+        document.getElementById('logoFallback').style.display = 'none';
+      }
+      if (data.settings && data.settings['company.name']) {
+        document.getElementById('login-company').innerText = data.settings['company.name'].toUpperCase();
+      }
+      if (data.user) {
+        document.getElementById('userPill').innerText = (data.user.name || data.user.email) + ' · ' + data.user.role;
+      }
+      if (data.lastSync) document.getElementById('lastSyncTime').innerText = 'Synced: ' + data.lastSync;
+      renderTab();
+      document.getElementById('loader').style.display = 'none';
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById('loader').style.display = 'none';
+      toast('Sync failed: ' + err.message, 'error');
+    })
+    .getAllIMSData();
+}
+
+function populateDataLists() {
+  setDataList('dl-clients', allData.clientNames || []);
+  setDataList('dl-items', (allData.master || []).map(i => i.ItemCode));
+  setDataList('dl-orders', (allData.orders || []).map(o => o.OrderID));
+  setDataList('dl-workers', allData.workerNames || []);
+  setDataList('dl-vendors', allData.vendorNames || []);
+}
+function setDataList(id, arr) {
+  const dl = document.getElementById(id);
+  if (!dl) return;
+  dl.innerHTML = (arr||[]).map(v => '<option value="' + (v||'') + '">').join('');
+}
+
+function toggleDark() {
+  document.body.classList.toggle('dark');
+  if (Object.keys(charts).length) renderTab();
+}
+
+const TAB_TITLES = {
+  dashboard:   ['Dashboard Overview', 'Live KPIs & Analytics'],
+  inventory:   ['Stock / Inventory', 'Fabric stock with running balance'],
+  orderbook:   ['Order Book', 'Track & manage all customer orders'],
+  jobwork:     ['Job Work Tracker', 'Monitor production with workers'],
+  dispatch:    ['Dispatch Log', 'Shipments, challans & invoices'],
+  purchase:    ['Purchase Orders', 'Raw material procurement from vendors'],
+  clients:     ['Clients', 'Customer master with GSTIN & credit'],
+  vendors:     ['Vendors', 'Supplier master'],
+  workers:     ['Workers', 'Job-work contractors & rates'],
+  payments:    ['Payments Ledger', 'Receipts & payments'],
+  receivables: ['Receivables & Payables', 'Outstanding balances'],
+  reports:     ['Advanced Reports', 'ABC, aging, forecast, workers'],
+  alerts:      ['Stock Alerts', 'Reorder & allocation warnings'],
+  settings:    ['Settings', 'Company profile, users, automation'],
+  audit:       ['Audit Log', 'Every write tracked']
+};
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + tab);
+  if (navEl) navEl.classList.add('active');
+  if (TAB_TITLES[tab]) {
+    document.getElementById('tab-title').innerText = TAB_TITLES[tab][0];
+    document.getElementById('tab-sub').innerText = TAB_TITLES[tab][1];
+  }
+  renderTab();
+}
+
+function renderTab() {
+  const c = document.getElementById('content');
+  c.innerHTML = '';
+  c.classList.remove('fade-in');
+  void c.offsetWidth;
+  c.classList.add('fade-in');
+  const fn = ({
+    dashboard: renderDashboard,
+    inventory: renderInventory,
+    orderbook: renderOrderBook,
+    jobwork: renderJobWork,
+    dispatch: renderDispatch,
+    purchase: renderPurchase,
+    clients: () => renderParty(c, 'Clients', ['ClientName','ContactPerson','Phone','Email','BillingAddress','ShippingAddress','GSTIN','PANNumber','CreditLimit','CreditDays','OutstandingReceivable','Rating','Notes']),
+    vendors: () => renderParty(c, 'Vendors', ['VendorName','ContactPerson','Phone','Email','Address','GSTIN','PANNumber','BankAccount','IFSC','PaymentTerms','CreditDays','OutstandingPayable','Rating','Notes']),
+    workers: () => renderParty(c, 'Workers', ['WorkerName','Phone','Address','Skill','DefaultRatePerMtr','BankAccount','IFSC','OutstandingPayable','ActiveJobs','TotalEarned','Rating','Notes']),
+    payments: renderPayments,
+    receivables: renderReceivables,
+    reports: renderReports,
+    alerts: renderAlerts,
+    settings: renderSettings,
+    audit: renderAudit
+  })[currentTab];
+  if (fn) fn(c);
+}
+
+// ===== DASHBOARD =====
+function renderDashboard(c) {
+  const k = allData.kpis || {};
+  const reorderList = (k.reorderItems || []).join(', ') || 'None';
+  const alertHtml = (k.reorderCount > 0)
+    ? `<div class="alert-banner"><i class="fas fa-exclamation-triangle"></i><span><b>${k.reorderCount} item(s) need immediate reorder:</b> ${reorderList}</span></div>`
+    : '';
+
+  c.innerHTML = alertHtml + `
+    <div class="kpi-grid">
+      <div class="kpi-card red"><div class="kpi-label">Critical Reorders</div><div class="kpi-value">${k.reorderCount||0}</div><div class="kpi-sub">Items below min</div><i class="fas fa-exclamation-circle kpi-icon"></i></div>
+      <div class="kpi-card blue"><div class="kpi-label">Active Production</div><div class="kpi-value">${k.activeOrderCount||0}</div><div class="kpi-sub">${k.pendingOrderCount||0} pending</div><i class="fas fa-cogs kpi-icon"></i></div>
+      <div class="kpi-card amber"><div class="kpi-label">Live Job Batches</div><div class="kpi-value">${k.jwLiveCount||0}</div><div class="kpi-sub">Out for work</div><i class="fas fa-tools kpi-icon"></i></div>
+      <div class="kpi-card green"><div class="kpi-label">Total Dispatched</div><div class="kpi-value">${(k.totalDispatched||0).toLocaleString()}</div><div class="kpi-sub">Mtr shipped</div><i class="fas fa-truck kpi-icon"></i></div>
+      <div class="kpi-card gold"><div class="kpi-label">Fulfilment</div><div class="kpi-value">${k.fulfilmentRate||0}%</div><div class="kpi-sub">${k.completedOrderCount||0}/${k.totalOrderCount||0}</div><i class="fas fa-check-circle kpi-icon"></i></div>
+      <div class="kpi-card purple"><div class="kpi-label">Order Value</div><div class="kpi-value">₹${((k.totalOrderValue||0)/100000).toFixed(2)}L</div><div class="kpi-sub">Total billed</div><i class="fas fa-rupee-sign kpi-icon"></i></div>
+      <div class="kpi-card blue"><div class="kpi-label">Avg Wastage</div><div class="kpi-value">${k.avgWastagePct||0}%</div><div class="kpi-sub">All batches</div><i class="fas fa-cut kpi-icon"></i></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-bar"></i> Stock by Category</div><canvas id="catChart"></canvas></div>
+      <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-pie"></i> Order Status Split</div><canvas id="orderChart"></canvas></div>
+      <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-line"></i> Top 5 by Closing Balance</div><canvas id="itemChart"></canvas></div>
+      <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-area"></i> Monthly Dispatch Volume (Mtr)</div><canvas id="dispChart"></canvas></div>
+    </div>
+  `;
+
+  const catData = k.categoryBreakdown || {};
+  const catLabels = Object.keys(catData);
+  buildChart('catChart', 'bar', catLabels, catLabels.map(l => catData[l].totalStock), 'Stock (Mtr)', ['#c9a84c','#2563eb','#059669','#dc2626','#7c3aed','#0891b2']);
+  buildChart('orderChart', 'doughnut', ['Completed','In Production','Pending'], [k.completedOrderCount||0, k.activeOrderCount||0, k.pendingOrderCount||0], 'Orders', ['#059669','#2563eb','#d97706']);
+  const topItems = k.topItems || [];
+  buildChart('itemChart', 'bar', topItems.map(i=>i.code), topItems.map(i=>i.balance), 'Balance (Mtr)', ['#0d1b2a']);
+  const months = Object.keys(k.monthlyDispatch||{}).sort().slice(-6);
+  buildLineChart('dispChart', months, months.map(m => k.monthlyDispatch[m]));
+}
+
+function buildChart(id, type, labels, data, label, colors) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  if (charts[id]) charts[id].destroy();
+  const isDark = document.body.classList.contains('dark');
+  const textColor = isDark ? '#94a3b8' : '#6b7280';
+  charts[id] = new Chart(ctx, {
+    type: type,
+    data: { labels: labels, datasets: [{ label: label, data: data,
+      backgroundColor: type === 'doughnut' ? colors : colors.map(c => c + 'dd'),
+      borderRadius: type === 'bar' ? 6 : 0, borderWidth: 0 }]},
+    options: { responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { labels: { color: textColor, font: { size: 10 } } } },
+      scales: type === 'bar' ? { x:{ticks:{color:textColor,font:{size:9}}}, y:{ticks:{color:textColor}} } : {}
+    }
+  });
+}
+function buildLineChart(id, labels, data) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  if (charts[id]) charts[id].destroy();
+  const isDark = document.body.classList.contains('dark');
+  const textColor = isDark ? '#94a3b8' : '#6b7280';
+  charts[id] = new Chart(ctx, {
+    type: 'line',
+    data: { labels: labels, datasets: [{ label: 'Mtr Dispatched', data: data,
+      borderColor: '#c9a84c', backgroundColor: 'rgba(201,168,76,0.12)',
+      tension: 0.4, fill: true, pointBackgroundColor: '#c9a84c', pointRadius: 4 }]},
+    options: { responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { labels: { color: textColor, font: { size: 10 } } } },
+      scales: { x:{ticks:{color:textColor,font:{size:9}}}, y:{ticks:{color:textColor}} } }
+  });
+}
+
+// ===== INVENTORY =====
+function renderInventory(c) {
+  const maxBalance = Math.max.apply(null, (allData.master||[]).map(i => parseFloat(i.ClosingBalance)||0));
+  const cats = [...new Set((allData.master||[]).map(i => i.Category).filter(Boolean))];
+  c.innerHTML = `
+    <div class="table-card">
+      <div class="table-header">
+        <h3><i class="fas fa-warehouse" style="color:var(--accent)"></i> All Stock Items</h3>
+        <div class="filter-bar">
+          <input type="text" id="invSearch" placeholder="Search item code/name..." oninput="filterInventory()" style="width:220px">
+          <select id="invCat" onchange="filterInventory()"><option value="">All Categories</option>${cats.map(x=>`<option>${x}</option>`).join('')}</select>
+          <select id="invStatus" onchange="filterInventory()"><option value="">All Status</option><option>REORDER (LOW)</option><option>ABOVE LEVEL</option><option>NORMAL</option></select>
+          <button class="btn btn-ghost btn-sm" onclick="exportBackup()"><i class="fas fa-download"></i> Backup</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Item Code</th><th>Name</th><th>Cat</th><th>Wt</th><th>Opening</th><th>In</th><th>Out</th><th>Alloc</th><th>Closing</th><th>Cost</th><th>Sell</th><th>Status</th></tr></thead>
+        <tbody id="invBody"></tbody>
+      </table>
+      </div>
+    </div>`;
+  window._invMax = maxBalance;
+  filterInventory();
+}
+
+function filterInventory() {
+  const q = (document.getElementById('invSearch')||{}).value || '';
+  const cat = (document.getElementById('invCat')||{}).value || '';
+  const st = (document.getElementById('invStatus')||{}).value || '';
+  const tbody = document.getElementById('invBody');
+  if (!tbody) return;
+  const items = (allData.master||[]).filter(it => {
+    const mq = !q || (it.ItemCode||'').toLowerCase().includes(q.toLowerCase()) || (it.ItemName||'').toLowerCase().includes(q.toLowerCase());
+    return mq && (!cat || it.Category===cat) && (!st || it.ReorderStatus===st);
+  });
+  if (!items.length) { tbody.innerHTML = emptyRow(12,'No items match','box-open'); return; }
+  tbody.innerHTML = items.map(it => {
+    const bal = parseFloat(it.ClosingBalance)||0;
+    const pct = window._invMax > 0 ? (bal/window._invMax*100).toFixed(0) : 0;
+    const barColor = it.ReorderStatus==='REORDER (LOW)' ? 'var(--danger)' : (it.ReorderStatus==='ABOVE LEVEL' ? '#7c3aed' : 'var(--success)');
+    const badgeClass = it.ReorderStatus==='REORDER (LOW)' ? 'badge-reorder' : (it.ReorderStatus==='ABOVE LEVEL' ? 'badge-above' : 'badge-normal');
+    return `<tr>
+      <td><span class="mono">${it.ItemCode||''}</span></td>
+      <td style="font-weight:600">${it.ItemName||''}</td>
+      <td>${it.Category||'—'}</td>
+      <td class="mono">${it.WeightMtr||'—'}</td>
+      <td class="mono">${num(it.OpeningStock)}</td>
+      <td class="mono" style="color:var(--success)">${num(it.TotalInMtrKG)}</td>
+      <td class="mono" style="color:var(--danger)">${num(it.TotalOutMtrKG)}</td>
+      <td class="mono" style="color:var(--warning)">${num(it.AllocatedtoOrders)}</td>
+      <td class="stock-cell">
+        <div style="font-weight:700">${num(bal)} <span style="font-size:10px;color:var(--text-muted)">Mtr</span></div>
+        <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%;background:${barColor}"></div></div>
+      </td>
+      <td class="mono">${it.CostPerMtr?'₹'+num(it.CostPerMtr):'—'}</td>
+      <td class="mono">${it.SellingPricePerMtr?'₹'+num(it.SellingPricePerMtr):'—'}</td>
+      <td><span class="badge ${badgeClass}">${it.ReorderStatus||'NORMAL'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== ORDER BOOK =====
+function renderOrderBook(c) {
+  c.innerHTML = `
+    <div class="table-card">
+      <div class="table-header">
+        <h3><i class="fas fa-book-open" style="color:var(--accent)"></i> Order Book</h3>
+        <div class="filter-bar">
+          <input type="text" id="orderSearch" placeholder="Search order/client/item..." oninput="filterOrders()" style="width:220px">
+          <select id="orderStatus" onchange="filterOrders()"><option value="">All Status</option><option>Pending</option><option>In Production</option><option>Completed</option></select>
+          <button class="btn btn-gold btn-sm" onclick="openModal('orderModal')"><i class="fas fa-plus"></i> New Order</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Order ID</th><th>Date</th><th>Client</th><th>Item</th><th style="text-align:right">Qty</th><th style="text-align:right">Value</th><th>Status</th><th>Priority</th><th>Action</th></tr></thead>
+        <tbody id="orderBody"></tbody>
+      </table></div>
+    </div>`;
+  filterOrders();
+}
+
+function filterOrders() {
+  const q = (document.getElementById('orderSearch')||{}).value || '';
+  const st = (document.getElementById('orderStatus')||{}).value || '';
+  const tbody = document.getElementById('orderBody');
+  if (!tbody) return;
+  const items = (allData.orders||[]).filter(o => {
+    const mq = !q || [o.OrderID,o.ClientName,o.ItemCode].some(f => (f||'').toLowerCase().includes(q.toLowerCase()));
+    return mq && (!st || o.Status===st);
+  });
+  if (!items.length) { tbody.innerHTML = emptyRow(9,'No orders found','clipboard-list'); return; }
+  tbody.innerHTML = items.map(o => {
+    const statusMap = {'Completed':'badge-completed','In Production':'badge-production','Pending':'badge-pending'};
+    return `<tr>
+      <td><span class="mono" style="font-weight:700">${o.OrderID||''}</span></td>
+      <td class="mono">${o.Date||''}</td>
+      <td style="font-weight:600">${o.ClientName||''}</td>
+      <td class="mono">${o.ItemCode||''}</td>
+      <td style="text-align:right;font-weight:700">${num(o.OrderedQtyMtrKG)}</td>
+      <td style="text-align:right">${o.TotalValue?'₹'+num(o.TotalValue):'—'}</td>
+      <td><span class="badge ${statusMap[o.Status]||'badge-pending'}">${o.Status||''}</span></td>
+      <td>${o.Priority||'Normal'}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openLifecycle('${o.OrderID}')" title="View"><i class="fas fa-eye"></i></button>
+        ${o.Status!=='Completed' ? `<select class="status-select" onchange="changeOrderStatus('${o.OrderID}',this.value)"><option value="">⇆</option><option>Pending</option><option>In Production</option><option>Completed</option></select>` : ''}
+      </td></tr>`;
+  }).join('');
+}
+
+function changeOrderStatus(orderId, newStatus) {
+  if (!newStatus) return;
+  google.script.run.withSuccessHandler(r => {
+    toast(r.message, r.success ? 'success' : 'error');
+    if (r.success) refreshAll();
+  }).updateOrderStatus(orderId, newStatus);
+}
+
+// ===== JOB WORK =====
+function renderJobWork(c) {
+  const settings = allData.settings || {};
+  c.innerHTML = `
+    <div class="alert-banner" style="background:linear-gradient(135deg,#78350f,#92400e);margin-bottom:16px">
+      <i class="fas fa-info-circle"></i>
+      <span><b>Active Rules:</b> Payment @ ₹${settings['jobwork.defaultRate']||'0.25'}/Mtr · Wastage above <b>${settings['jobwork.wastageWarnPct']||'4'}%</b> flagged critical</span>
+    </div>
+    <div class="table-card">
+      <div class="table-header">
+        <h3><i class="fas fa-tools" style="color:var(--accent)"></i> Job Work Tracker</h3>
+        <div class="filter-bar">
+          <input type="text" id="jobSearch" placeholder="Search JobID/Worker/Order..." oninput="filterJobWork()" style="width:220px">
+          <select id="jobStatus" onchange="filterJobWork()"><option value="">All Status</option><option>Out</option><option>Completed</option></select>
+          <button class="btn btn-gold btn-sm" onclick="openModal('jobModal')"><i class="fas fa-plus"></i> Add Job</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Date</th><th>Job ID</th><th>Order</th><th>Worker</th><th>Item</th><th style="text-align:right">Sent</th><th style="text-align:right">Recv</th><th style="text-align:right">Bal</th><th>Waste %</th><th>Grade</th><th style="text-align:right">Pay</th><th>Status</th></tr></thead>
+        <tbody id="jobBody"></tbody>
+      </table></div>
+    </div>`;
+  filterJobWork();
+}
+
+function filterJobWork() {
+  const q = (document.getElementById('jobSearch')||{}).value || '';
+  const st = (document.getElementById('jobStatus')||{}).value || '';
+  const tbody = document.getElementById('jobBody');
+  if (!tbody) return;
+  const warnPct = parseFloat((allData.settings||{})['jobwork.wastageWarnPct'])||4;
+  const items = (allData.jobWork||[]).filter(j => {
+    const mq = !q || [j.JobID,j.WorkerName,j.OrderID,j.ItemCode].some(f => (f||'').toLowerCase().includes(q.toLowerCase()));
+    return mq && (!st || j.Status===st);
+  });
+  if (!items.length) { tbody.innerHTML = emptyRow(12,'No job work yet','hammer'); return; }
+  tbody.innerHTML = items.map(j => {
+    const sent = parseFloat(j.SentQtyMtr)||0, recv = parseFloat(j.ReceivedQtyMtr)||0, waste = parseFloat(j.WastageMtr)||0;
+    const bal = Math.max(0, sent-recv);
+    const pct = sent>0 ? (waste/sent*100) : 0;
+    const wClass = pct>warnPct ? 'badge badge-critical' : '';
+    const sBadge = j.Status==='Completed' ? 'badge-done' : 'badge-out';
+    const pay = j.TotalPayment ? parseFloat(j.TotalPayment) : (recv*(parseFloat(j.RatePerMtr)||0.25));
+    return `<tr>
+      <td class="mono">${j.Date||'—'}</td>
+      <td><span class="mono" style="font-weight:700">${j.JobID||''}</span></td>
+      <td class="mono">${j.OrderID||''}</td>
+      <td style="font-weight:600">${j.WorkerName||''}</td>
+      <td class="mono">${j.ItemCode||''}</td>
+      <td style="text-align:right;color:#4f46e5">${num(sent)}</td>
+      <td style="text-align:right;font-weight:700">${num(recv)}</td>
+      <td style="text-align:right;color:var(--warning)">${bal>0?bal.toFixed(1):'<span style="color:var(--success)">Done</span>'}</td>
+      <td><span class="${wClass}">${pct.toFixed(1)}%</span></td>
+      <td>${j.QualityGrade||'—'}</td>
+      <td style="text-align:right;color:var(--success)">₹${pay.toFixed(2)}</td>
+      <td><span class="badge ${sBadge}">${j.Status||''}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== DISPATCH =====
+function renderDispatch(c) {
+  c.innerHTML = `
+    <div class="table-card">
+      <div class="table-header">
+        <h3><i class="fas fa-truck" style="color:var(--accent)"></i> Dispatch Log</h3>
+        <div class="filter-bar">
+          <input type="text" id="dispSearch" placeholder="Search order/client/challan..." oninput="filterDispatch()" style="width:220px">
+          <select id="dispDateFilter" onchange="filterDispatch()"><option value="all">All</option><option value="today">Today</option><option value="month">This Month</option></select>
+          <button class="btn btn-gold btn-sm" onclick="openModal('dispatchModal')"><i class="fas fa-plus"></i> Log Dispatch</button>
+        </div>
+      </div>
+      <div class="table-header" style="background:rgba(201,168,76,0.06);border-top:none">
+        <div></div>
+        <div style="display:flex;gap:20px;font-size:12px;font-weight:600">
+          <span>Total Volume: <span id="dispTotal" style="color:var(--accent);font-size:15px;font-weight:800">—</span></span>
+          <span>Records: <span id="dispCount" style="color:var(--text-muted)">—</span></span>
+        </div>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Dispatch ID</th><th>Order</th><th>Client</th><th>Item</th><th style="text-align:right">Qty</th><th>Date</th><th>Challan</th><th>Vehicle</th><th>Action</th></tr></thead>
+        <tbody id="dispBody"></tbody>
+      </table></div>
+    </div>`;
+  filterDispatch();
+}
+
+function filterDispatch() {
+  const q = (document.getElementById('dispSearch')||{}).value || '';
+  const f = (document.getElementById('dispDateFilter')||{}).value || 'all';
+  const t = today(), m = t.substring(0,7);
+  const tbody = document.getElementById('dispBody');
+  if (!tbody) return;
+  const items = (allData.dispatch||[]).filter(d => {
+    const mq = !q || [d.DispatchID,d.OrderID,d.ClientName,d.ChallanNo].some(x => (x||'').toLowerCase().includes(q.toLowerCase()));
+    const md = f==='all' || (f==='today'&&d.DispatchDate===t) || (f==='month'&&(d.DispatchDate||'').substring(0,7)===m);
+    return mq && md;
+  });
+  const total = items.reduce((s,d) => s + (parseFloat(d.DispatchedQty)||0), 0);
+  document.getElementById('dispTotal').innerText = total.toLocaleString() + ' Mtr';
+  document.getElementById('dispCount').innerText = items.length + ' records';
+  if (!items.length) { tbody.innerHTML = emptyRow(9,'No dispatches found','shipping-fast'); return; }
+  tbody.innerHTML = items.map(d => `<tr>
+    <td><span class="mono" style="font-weight:700">${d.DispatchID||''}</span></td>
+    <td class="mono">${d.OrderID||''}</td>
+    <td style="font-weight:600">${d.ClientName||''}</td>
+    <td class="mono">${d.ItemCode||''}</td>
+    <td style="text-align:right;font-weight:700">${num(d.DispatchedQty)}</td>
+    <td style="color:var(--success)">${d.DispatchDate||''}</td>
+    <td class="mono">${d.ChallanNo||'—'}</td>
+    <td class="mono">${d.VehicleNo||'—'}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="generateChallan('${d.DispatchID}')"><i class="fas fa-file-pdf"></i></button></td>
+  </tr>`).join('');
+}
+
+// ===== PURCHASE ORDERS =====
+function renderPurchase(c) {
+  c.innerHTML = `
+    <div class="table-card">
+      <div class="table-header">
+        <h3><i class="fas fa-shopping-cart" style="color:var(--accent)"></i> Purchase Orders</h3>
+        <div class="filter-bar">
+          <input type="text" id="poSearch" placeholder="Search PO/Vendor/Item..." oninput="filterPO()" style="width:220px">
+          <select id="poStatus" onchange="filterPO()"><option value="">All</option><option>Open</option><option>Partially Received</option><option>Received</option><option>Cancelled</option></select>
+          <button class="btn btn-gold btn-sm" onclick="openModal('poModal')"><i class="fas fa-plus"></i> New PO</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>PO ID</th><th>Date</th><th>Vendor</th><th>Item</th><th style="text-align:right">Ordered</th><th style="text-align:right">Received</th><th style="text-align:right">Value</th><th>Status</th><th>Payment</th><th>Action</th></tr></thead>
+        <tbody id="poBody"></tbody>
+      </table></div>
+    </div>`;
+  filterPO();
+}
+
+function filterPO() {
+  const q = (document.getElementById('poSearch')||{}).value || '';
+  const st = (document.getElementById('poStatus')||{}).value || '';
+  const tbody = document.getElementById('poBody');
+  if (!tbody) return;
+  const items = (allData.purchaseOrders||[]).filter(p => {
+    const mq = !q || [p.POID,p.VendorName,p.ItemCode].some(x => (x||'').toLowerCase().includes(q.toLowerCase()));
+    return mq && (!st || p.Status===st);
+  });
+  if (!items.length) { tbody.innerHTML = emptyRow(10,'No POs yet','shopping-cart'); return; }
+  tbody.innerHTML = items.map(p => {
+    const sMap = {'Open':'badge-pending','Partially Received':'badge-partial','Received':'badge-completed','Cancelled':'badge-reorder'};
+    const pMap = {'Paid':'badge-paid','Unpaid':'badge-unpaid','Partial':'badge-partial'};
+    return `<tr>
+      <td><span class="mono" style="font-weight:700">${p.POID||''}</span></td>
+      <td class="mono">${p.Date||''}</td>
+      <td style="font-weight:600">${p.VendorName||''}</td>
+      <td class="mono">${p.ItemCode||''}</td>
+      <td style="text-align:right">${num(p.OrderedQty)}</td>
+      <td style="text-align:right;color:var(--success)">${num(p.ReceivedQty)}</td>
+      <td style="text-align:right;font-weight:700">₹${num(p.TotalValue)}</td>
+      <td><span class="badge ${sMap[p.Status]||'badge-normal'}">${p.Status||''}</span></td>
+      <td><span class="badge ${pMap[p.PaymentStatus]||'badge-normal'}">${p.PaymentStatus||'Unpaid'}</span></td>
+      <td>${p.Status!=='Received'?`<button class="btn btn-ghost btn-sm" onclick="receivePO('${p.POID}',${parseFloat(p.OrderedQty)||0})">Receive</button>`:'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function receivePO(poId, suggested) {
+  const qty = prompt('Received quantity (Mtr):', suggested);
+  if (!qty) return;
+  google.script.run.withSuccessHandler(r => {
+    toast(r.message, r.success?'success':'error');
+    if (r.success) refreshAll();
+  }).receivePurchaseOrder(poId, qty);
+}
+
+// ===== GENERIC PARTY (Clients/Vendors/Workers) =====
+function renderParty(c, kind, headers) {
+  const data = allData[kind.toLowerCase()] || [];
+  c.innerHTML = `
+    <div class="table-card">
+      <div class="table-header">
+        <h3><i class="fas fa-users" style="color:var(--accent)"></i> ${kind}</h3>
+        <div class="filter-bar">
+          <input type="text" id="pSearch" placeholder="Search..." oninput="filterParty('${kind}')" style="width:220px">
+          <button class="btn btn-gold btn-sm" onclick="openPartyModal('${kind}', null)"><i class="fas fa-plus"></i> Add ${kind.slice(0,-1)}</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr>${headers.slice(0,6).map(h=>`<th>${h}</th>`).join('')}<th>Action</th></tr></thead>
+        <tbody id="partyBody"></tbody>
+      </table></div>
+    </div>`;
+  window._partyKind = kind;
+  window._partyHeaders = headers;
+  filterParty(kind);
+}
+
+function filterParty(kind) {
+  const q = (document.getElementById('pSearch')||{}).value || '';
+  const data = (allData[kind.toLowerCase()] || []).filter(p => {
+    if (!q) return true;
+    return Object.values(p).some(v => String(v||'').toLowerCase().includes(q.toLowerCase()));
+  });
+  const headers = window._partyHeaders;
+  const tbody = document.getElementById('partyBody');
+  if (!data.length) { tbody.innerHTML = emptyRow(headers.length+1,'No '+kind.toLowerCase()+' yet','address-book'); return; }
+  tbody.innerHTML = data.map(p => `<tr>
+    ${headers.slice(0,6).map(h => `<td>${p[h]||'—'}</td>`).join('')}
+    <td>
+      <button class="btn btn-ghost btn-sm" onclick='openPartyModal("${kind}", ${JSON.stringify(p).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i></button>
+      ${(p.Phone) ? `<button class="btn btn-ghost btn-sm" onclick="waLink('${p.Phone}','Hi ${p[headers[0]]||''}')" title="WhatsApp"><i class="fab fa-whatsapp" style="color:#25D366"></i></button>` : ''}
+    </td>
+  </tr>`).join('');
+}
+
+function openPartyModal(kind, existing) {
+  document.getElementById('partyTitle').innerText = (existing ? 'Edit ' : 'Add ') + kind.slice(0,-1);
+  window._partyEditing = { kind: kind, data: existing || {} };
+  const headers = window._partyHeaders;
+  const html = headers.map(h => `
+    <div class="form-group ${['Address','BillingAddress','ShippingAddress','Notes'].includes(h) ? 'full' : ''}">
+      <label>${h}</label>
+      <input type="text" id="party-${h}" value="${existing ? (existing[h]||'') : ''}">
+    </div>`).join('');
+  document.getElementById('partyForm').innerHTML = html;
+  openModal('partyModal');
+}
+
+function submitParty() {
+  const headers = window._partyHeaders;
+  const kind = window._partyEditing.kind;
+  const payload = {};
+  headers.forEach(h => { payload[h] = document.getElementById('party-' + h).value; });
+  const fn = kind === 'Clients' ? 'saveClient' : kind === 'Vendors' ? 'saveVendor' : 'saveWorker';
+  google.script.run.withSuccessHandler(r => {
+    toast(r.message, r.success?'success':'error');
+    if (r.success) { closeModal('partyModal'); refreshAll(); }
+  })[fn](payload);
+}
+
+function waLink(phone, message) {
+  google.script.run.withSuccessHandler(url => window.open(url, '_blank')).whatsappLink(phone, message);
+}
+
+// ===== PAYMENTS =====
+function renderPayments(c) {
+  c.innerHTML = `
+    <div class="table-card">
+      <div class="table-header">
+        <h3><i class="fas fa-money-bill-wave" style="color:var(--accent)"></i> Payments Ledger</h3>
+        <div class="filter-bar">
+          <input type="text" id="paySearch" placeholder="Search..." oninput="filterPayments()" style="width:220px">
+          <select id="payType" onchange="filterPayments()"><option value="">All</option><option>Received</option><option>Paid</option></select>
+          <button class="btn btn-gold btn-sm" onclick="openModal('paymentModal')"><i class="fas fa-plus"></i> Record Payment</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Payment ID</th><th>Date</th><th>Type</th><th>Party</th><th>Ref</th><th style="text-align:right">Amount</th><th>Mode</th><th>Txn Ref</th></tr></thead>
+        <tbody id="payBody"></tbody>
+      </table></div>
+    </div>`;
+  filterPayments();
+}
+function filterPayments() {
+  const q = (document.getElementById('paySearch')||{}).value || '';
+  const t = (document.getElementById('payType')||{}).value || '';
+  const items = (allData.payments||[]).filter(p => {
+    const mq = !q || [p.PartyName,p.PaymentID,p.RefID,p.TxnReference].some(x => (x||'').toLowerCase().includes(q.toLowerCase()));
+    return mq && (!t || p.Type===t);
+  });
+  const tbody = document.getElementById('payBody');
+  if (!items.length) { tbody.innerHTML = emptyRow(8,'No payments yet','money-bill'); return; }
+  tbody.innerHTML = items.map(p => `<tr>
+    <td><span class="mono" style="font-weight:700">${p.PaymentID||''}</span></td>
+    <td class="mono">${p.Date||''}</td>
+    <td><span class="badge ${p.Type==='Received'?'badge-completed':'badge-pending'}">${p.Type||''}</span></td>
+    <td><b>${p.PartyName||''}</b> <span style="color:var(--text-muted);font-size:10px">(${p.PartyType||''})</span></td>
+    <td class="mono">${p.RefID||'—'}</td>
+    <td style="text-align:right;font-weight:700;color:${p.Type==='Received'?'var(--success)':'var(--danger)'}">₹${num(p.Amount)}</td>
+    <td>${p.Mode||''}</td>
+    <td class="mono" style="color:var(--text-muted)">${p.TxnReference||'—'}</td>
+  </tr>`).join('');
+}
+
+// ===== RECEIVABLES & PAYABLES =====
+function renderReceivables(c) {
+  const adv = allData.advanced || {};
+  const rec = adv.receivables || [];
+  const pay = adv.payables || [];
+  const totalRec = rec.reduce((s,r)=>s+r.balance,0);
+  const totalPay = pay.reduce((s,r)=>s+r.balance,0);
+  c.innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi-card green"><div class="kpi-label">Total Receivable</div><div class="kpi-value">₹${(totalRec/100000).toFixed(2)}L</div><div class="kpi-sub">${rec.length} clients</div></div>
+      <div class="kpi-card red"><div class="kpi-label">Total Payable</div><div class="kpi-value">₹${(totalPay/100000).toFixed(2)}L</div><div class="kpi-sub">${pay.length} vendors</div></div>
+      <div class="kpi-card gold"><div class="kpi-label">Net Position</div><div class="kpi-value">₹${((totalRec-totalPay)/100000).toFixed(2)}L</div><div class="kpi-sub">Rec - Pay</div></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title"><i class="fas fa-arrow-down"></i> Receivables from Clients</div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Client</th><th style="text-align:right">Billed</th><th style="text-align:right">Received</th><th style="text-align:right">Balance</th></tr></thead>
+          <tbody>${rec.length ? rec.map(r => `<tr><td><b>${r.client}</b></td><td style="text-align:right">₹${num(r.billed)}</td><td style="text-align:right">₹${num(r.received)}</td><td style="text-align:right;font-weight:700;color:var(--danger)">₹${num(r.balance)}</td></tr>`).join('') : emptyRow(4,'No receivables','check')}</tbody>
+        </table></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><i class="fas fa-arrow-up"></i> Payables to Vendors</div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Vendor</th><th style="text-align:right">Billed</th><th style="text-align:right">Paid</th><th style="text-align:right">Balance</th></tr></thead>
+          <tbody>${pay.length ? pay.map(r => `<tr><td><b>${r.vendor}</b></td><td style="text-align:right">₹${num(r.billed)}</td><td style="text-align:right">₹${num(r.paid)}</td><td style="text-align:right;font-weight:700;color:var(--warning)">₹${num(r.balance)}</td></tr>`).join('') : emptyRow(4,'No payables','check')}</tbody>
+        </table></div>
+      </div>
+    </div>`;
+}
+
+// ===== REPORTS =====
+function renderReports(c) {
+  const adv = allData.advanced || {};
+  const abc = adv.abc || [];
+  const reord = adv.reorder || [];
+  const workers = adv.workers || [];
+  c.innerHTML = `
+    <div class="tab-pill">
+      <button class="active" onclick="switchReport('abc',this)">ABC Analysis</button>
+      <button onclick="switchReport('reorder',this)">Reorder Suggestions</button>
+      <button onclick="switchReport('aging',this)">Stock Aging</button>
+      <button onclick="switchReport('workers',this)">Worker Scoreboard</button>
+      <button onclick="switchReport('forecast',this)">Demand Forecast</button>
+    </div>
+    <div id="reportBody"></div>`;
+  switchReport('abc', c.querySelector('.tab-pill button'));
+}
+
+function switchReport(kind, btn) {
+  document.querySelectorAll('.tab-pill button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const body = document.getElementById('reportBody');
+  const adv = allData.advanced || {};
+  if (kind === 'abc') {
+    const abc = adv.abc || [];
+    body.innerHTML = `<div class="table-card"><div class="table-header"><h3>ABC Analysis (by Value)</h3></div><div style="overflow-x:auto"><table>
+      <thead><tr><th>Grade</th><th>Item</th><th>Name</th><th style="text-align:right">Value (₹)</th><th style="text-align:right">Cum %</th></tr></thead>
+      <tbody>${abc.length ? abc.map(a => `<tr><td><span class="badge badge-${a.grade}">${a.grade}</span></td><td class="mono">${a.code}</td><td>${a.name||'—'}</td><td style="text-align:right;font-weight:700">₹${num(a.value)}</td><td style="text-align:right">${a.cumPct}%</td></tr>`).join('') : emptyRow(5,'Need cost data in Master','info-circle')}</tbody>
+    </table></div></div>`;
+  } else if (kind === 'reorder') {
+    const r = adv.reorder || [];
+    const list = r.filter(x => x.action==='REORDER');
+    body.innerHTML = `<div class="table-card"><div class="table-header"><h3>Reorder Recommendations</h3><span class="badge badge-reorder">${list.length} items</span></div><div style="overflow-x:auto"><table>
+      <thead><tr><th>Item</th><th>Name</th><th style="text-align:right">Balance</th><th style="text-align:right">Avg/Day</th><th style="text-align:right">Reorder Point</th><th style="text-align:right">Suggest Order</th><th>Action</th></tr></thead>
+      <tbody>${list.length ? list.map(x => `<tr><td class="mono">${x.code}</td><td>${x.name||''}</td><td style="text-align:right">${x.balance}</td><td style="text-align:right">${x.avgPerDay}</td><td style="text-align:right">${x.reorderPoint}</td><td style="text-align:right;font-weight:700;color:var(--danger)">${x.suggestedOrder}</td><td><span class="badge badge-reorder">${x.action}</span></td></tr>`).join('') : emptyRow(7,'No reorders needed','check-circle')}</tbody>
+    </table></div></div>`;
+  } else if (kind === 'aging') {
+    const a = adv.aging || [];
+    body.innerHTML = `<div class="table-card"><div class="table-header"><h3>Stock Aging (from Stock Ledger)</h3></div><div style="overflow-x:auto"><table>
+      <thead><tr><th>Item</th><th style="text-align:right">0-30d</th><th style="text-align:right">31-60d</th><th style="text-align:right">61-90d</th><th style="text-align:right">90+d</th></tr></thead>
+      <tbody>${a.length ? a.map(x => `<tr><td class="mono">${x.code}</td><td style="text-align:right">${num(x.d0_30)}</td><td style="text-align:right;color:var(--warning)">${num(x.d31_60)}</td><td style="text-align:right;color:var(--warning)">${num(x.d61_90)}</td><td style="text-align:right;color:var(--danger);font-weight:700">${num(x.d90p)}</td></tr>`).join('') : emptyRow(5,'No ledger entries yet','info-circle')}</tbody>
+    </table></div></div>`;
+  } else if (kind === 'workers') {
+    const w = adv.workers || [];
+    body.innerHTML = `<div class="table-card"><div class="table-header"><h3>Worker Scoreboard</h3></div><div style="overflow-x:auto"><table>
+      <thead><tr><th>Worker</th><th style="text-align:right">Jobs</th><th style="text-align:right">Sent</th><th style="text-align:right">Received</th><th style="text-align:right">Wastage %</th><th style="text-align:right">Completion %</th><th style="text-align:right">Paid (₹)</th></tr></thead>
+      <tbody>${w.length ? w.map(x => `<tr><td><b>${x.worker}</b></td><td style="text-align:right">${x.jobs}</td><td style="text-align:right">${num(x.sent)}</td><td style="text-align:right;font-weight:700">${num(x.received)}</td><td style="text-align:right">${x.wastagePct}%</td><td style="text-align:right">${x.completionPct}%</td><td style="text-align:right;color:var(--success)">₹${num(x.paid)}</td></tr>`).join('') : emptyRow(7,'No workers','user-hard-hat')}</tbody>
+    </table></div></div>`;
+  } else if (kind === 'forecast') {
+    const f = adv.forecast || [];
+    body.innerHTML = `<div class="table-card"><div class="table-header"><h3>Demand Forecast (3-month MA)</h3></div><div style="overflow-x:auto"><table>
+      <thead><tr><th>Item</th><th>Months tracked</th><th style="text-align:right">Forecast next month (Mtr)</th></tr></thead>
+      <tbody>${f.length ? f.map(x => `<tr><td class="mono">${x.code}</td><td>${x.months.length}</td><td style="text-align:right;font-weight:700">${x.forecastNextMonth}</td></tr>`).join('') : emptyRow(3,'Need dispatch history','info-circle')}</tbody>
+    </table></div></div>`;
+  }
+}
+
+// ===== ALERTS =====
+function renderAlerts(c) {
+  google.script.run.withSuccessHandler(alerts => {
+    const html = alerts.length ? alerts.map(a => {
+      const bg = a.type==='critical' ? '#fee2e2' : '#fef3c7';
+      const border = a.type==='critical' ? '#dc2626' : '#d97706';
+      const icon = a.type==='critical' ? 'fa-exclamation-circle' : 'fa-exclamation-triangle';
+      return `<div style="background:${bg};border:1px solid ${border};border-radius:var(--radius);padding:16px;display:flex;gap:14px;align-items:flex-start">
+        <i class="fas ${icon}" style="color:${border};font-size:18px;flex-shrink:0"></i>
+        <div><div style="font-weight:700;color:#111">${a.itemCode} — ${a.itemName||''}</div>
+          <div style="font-size:12px;color:#374151;margin-top:4px">${a.message}</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:6px">Balance: <b>${num(a.balance)} Mtr</b></div></div>
+      </div>`;
+    }).join('') : '<div class="empty-state"><i class="fas fa-check-circle" style="color:var(--success)"></i>No alerts.</div>';
+    c.innerHTML = `<div style="margin-bottom:16px;font-weight:600;color:var(--text-muted)">${alerts.length} alert(s) active</div><div style="display:flex;flex-direction:column;gap:12px">${html}</div>`;
+  }).getStockAlerts();
+}
+
+// ===== SETTINGS =====
+function renderSettings(c) {
+  const s = allData.settings || {};
+  const user = allData.user || {};
+  const isAdmin = user.role === 'ADMIN';
+  c.innerHTML = `
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title"><i class="fas fa-building"></i> Company Profile</div>
+        ${settingField('company.name', 'Company Name', s)}
+        ${settingField('company.tagline', 'Tagline', s)}
+        ${settingField('company.address', 'Address', s)}
+        ${settingField('company.gstin', 'GSTIN', s)}
+        ${settingField('company.phone', 'Phone', s)}
+        ${settingField('company.email', 'Email', s)}
+        ${settingField('company.logoFileId', 'Logo Drive File ID', s)}
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><i class="fas fa-sliders-h"></i> Operational Rules</div>
+        ${settingField('invoice.prefix', 'Invoice Prefix', s)}
+        ${settingField('invoice.gstPct', 'Default GST %', s)}
+        ${settingField('jobwork.defaultRate', 'Job Work Rate ₹/Mtr', s)}
+        ${settingField('jobwork.wastageWarnPct', 'Wastage warning %', s)}
+        ${settingField('whatsapp.countryCode', 'WhatsApp Country Code', s)}
+        ${settingField('theme.accent', 'Theme Accent (hex)', s)}
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><i class="fas fa-envelope"></i> Daily Email Digest</div>
+        ${settingField('alert.recipientEmail', 'Recipient email', s)}
+        ${settingField('alert.digestHour', 'Send at hour (0-23 IST)', s)}
+        <button class="btn btn-gold btn-sm" style="margin-top:8px" onclick="installDigest()"><i class="fas fa-clock"></i> Install / Update Daily Trigger</button>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="sendTestDigest()"><i class="fas fa-paper-plane"></i> Send Test Now</button>
+      </div>
+      ${isAdmin ? `<div class="chart-card">
+        <div class="chart-title"><i class="fas fa-user-shield"></i> System</div>
+        <button class="btn btn-primary btn-sm" onclick="runSetup()"><i class="fas fa-magic"></i> Run / Repair Setup</button>
+        <button class="btn btn-ghost btn-sm" style="margin-left:6px" onclick="exportBackup()"><i class="fas fa-cloud-download-alt"></i> Export Backup ZIP</button>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:12px">"Run Setup" provisions any missing sheets/columns. Safe to re-run.</p>
+      </div>` : ''}
+    </div>`;
+}
+
+function settingField(key, label, s) {
+  return `<div class="form-group" style="margin-bottom:10px">
+    <label>${label}</label>
+    <div style="display:flex;gap:6px">
+      <input type="text" id="set-${key}" value="${(s[key]||'').toString().replace(/"/g,'&quot;')}" style="flex-grow:1">
+      <button class="btn btn-gold btn-sm" onclick="saveSetting('${key}')"><i class="fas fa-save"></i></button>
+    </div>
+  </div>`;
+}
+
+function saveSetting(key) {
+  const value = document.getElementById('set-' + key).value;
+  google.script.run.withSuccessHandler(() => {
+    toast('Saved ' + key, 'success');
+    allData.settings[key] = value;
+  }).setSetting(key, value);
+}
+
+function installDigest() {
+  google.script.run.withSuccessHandler(r => toast(r.message, r.ok?'success':'error')).installDailyDigest();
+}
+function sendTestDigest() {
+  toast('Sending digest...', 'success');
+  google.script.run.withSuccessHandler(()=>toast('Sent (if recipient set)','success')).sendDailyDigest();
+}
+function runSetup() {
+  google.script.run.withSuccessHandler(r => {
+    toast('Setup OK. Created: ' + (r.created.length||0) + ', Patched: ' + (r.patched.length||0), 'success');
+    refreshAll();
+  }).setupAll();
+}
+function exportBackup() {
+  toast('Building backup...', 'success');
+  google.script.run.withSuccessHandler(r => {
+    if (r.ok) window.open(r.url, '_blank');
+  }).exportAllSheetsCsvZip();
+}
+
+// ===== AUDIT LOG =====
+function renderAudit(c) {
+  google.script.run.withSuccessHandler(rows => {
+    c.innerHTML = `<div class="table-card"><div class="table-header"><h3><i class="fas fa-history" style="color:var(--accent)"></i> Audit Log (last 200)</h3></div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>When</th><th>User</th><th>Action</th><th>Module</th><th>Ref</th><th>Details</th></tr></thead>
+        <tbody>${rows.length ? rows.map(r => `<tr><td class="mono">${r.Timestamp}</td><td>${r.User}</td><td><b>${r.Action}</b></td><td>${r.Module}</td><td class="mono">${r.RefID||'—'}</td><td style="color:var(--text-muted);font-size:11px">${(r.Details||'').substring(0,80)}</td></tr>`).join('') : emptyRow(6,'Empty','clock')}</tbody>
+      </table></div></div>`;
+  }).getAuditLog(200);
+}
+
+// ===== LIFECYCLE =====
+function openLifecycle(orderId) {
+  currentLifecycleOrderId = orderId;
+  const order = (allData.orders||[]).find(o => o.OrderID===orderId);
+  const jobs = (allData.jobWork||[]).filter(j => j.OrderID===orderId);
+  const dispatches = (allData.dispatch||[]).filter(d => d.OrderID===orderId);
+  if (!order) return;
+  document.getElementById('lifecycleTitle').innerText = 'Lifecycle — ' + order.ClientName + ' | ' + orderId;
+  const step2 = jobs.length > 0, step3 = dispatches.length > 0, step4 = order.Status==='Completed';
+  const jobHtml = jobs.length ? jobs.map(j => `<p>Job <b>${j.JobID}</b> · ${j.WorkerName} · Sent ${j.SentQtyMtr} / Recv ${j.ReceivedQtyMtr} · ${j.Status}</p>`).join('') : '<p>No job work yet.</p>';
+  const dHtml = dispatches.length ? dispatches.map(d => `<p>Dispatch <b>${d.DispatchID}</b> · ${d.DispatchedQty} Mtr · ${d.DispatchDate} · ${d.ChallanNo||'—'}</p>`).join('') : '<p>Not yet dispatched.</p>';
+  document.getElementById('lifecycleBody').innerHTML = `
+    <div class="lifecycle">
+      <div class="lc-step"><div class="lc-dot done">1</div><div class="lc-content"><div class="lc-title">Order Placed</div><div class="lc-detail"><p>${order.Date} · ${order.ClientName} · ${order.ItemCode} · ${order.OrderedQtyMtrKG} Mtr</p><p>Status: <span class="badge ${order.Status==='Completed'?'badge-completed':order.Status==='In Production'?'badge-production':'badge-pending'}">${order.Status}</span></p></div></div></div>
+      <div class="lc-step"><div class="lc-dot ${step2?'done':'pending'}">2</div><div class="lc-content"><div class="lc-title">Production / Job Work</div><div class="lc-detail">${jobHtml}</div></div></div>
+      <div class="lc-step"><div class="lc-dot ${step3?'done':'pending'}">3</div><div class="lc-content"><div class="lc-title">Dispatch</div><div class="lc-detail">${dHtml}</div></div></div>
+      <div class="lc-step"><div class="lc-dot ${step4?'done':'pending'}">4</div><div class="lc-content"><div class="lc-title">Completed</div><div class="lc-detail">${step4?'<p style="color:var(--success);font-weight:600"><i class="fas fa-check-circle"></i> Delivered.</p>':'<p>Awaiting.</p>'}</div></div></div>
+    </div>`;
+  openModal('lifecycleModal');
+}
+
+function generateInvoice() {
+  if (!currentLifecycleOrderId) return;
+  toast('Generating invoice...', 'success');
+  google.script.run.withSuccessHandler(r => {
+    if (r.ok) {
+      toast('Invoice ' + r.invoiceNo + ' created.', 'success');
+      window.open(r.url, '_blank');
+    } else toast(r.message || 'Failed', 'error');
+  }).withFailureHandler(err => toast(err.message, 'error')).generateInvoicePdf(currentLifecycleOrderId);
+}
+
+function generateChallan(dispId) {
+  google.script.run.withSuccessHandler(r => {
+    if (r.ok) window.open(r.url, '_blank');
+  }).generateChallanPdf(dispId);
+}
+
+// ===== MODALS / SUBMIT =====
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function submitOrder() {
+  const data = {
+    date: V('f-order-date'), clientName: V('f-order-client'), itemCode: V('f-order-item'),
+    qty: V('f-order-qty'), status: V('f-order-status'), remarks: V('f-order-remarks'),
+    expectedDelivery: V('f-order-expected'), priority: V('f-order-priority'),
+    salesPerson: V('f-order-sp'), ratePerMtr: V('f-order-rate'), advance: V('f-order-advance')
+  };
+  if (!data.clientName || !data.itemCode || !data.qty) return toast('Fill required fields', 'error');
+  google.script.run.withSuccessHandler(r => {
+    toast(r.message, r.success?'success':'error');
+    if (r.success) { closeModal('orderModal'); refreshAll(); }
+  }).saveNewOrder(data);
+}
+function submitJobWork() {
+  const data = {
+    date: V('f-job-date'), orderId: V('f-job-orderid'), workerName: V('f-job-worker'),
+    itemCode: V('f-job-item'), sentQty: V('f-job-sent'), receivedQty: V('f-job-received'),
+    wastageMtr: V('f-job-wastage'), status: V('f-job-status'), totalPayment: V('f-job-payment'),
+    ratePerMtr: V('f-job-rate'), qualityGrade: V('f-job-grade'), remarks: V('f-job-remarks')
+  };
+  if (!data.workerName || !data.itemCode || !data.sentQty) return toast('Fill required fields', 'error');
+  google.script.run.withSuccessHandler(r => {
+    toast(r.message, r.success?'success':'error');
+    if (r.success) { closeModal('jobModal'); refreshAll(); }
+  }).saveNewJobWork(data);
+}
+function submitDispatch() {
+  const data = {
+    orderId: V('f-disp-orderid'), clientName: V('f-disp-client'), itemCode: V('f-disp-item'),
+    dispatchedQty: V('f-disp-qty'), dispatchDate: V('f-disp-date'), challanNo: V('f-disp-challan'),
+    transporter: V('f-disp-trans'), vehicleNo: V('f-disp-veh'), lrNumber: V('f-disp-lr'),
+    invoiceAmount: V('f-disp-inv-amt'), remarks: V('f-disp-remarks'),
+    markCompleted: document.getElementById('f-disp-complete').checked
+  };
+  if (!data.orderId || !data.clientName || !data.dispatchedQty) return toast('Fill required fields', 'error');
+  google.script.run.withSuccessHandler(r => {
+    toast(r.message, r.success?'success':'error');
+    if (r.success) { closeModal('dispatchModal'); refreshAll(); }
+  }).saveNewDispatch(data);
+}
+function submitPO() {
+  const data = {
+    date: V('f-po-date'), expectedDelivery: V('f-po-exp'), vendorName: V('f-po-vendor'),
+    itemCode: V('f-po-item'), orderedQty: V('f-po-qty'), ratePerMtr: V('f-po-rate'),
+    gstPct: V('f-po-gst'), status: V('f-po-status'), remarks: V('f-po-remarks')
+  };
+  if (!data.vendorName || !data.itemCode || !data.orderedQty) return toast('Fill required fields', 'error');
+  google.script.run.withSuccessHandler(r => {
+    toast(r.message, r.success?'success':'error');
+    if (r.success) { closeModal('poModal'); refreshAll(); }
+  }).saveNewPurchaseOrder(data);
+}
+function submitPayment() {
+  const data = {
+    date: V('f-pay-date'), type: V('f-pay-type'), partyType: V('f-pay-ptype'),
+    partyName: V('f-pay-pname'), refId: V('f-pay-ref'), amount: V('f-pay-amt'),
+    mode: V('f-pay-mode'), txnReference: V('f-pay-txn'), notes: V('f-pay-notes')
+  };
+  if (!data.partyName || !data.amount) return toast('Fill required fields', 'error');
+  google.script.run.withSuccessHandler(r => {
+    toast(r.message, r.success?'success':'error');
+    if (r.success) { closeModal('paymentModal'); refreshAll(); }
+  }).recordPayment(data);
+}
+
+// ===== GLOBAL SEARCH =====
+function globalSearch(q) {
+  if (!q || q.length < 2) return;
+  const lower = q.toLowerCase();
+  let found = null;
+  ['orders','master','dispatch','jobWork','purchaseOrders','clients','vendors'].some(key => {
+    const list = allData[key] || [];
+    const hit = list.find(row => Object.values(row).some(v => String(v||'').toLowerCase().includes(lower)));
+    if (hit) { found = { key, hit }; return true; }
+  });
+  if (found) {
+    const map = { orders:'orderbook', master:'inventory', dispatch:'dispatch', jobWork:'jobwork', purchaseOrders:'purchase', clients:'clients', vendors:'vendors' };
+    switchTab(map[found.key]);
+  }
+}
+
+// ===== HELPERS =====
+function V(id) { const e = document.getElementById(id); return e ? e.value.trim() : ''; }
+function num(v) { return Number(parseFloat(v)||0).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
+function emptyRow(cols, msg, icon) {
+  return `<tr><td colspan="${cols}" class="empty-state"><i class="fas fa-${icon||'box-open'}"></i>${msg}</td></tr>`;
+}
+function toast(message, type) {
+  type = type || 'success';
+  const container = document.getElementById('toast-container');
+  const icons = { success:'fa-check-circle', error:'fa-times-circle', warning:'fa-exclamation-circle' };
+  const colors = { success:'#059669', error:'#dc2626', warning:'#d97706' };
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = '<i class="fas ' + (icons[type]||'fa-info-circle') + '" style="color:' + colors[type] + '"></i>' + message;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+</script>
