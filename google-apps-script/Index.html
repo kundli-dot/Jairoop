@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IMS Dashboard — Jai Roop Textiles</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f0f2f5;--sidebar:#0d1b2a;--sidebar-hover:#1a2e47;--accent:#c9a84c;--accent2:#e8c96b;--card:#fff;--text:#1a202c;--text-muted:#6b7280;--border:#e5e7eb;--danger:#dc2626;--success:#059669;--warning:#d97706;--info:#2563eb;--radius:12px;--shadow:0 2px 12px rgba(0,0,0,.08);--shadow-lg:0 8px 32px rgba(0,0,0,.12);--font:"DM Sans",sans-serif;--mono:"DM Mono",monospace}
+.dark{--bg:#0a0f1a;--sidebar:#060b14;--sidebar-hover:#0f1c30;--card:#111827;--text:#f1f5f9;--text-muted:#94a3b8;--border:#1e293b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;transition:background .3s,color .3s}
+aside{width:240px;flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;transition:width .3s;overflow:hidden}
+.sidebar-logo{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;align-items:center}
+.logo-box{width:100%;height:68px;background:rgba(255,255,255,.95);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:8px;margin-bottom:10px}
+.logo-box img{max-width:100%;max-height:100%;object-fit:contain;display:none}
+.logo-text{font-size:11px;font-weight:700;letter-spacing:.12em;text-align:center;color:#1a202c;line-height:1.4}
+.brand-sub{color:rgba(201,168,76,.9);font-size:9px;letter-spacing:.2em;font-weight:600;text-transform:uppercase;text-align:center}
+nav{padding:12px 8px;flex-grow:1;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,.55);font-size:12.5px;font-weight:500;transition:all .18s;margin-bottom:2px;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--sidebar-hover);color:rgba(255,255,255,.85)}
+.nav-item.active{background:linear-gradient(135deg,rgba(201,168,76,.18),rgba(201,168,76,.08));color:var(--accent2);border-left:3px solid var(--accent);padding-left:9px}
+.nav-item i{width:16px;text-align:center;font-size:12px}
+.nav-section{font-size:9px;font-weight:700;letter-spacing:.15em;color:rgba(255,255,255,.25);padding:14px 12px 6px;text-transform:uppercase}
+.sidebar-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06);font-size:10px;color:rgba(255,255,255,.25)}
+.sync-time{font-size:9px;color:rgba(201,168,76,.6);font-family:var(--mono)}
+main{flex-grow:1;display:flex;flex-direction:column;overflow:hidden}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:var(--shadow)}
+.header-left h1{font-size:16px;font-weight:700;color:var(--text)}
+.header-left p{font-size:11px;color:var(--text-muted)}
+.header-right{display:flex;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .18s;font-family:var(--font)}
+.btn-primary{background:var(--sidebar);color:#fff}
+.btn-primary:hover{background:#1a2e47;transform:translateY(-1px)}
+.btn-success{background:var(--success);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-ghost{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--border)}
+.btn-gold{background:var(--accent);color:#1a1a1a;font-weight:700}
+.btn-gold:hover{background:var(--accent2)}
+.btn-sm{padding:5px 10px;font-size:11px}
+#content{flex-grow:1;overflow-y:auto;padding:24px}
+#loader{position:fixed;inset:0;background:var(--sidebar);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999}
+.loader-logo{font-size:13px;font-weight:700;letter-spacing:.25em;color:#fff;margin-bottom:6px}
+.loader-sub{font-size:10px;color:var(--accent);letter-spacing:.15em;margin-bottom:28px}
+.loader-bar{width:200px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.loader-fill{height:100%;width:0;background:var(--accent);border-radius:2px;animation:loadFill 1.2s ease forwards}
+@keyframes loadFill{to{width:100%}}
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:1001;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--card);border-radius:10px;padding:12px 18px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-lg);border-left:4px solid;animation:slideIn .3s ease;min-width:280px}
+.toast.success{border-color:var(--success)}
+.toast.error{border-color:var(--danger)}
+.toast.warning{border-color:var(--warning)}
+@keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+.alert-banner{background:linear-gradient(135deg,#7f1d1d,#991b1b);border-radius:var(--radius);padding:12px 18px;color:#fff;font-size:12px;display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:1px solid var(--border);position:relative;overflow:hidden}
+.kpi-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px}
+.kpi-card.red::before{background:var(--danger)}
+.kpi-card.green::before{background:var(--success)}
+.kpi-card.amber::before{background:var(--warning)}
+.kpi-card.blue::before{background:var(--info)}
+.kpi-card.gold::before{background:var(--accent)}
+.kpi-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+.kpi-value{font-size:28px;font-weight:800;line-height:1}
+.kpi-card.red .kpi-value{color:var(--danger)}
+.kpi-card.green .kpi-value{color:var(--success)}
+.kpi-card.amber .kpi-value{color:var(--warning)}
+.kpi-card.blue .kpi-value{color:var(--info)}
+.kpi-card.gold .kpi-value{color:var(--accent)}
+.kpi-sub{font-size:10px;color:var(--text-muted);margin-top:4px}
+.kpi-icon{position:absolute;right:14px;top:18px;font-size:22px;opacity:.12}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.chart-card{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.chart-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.chart-title i{color:var(--accent)}
+canvas{max-height:180px}
+.table-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden}
+.table-header{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.table-header h3{font-size:13px;font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:#0d1b2a;color:rgba(255,255,255,.85);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 14px;text-align:left;white-space:nowrap}
+.dark thead th{background:#060b14}
+tbody tr{border-bottom:1px solid var(--border);transition:background .12s}
+tbody tr:hover{background:rgba(201,168,76,.04)}
+tbody td{padding:10px 14px;color:var(--text);vertical-align:middle}
+.mono{font-family:var(--mono);font-size:11px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.badge-pending{background:#fef3c7;color:#92400e}
+.badge-production{background:#dbeafe;color:#1e40af}
+.badge-completed{background:#d1fae5;color:#065f46}
+.badge-reorder{background:#fee2e2;color:#991b1b}
+.badge-above{background:#f3e8ff;color:#6b21a8}
+.badge-normal{background:#f1f5f9;color:#475569}
+.badge-out{background:#fef3c7;color:#92400e}
+.badge-done{background:#d1fae5;color:#065f46}
+.badge-critical{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.progress-wrap{height:6px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input[type=text],input[type=date],input[type=number],select,textarea{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;transition:border .18s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(201,168,76,.15)}
+.input-sm{padding:6px 10px;font-size:11px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:16px;width:100%;max-width:580px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-lg);animation:modalIn .22s ease}
+@keyframes modalIn{from{transform:scale(.95);opacity:0}}
+.modal-head{padding:16px 20px;background:var(--sidebar);color:#fff;display:flex;justify-content:space-between;align-items:center}
+.modal-head h4{font-size:13px;font-weight:700;letter-spacing:.05em}
+.modal-body{padding:20px;overflow-y:auto;flex-grow:1}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;background:var(--card)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid .full{grid-column:1/-1}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
+.form-group input,.form-group select,.form-group textarea{width:100%}
+.lifecycle{display:flex;flex-direction:column;gap:0;position:relative}
+.lifecycle::before{content:"";position:absolute;left:14px;top:20px;bottom:20px;width:2px;background:var(--border);z-index:0}
+.lc-step{display:flex;gap:14px;padding:12px 0;position:relative;z-index:1}
+.lc-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;color:#fff}
+.lc-dot.done{background:var(--success)}
+.lc-dot.active{background:var(--warning)}
+.lc-dot.pending{background:var(--border);color:var(--text-muted)}
+.lc-content{flex-grow:1}
+.lc-title{font-size:12px;font-weight:700;margin-bottom:4px}
+.lc-detail{font-size:11px;color:var(--text-muted);line-height:1.5}
+.lc-detail p{margin:2px 0}
+.order-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .18s;border-left:4px solid var(--accent)}
+.order-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.stock-cell{min-width:140px}
+@media(max-width:900px){.charts-grid{grid-template-columns:1fr}.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.toggle-dark{width:34px;height:18px;background:rgba(255,255,255,.15);border-radius:999px;position:relative;cursor:pointer;transition:background .2s;border:none}
+.toggle-dark .knob{position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:left .2s}
+.dark .toggle-dark{background:var(--accent)}
+.dark .toggle-dark .knob{left:18px}
+@media print{aside,header,.no-print{display:none!important}#content{overflow:visible;padding:0}body{display:block}}
+.fade-in{animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}}
+.status-select{border:none;background:transparent;font-size:10px;font-weight:700;cursor:pointer;color:inherit;font-family:var(--font);padding:2px 4px}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted)}
+.empty-state i{font-size:28px;margin-bottom:10px;opacity:.4}
+</style>
+</head>
+<body>
+<div id="loader">
+<div class="loader-logo">JAI ROOP TEXTILES</div>
+<div class="loader-sub">IMS TRACKING SYSTEM V6</div>
+<div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+<aside id="sidebar">
+<div class="sidebar-logo">
+<div class="logo-box">
+<img id="companyLogo" src="" alt="Logo">
+<div class="logo-text" id="logoFallback">JAI ROOP<br>TEXTILES</div>
+</div>
+<div class="brand-sub">IMS Tracking System</div>
+</div>
+<nav>
+<div class="nav-section">Overview</div>
+<button type="button" class="nav-item active" id="nav-dashboard" onclick="switchTab('dashboard')"><i class="fas fa-chart-line"></i> Dashboard</button>
+<div class="nav-section">Operations</div>
+<button type="button" class="nav-item" id="nav-inventory" onclick="switchTab('inventory')"><i class="fas fa-warehouse"></i> Stock / Inventory</button>
+<button type="button" class="nav-item" id="nav-orderbook" onclick="switchTab('orderbook')"><i class="fas fa-book-open"></i> Order Book</button>
+<button type="button" class="nav-item" id="nav-jobwork" onclick="switchTab('jobwork')"><i class="fas fa-tools"></i> Job Work Tracker</button>
+<button type="button" class="nav-item" id="nav-dispatch" onclick="switchTab('dispatch')"><i class="fas fa-truck"></i> Dispatch Log</button>
+<div class="nav-section">Analytics</div>
+<button type="button" class="nav-item" id="nav-clientdetails" onclick="switchTab('clientdetails')"><i class="fas fa-users"></i> Client Portfolios</button>
+<button type="button" class="nav-item" id="nav-alerts" onclick="switchTab('alerts')"><i class="fas fa-bell"></i> Stock Alerts</button>
+</nav>
+<div class="sidebar-footer">
+<div>v6.0 Corporate Edition</div>
+<div class="sync-time" id="lastSyncTime">—</div>
+</div>
+</aside>
+<main>
+<header>
+<div class="header-left">
+<h1 id="tab-title">Dashboard Overview</h1>
+<p id="tab-sub">Jai Roop Textiles — Real-time IMS</p>
+</div>
+<div class="header-right">
+<button type="button" class="toggle-dark" onclick="toggleDark()" title="Toggle Dark Mode"><div class="knob"></div></button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="refreshAll()"><i class="fas fa-sync-alt"></i> Sync</button>
+</div>
+</header>
+<div id="content"></div>
+</main>
+
+<div class="modal-overlay" id="orderModal">
+<div class="modal">
+<div class="modal-head">
+<h4><i class="fas fa-plus-circle" style="color:var(--accent);margin-right:8px"></i>Add New Order</h4>
+<button type="button" onclick="closeModal('orderModal')" style="background:none;border:none;color:#fff;cursor:pointer;font-size:16px"><i class="fas fa-times"></i></button>
+</div>
+<div class="modal-body">
+<div class="form-grid" id="orderForm">
+<div class="form-group"><label>Order Date</label><input type="date" id="f-order-date"></div>
+<div class="form-group"><label>Client Name</label><input type="text" id="f-order-client" placeholder="Enter client name" list="client-list"><datalist id="client-list"></datalist></div>
+<div class="form-group"><label>Item Code</label><input type="text" id="f-order-item" placeholder="e.g. 3 MM Satin" list="item-list"><datalist id="item-list"></datalist></div>
+<div class="form-group"><label>Qty (Mtr/KG)</label><input type="number" id="f-order-qty" placeholder="0" min="0" step="0.01"></div>
+<div class="form-group"><label>Status</label><select id="f-order-status"><option value="Pending">Pending</option><option value="In Production">In Production</option></select></div>
+<div class="form-group"><label>Remarks</label><input type="text" id="f-order-remarks" placeholder="Optional notes"></div>
+</div>
+</div>
+<div class="modal-foot">
+<button type="button" class="btn btn-ghost" onclick="closeModal('orderModal')">Cancel</button>
+<button type="button" class="btn btn-gold" onclick="submitOrder()"><i class="fas fa-save"></i> Save Order</button>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="jobModal">
+<div class="modal">
+<div class="modal-head">
+<h4><i class="fas fa-hammer" style="color:var(--accent);margin-right:8px"></i>Add Job Work Entry</h4>
+<button type="button" onclick="closeModal('jobModal')" style="background:none;border:none;color:#fff;cursor:pointer;font-size:16px"><i class="fas fa-times"></i></button>
+</div>
+<div class="modal-body">
+<div class="form-grid">
+<div class="form-group"><label>Date</label><input type="date" id="f-job-date"></div>
+<div class="form-group"><label>Order ID</label><input type="text" id="f-job-orderid" placeholder="ORD-..." list="order-list"><datalist id="order-list"></datalist></div>
+<div class="form-group"><label>Worker Name</label><input type="text" id="f-job-worker" placeholder="Worker/Vendor name" list="worker-list"><datalist id="worker-list"></datalist></div>
+<div class="form-group"><label>Item Code</label><input type="text" id="f-job-item" placeholder="Item Code" list="item-list2"><datalist id="item-list2"></datalist></div>
+<div class="form-group"><label>Sent Qty (Mtr)</label><input type="number" id="f-job-sent" placeholder="0" min="0" step="0.01"></div>
+<div class="form-group"><label>Received Qty (Mtr)</label><input type="number" id="f-job-received" placeholder="0" min="0" step="0.01"></div>
+<div class="form-group"><label>Wastage (Mtr)</label><input type="number" id="f-job-wastage" placeholder="0" min="0" step="0.01"></div>
+<div class="form-group"><label>Status</label><select id="f-job-status"><option value="Out">Out</option><option value="Completed">Completed</option></select></div>
+<div class="form-group"><label>Total Payment (₹)</label><input type="number" id="f-job-payment" placeholder="0.00" min="0" step="0.01"></div>
+</div>
+</div>
+<div class="modal-foot">
+<button type="button" class="btn btn-ghost" onclick="closeModal('jobModal')">Cancel</button>
+<button type="button" class="btn btn-gold" onclick="submitJobWork()"><i class="fas fa-save"></i> Save Job Work</button>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="dispatchModal">
+<div class="modal">
+<div class="modal-head">
+<h4><i class="fas fa-truck" style="color:var(--accent);margin-right:8px"></i>Log New Dispatch</h4>
+<button type="button" onclick="closeModal('dispatchModal')" style="background:none;border:none;color:#fff;cursor:pointer;font-size:16px"><i class="fas fa-times"></i></button>
+</div>
+<div class="modal-body">
+<div class="form-grid">
+<div class="form-group"><label>Order ID</label><input type="text" id="f-disp-orderid" placeholder="ORD-..." list="order-list2"><datalist id="order-list2"></datalist></div>
+<div class="form-group"><label>Client Name</label><input type="text" id="f-disp-client" placeholder="Client name" list="client-list2"><datalist id="client-list2"></datalist></div>
+<div class="form-group"><label>Item Code</label><input type="text" id="f-disp-item" placeholder="Item Code" list="item-list3"><datalist id="item-list3"></datalist></div>
+<div class="form-group"><label>Dispatched Qty (Mtr)</label><input type="number" id="f-disp-qty" placeholder="0" min="0" step="0.01"></div>
+<div class="form-group"><label>Dispatch Date</label><input type="date" id="f-disp-date"></div>
+<div class="form-group"><label>Challan / DC No.</label><input type="text" id="f-disp-challan" placeholder="e.g. CH-2024-001"></div>
+<div class="form-group full" style="flex-direction:row;align-items:center;gap:10px">
+<input type="checkbox" id="f-disp-complete" style="width:auto">
+<label style="text-transform:none;font-size:12px;font-weight:600;color:var(--text)">Mark linked order as Completed</label>
+</div>
+</div>
+</div>
+<div class="modal-foot">
+<button type="button" class="btn btn-ghost" onclick="closeModal('dispatchModal')">Cancel</button>
+<button type="button" class="btn btn-gold" onclick="submitDispatch()"><i class="fas fa-save"></i> Log Dispatch</button>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="lifecycleModal">
+<div class="modal" style="max-width:620px">
+<div class="modal-head">
+<h4 id="lifecycleTitle">Order Lifecycle</h4>
+<button type="button" onclick="closeModal('lifecycleModal')" style="background:none;border:none;color:#fff;cursor:pointer;font-size:16px"><i class="fas fa-times"></i></button>
+</div>
+<div class="modal-body" id="lifecycleBody"></div>
+</div>
+</div>
+
+<div id="toast-container"></div>
+<script>
+var allData = {};
+var currentTab = "dashboard";
+var charts = {};
+
+window.onload = function () {
+  document.getElementById("f-order-date").value = today();
+  document.getElementById("f-job-date").value = today();
+  document.getElementById("f-disp-date").value = today();
+  refreshAll();
+};
+
+function today() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function gs() {
+  return typeof google !== "undefined" && google.script && google.script.run;
+}
+
+function refreshAll() {
+  document.getElementById("loader").style.display = "flex";
+  if (!gs()) {
+    document.getElementById("loader").style.display = "none";
+    toast("Open this page from the deployed Web App (bound to your spreadsheet) to load live data.", "warning");
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(function (data) {
+      allData = data;
+      populateDataLists();
+      if (data.logoUrl && data.logoUrl.length > 50) {
+        document.getElementById("companyLogo").src = data.logoUrl;
+        document.getElementById("companyLogo").style.display = "block";
+        document.getElementById("logoFallback").style.display = "none";
+      }
+      if (data.lastSync) document.getElementById("lastSyncTime").innerText = "Synced: " + data.lastSync;
+      renderTab();
+      document.getElementById("loader").style.display = "none";
+    })
+    .withFailureHandler(function (err) {
+      document.getElementById("loader").style.display = "none";
+      toast("Sync failed: " + (err && err.message ? err.message : String(err)), "error");
+    })
+    .getAllIMSData();
+}
+
+function populateDataLists() {
+  var clients = allData.clients || [];
+  var items = (allData.master || []).map(function (i) { return i.ItemCode; });
+  var orders = (allData.orders || []).map(function (o) { return o.OrderID; });
+  var workers = allData.workers || [];
+  setDataList("client-list", clients);
+  setDataList("client-list2", clients);
+  setDataList("item-list", items);
+  setDataList("item-list2", items);
+  setDataList("item-list3", items);
+  setDataList("order-list", orders);
+  setDataList("order-list2", orders);
+  setDataList("worker-list", workers);
+}
+
+function setDataList(id, arr) {
+  var dl = document.getElementById(id);
+  if (!dl) return;
+  dl.innerHTML = arr.map(function (v) { return "<option value=\"" + String(v).replace(/"/g, "&quot;") + "\">"; }).join("");
+}
+
+function toggleDark() {
+  document.body.classList.toggle("dark");
+  if (Object.keys(charts).length) renderTab();
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll(".nav-item").forEach(function (el) { el.classList.remove("active"); });
+  var navEl = document.getElementById("nav-" + tab);
+  if (navEl) navEl.classList.add("active");
+  var titles = {
+    dashboard: ["Dashboard Overview", "Live KPIs & Analytics"],
+    inventory: ["Stock / Inventory", "Manage fabric stock levels"],
+    orderbook: ["Order Book", "Track & manage all orders"],
+    jobwork: ["Job Work Tracker", "Monitor production & workers"],
+    dispatch: ["Dispatch Log", "Track shipments & challans"],
+    clientdetails: ["Client Portfolios", "Client-wise order history"],
+    alerts: ["Stock Alerts", "Reorder & allocation warnings"]
+  };
+  if (titles[tab]) {
+    document.getElementById("tab-title").innerText = titles[tab][0];
+    document.getElementById("tab-sub").innerText = titles[tab][1];
+  }
+  renderTab();
+}
+
+function renderTab() {
+  var c = document.getElementById("content");
+  c.innerHTML = "";
+  c.classList.remove("fade-in");
+  void c.offsetWidth;
+  c.classList.add("fade-in");
+  if (currentTab === "dashboard") renderDashboard(c);
+  else if (currentTab === "inventory") renderInventory(c);
+  else if (currentTab === "orderbook") renderOrderBook(c);
+  else if (currentTab === "jobwork") renderJobWork(c);
+  else if (currentTab === "dispatch") renderDispatch(c);
+  else if (currentTab === "clientdetails") renderClients(c);
+  else if (currentTab === "alerts") renderAlerts(c);
+}
+
+function renderDashboard(c) {
+  var k = allData.kpis || {};
+  var reorderList = (k.reorderItems || []).join(", ") || "None";
+  var alertHtml = "";
+  if (k.reorderCount > 0) {
+    alertHtml = "<div class=\"alert-banner\"><i class=\"fas fa-exclamation-triangle\" style=\"font-size:16px;flex-shrink:0\"></i><span><b>" + k.reorderCount + " item(s) need immediate reorder:</b> " + reorderList + "</span></div>";
+  }
+  c.innerHTML = alertHtml + "<div class=\"kpi-grid\">" +
+    "<div class=\"kpi-card red\"><div class=\"kpi-label\">Critical Reorders</div><div class=\"kpi-value\">" + (k.reorderCount || 0) + "</div><div class=\"kpi-sub\">Items below min stock</div><i class=\"fas fa-exclamation-circle kpi-icon\"></i></div>" +
+    "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Active Production</div><div class=\"kpi-value\">" + (k.activeOrderCount || 0) + "</div><div class=\"kpi-sub\">" + (k.pendingOrderCount || 0) + " orders pending</div><i class=\"fas fa-cogs kpi-icon\"></i></div>" +
+    "<div class=\"kpi-card amber\"><div class=\"kpi-label\">Live Job Batches</div><div class=\"kpi-value\">" + (k.jwLiveCount || 0) + "</div><div class=\"kpi-sub\">Currently out for work</div><i class=\"fas fa-tools kpi-icon\"></i></div>" +
+    "<div class=\"kpi-card green\"><div class=\"kpi-label\">Total Dispatched</div><div class=\"kpi-value\">" + (k.totalDispatched || 0).toLocaleString() + "</div><div class=\"kpi-sub\">Metres shipped</div><i class=\"fas fa-truck kpi-icon\"></i></div>" +
+    "<div class=\"kpi-card gold\"><div class=\"kpi-label\">Fulfilment Rate</div><div class=\"kpi-value\">" + (k.fulfilmentRate || 0) + "%</div><div class=\"kpi-sub\">" + (k.completedOrderCount || 0) + "/" + (k.totalOrderCount || 0) + " orders done</div><i class=\"fas fa-check-circle kpi-icon\"></i></div>" +
+    "<div class=\"kpi-card blue\"><div class=\"kpi-label\">Avg Wastage</div><div class=\"kpi-value\">" + (k.avgWastagePct || 0) + "%</div><div class=\"kpi-sub\">Across all job batches</div><i class=\"fas fa-cut kpi-icon\"></i></div>" +
+    "</div><div class=\"charts-grid\">" +
+    "<div class=\"chart-card\"><div class=\"chart-title\"><i class=\"fas fa-chart-bar\"></i> Stock by Category</div><canvas id=\"catChart\"></canvas></div>" +
+    "<div class=\"chart-card\"><div class=\"chart-title\"><i class=\"fas fa-chart-pie\"></i> Order Status Split</div><canvas id=\"orderChart\"></canvas></div>" +
+    "<div class=\"chart-card\"><div class=\"chart-title\"><i class=\"fas fa-chart-line\"></i> Top 5 Items by Closing Balance</div><canvas id=\"itemChart\"></canvas></div>" +
+    "<div class=\"chart-card\"><div class=\"chart-title\"><i class=\"fas fa-chart-area\"></i> Monthly Dispatch Volume (Mtr)</div><canvas id=\"dispChart\"></canvas></div>" +
+    "</div>";
+
+  var catData = k.categoryBreakdown || {};
+  var catLabels = Object.keys(catData);
+  var catVals = catLabels.map(function (l) { return catData[l].totalStock; });
+  buildChart("catChart", "bar", catLabels, catVals, "Stock (Mtr)", ["#c9a84c", "#2563eb", "#059669", "#dc2626", "#7c3aed"]);
+  buildChart("orderChart", "doughnut", ["Completed", "In Production", "Pending"], [k.completedOrderCount || 0, k.activeOrderCount || 0, k.pendingOrderCount || 0], "Orders", ["#059669", "#2563eb", "#d97706"]);
+  var topItems = k.topItems || [];
+  buildChart("itemChart", "bar", topItems.map(function (i) { return i.code; }), topItems.map(function (i) { return i.balance; }), "Balance (Mtr)", ["#0d1b2a"]);
+  var months = Object.keys(k.monthlyDispatch || {}).sort().slice(-6);
+  buildLineChart("dispChart", months, months.map(function (m) { return k.monthlyDispatch[m]; }));
+}
+
+function buildChart(id, type, labels, data, label, colors) {
+  var ctx = document.getElementById(id);
+  if (!ctx) return;
+  if (charts[id]) charts[id].destroy();
+  var isDark = document.body.classList.contains("dark");
+  var textColor = isDark ? "#94a3b8" : "#6b7280";
+  charts[id] = new Chart(ctx, {
+    type: type,
+    data: {
+      labels: labels,
+      datasets: [{
+        label: label,
+        data: data,
+        backgroundColor: type === "doughnut" ? colors : colors.map(function (c) { return c + "dd"; }),
+        borderRadius: type === "bar" ? 6 : 0,
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { labels: { color: textColor, font: { size: 10 } } } },
+      scales: type === "bar" ? { x: { ticks: { color: textColor, font: { size: 9 } } }, y: { ticks: { color: textColor } } } : {}
+    }
+  });
+}
+
+function buildLineChart(id, labels, data) {
+  var ctx = document.getElementById(id);
+  if (!ctx) return;
+  if (charts[id]) charts[id].destroy();
+  var isDark = document.body.classList.contains("dark");
+  var textColor = isDark ? "#94a3b8" : "#6b7280";
+  charts[id] = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Mtr Dispatched",
+        data: data,
+        borderColor: "#c9a84c",
+        backgroundColor: "rgba(201,168,76,0.12)",
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: "#c9a84c",
+        pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { labels: { color: textColor, font: { size: 10 } } } },
+      scales: { x: { ticks: { color: textColor, font: { size: 9 } } }, y: { ticks: { color: textColor } } }
+    }
+  });
+}
+
+function renderInventory(c) {
+  var bals = (allData.master || []).map(function (i) { return parseFloat(i.ClosingBalance) || 0; });
+  var maxBalance = bals.length ? Math.max.apply(null, bals) : 0;
+  var cats = [...new Set((allData.master || []).map(function (i) { return i.Category; }).filter(Boolean))];
+  c.innerHTML = "<div class=\"table-card\"><div class=\"table-header\"><h3><i class=\"fas fa-warehouse\" style=\"color:var(--accent);margin-right:6px\"></i> All Stock Items</h3><div class=\"filter-bar\">" +
+    "<input type=\"text\" id=\"invSearch\" placeholder=\"Search item code or name...\" oninput=\"filterInventory()\" style=\"width:220px\">" +
+    "<select id=\"invCat\" onchange=\"filterInventory()\"><option value=\"\">All Categories</option>" +
+    cats.map(function (cat) { return "<option value=\"" + cat + "\">" + cat + "</option>"; }).join("") +
+    "</select><select id=\"invStatus\" onchange=\"filterInventory()\"><option value=\"\">All Status</option>" +
+    "<option value=\"REORDER (LOW)\">Reorder (Low)</option><option value=\"ABOVE LEVEL\">Above Level</option><option value=\"NORMAL\">Normal</option></select></div></div>" +
+    "<table><thead><tr><th>Item Code</th><th>Description</th><th>Category</th><th>Weight/Mtr</th><th>Opening</th><th>Total In</th><th>Total Out</th><th>Allocated</th><th>Closing Balance</th><th>Status</th></tr></thead><tbody id=\"invBody\"></tbody></table></div>";
+  window._invMax = maxBalance;
+  filterInventory();
+}
+
+function filterInventory() {
+  var q = (document.getElementById("invSearch") || {}).value || "";
+  var cat = (document.getElementById("invCat") || {}).value || "";
+  var st = (document.getElementById("invStatus") || {}).value || "";
+  var tbody = document.getElementById("invBody");
+  if (!tbody) return;
+  var items = (allData.master || []).filter(function (item) {
+    var matchQ = !q || (item.ItemCode || "").toLowerCase().indexOf(q.toLowerCase()) !== -1 || (item.ItemName || "").toLowerCase().indexOf(q.toLowerCase()) !== -1;
+    var matchCat = !cat || item.Category === cat;
+    var matchSt = !st || item.ReorderStatus === st;
+    return matchQ && matchCat && matchSt;
+  });
+  if (!items.length) {
+    tbody.innerHTML = "<tr><td colspan=\"10\" class=\"empty-state\"><i class=\"fas fa-box-open\"></i><br>No items match your filters</td></tr>";
+    return;
+  }
+  tbody.innerHTML = items.map(function (item) {
+    var bal = parseFloat(item.ClosingBalance) || 0;
+    var pct = window._invMax > 0 ? ((bal / window._invMax) * 100).toFixed(0) : 0;
+    var barColor = item.ReorderStatus === "REORDER (LOW)" ? "var(--danger)" : (item.ReorderStatus === "ABOVE LEVEL" ? "#7c3aed" : "var(--success)");
+    var badgeClass = item.ReorderStatus === "REORDER (LOW)" ? "badge-reorder" : (item.ReorderStatus === "ABOVE LEVEL" ? "badge-above" : "badge-normal");
+    return "<tr><td><span class=\"mono\">" + esc(item.ItemCode) + "</span></td><td style=\"font-weight:600\">" + esc(item.ItemName) + "</td><td>" + esc(item.Category || "—") + "</td><td class=\"mono\">" + esc(item.WeightMtr != null ? item.WeightMtr : "—") + "</td>" +
+      "<td class=\"mono\">" + (parseFloat(item.OpeningStock) || 0).toLocaleString() + "</td>" +
+      "<td class=\"mono\" style=\"color:var(--success)\">" + (parseFloat(item.TotalInMtrKG) || 0).toLocaleString() + "</td>" +
+      "<td class=\"mono\" style=\"color:var(--danger)\">" + (parseFloat(item.TotalOutMtrKG) || 0).toLocaleString() + "</td>" +
+      "<td class=\"mono\" style=\"color:var(--warning)\">" + (parseFloat(item.AllocatedtoOrders) || 0).toLocaleString() + "</td>" +
+      "<td class=\"stock-cell\"><div style=\"font-weight:700;font-size:13px\">" + bal.toLocaleString() + " <span style=\"font-size:10px;color:var(--text-muted)\">Mtr</span></div><div class=\"progress-wrap\"><div class=\"progress-fill\" style=\"width:" + pct + "%;background:" + barColor + "\"></div></div></td>" +
+      "<td><span class=\"badge " + badgeClass + "\">" + esc(item.ReorderStatus || "NORMAL") + "</span></td></tr>";
+  }).join("");
+}
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;");
+}
+
+function renderOrderBook(c) {
+  c.innerHTML = "<div class=\"table-card\"><div class=\"table-header\"><h3><i class=\"fas fa-book-open\" style=\"color:var(--accent);margin-right:6px\"></i> Order Book</h3><div class=\"filter-bar\">" +
+    "<input type=\"text\" id=\"orderSearch\" placeholder=\"Search order / client / item...\" oninput=\"filterOrders()\" style=\"width:220px\">" +
+    "<select id=\"orderStatus\" onchange=\"filterOrders()\"><option value=\"\">All Status</option><option value=\"Pending\">Pending</option><option value=\"In Production\">In Production</option><option value=\"Completed\">Completed</option></select>" +
+    "<button type=\"button\" class=\"btn btn-gold btn-sm\" onclick=\"openModal('orderModal')\"><i class=\"fas fa-plus\"></i> New Order</button></div></div>" +
+    "<table><thead><tr><th>Order ID</th><th>Date</th><th>Client Name</th><th>Item Code</th><th style=\"text-align:right\">Qty (Mtr)</th><th>Status</th><th>Action</th></tr></thead><tbody id=\"orderBody\"></tbody></table></div>";
+  filterOrders();
+}
+
+function filterOrders() {
+  var q = (document.getElementById("orderSearch") || {}).value || "";
+  var st = (document.getElementById("orderStatus") || {}).value || "";
+  var tbody = document.getElementById("orderBody");
+  if (!tbody) return;
+  var items = (allData.orders || []).filter(function (o) {
+    var matchQ = !q || [o.OrderID, o.ClientName, o.ItemCode].some(function (f) { return (f || "").toLowerCase().indexOf(q.toLowerCase()) !== -1; });
+    var matchSt = !st || o.Status === st;
+    return matchQ && matchSt;
+  });
+  if (!items.length) {
+    tbody.innerHTML = "<tr><td colspan=\"7\" class=\"empty-state\"><i class=\"fas fa-clipboard-list\"></i><br>No orders found</td></tr>";
+    return;
+  }
+  tbody.innerHTML = items.map(function (o) {
+    var statusMap = { Completed: "badge-completed", "In Production": "badge-production", Pending: "badge-pending" };
+    var badgeClass = statusMap[o.Status] || "badge-pending";
+    var oid = String(o.OrderID || "").replace(/'/g, "\\'");
+    return "<tr><td><span class=\"mono\" style=\"font-weight:700\">" + esc(o.OrderID) + "</span></td><td class=\"mono\" style=\"color:var(--text-muted)\">" + esc(o.Date) + "</td><td style=\"font-weight:600\">" + esc(o.ClientName) + "</td><td><span class=\"mono\">" + esc(o.ItemCode) + "</span></td>" +
+      "<td style=\"text-align:right;font-weight:700\">" + (parseFloat(o.OrderedQtyMtrKG) || 0).toLocaleString() + "</td><td><span class=\"badge " + badgeClass + "\">" + esc(o.Status) + "</span></td><td>" +
+      "<button type=\"button\" class=\"btn btn-ghost btn-sm\" onclick=\"openLifecycle('" + oid + "')\" title=\"View Lifecycle\"><i class=\"fas fa-eye\"></i></button>" +
+      (o.Status !== "Completed" ? "<select class=\"status-select input-sm\" onchange=\"changeOrderStatus('" + oid + "',this.value)\" style=\"border:1px solid var(--border);border-radius:6px;margin-left:4px\"><option value=\"\">Change...</option><option value=\"Pending\">Pending</option><option value=\"In Production\">In Production</option><option value=\"Completed\">Completed</option></select>" : "") +
+      "</td></tr>";
+  }).join("");
+}
+
+function changeOrderStatus(orderId, newStatus) {
+  if (!newStatus || !gs()) return;
+  google.script.run
+    .withSuccessHandler(function (r) {
+      toast(r.message, r.success ? "success" : "error");
+      if (r.success) refreshAll();
+    })
+    .updateOrderStatus(orderId, newStatus);
+}
+
+function renderJobWork(c) {
+  c.innerHTML = "<div class=\"alert-banner\" style=\"background:linear-gradient(135deg,#78350f,#92400e);margin-bottom:16px\"><i class=\"fas fa-info-circle\" style=\"flex-shrink:0\"></i><span><b>Active Rules:</b> Payment @ ₹0.25/Mtr | Wastage above <b>4.0%</b> flagged critical</span></div>" +
+    "<div class=\"table-card\"><div class=\"table-header\"><h3><i class=\"fas fa-tools\" style=\"color:var(--accent);margin-right:6px\"></i> Job Work Tracker</h3><div class=\"filter-bar\">" +
+    "<input type=\"text\" id=\"jobSearch\" placeholder=\"Search Job ID / Worker / Order...\" oninput=\"filterJobWork()\" style=\"width:220px\">" +
+    "<select id=\"jobStatus\" onchange=\"filterJobWork()\"><option value=\"\">All Status</option><option value=\"Out\">Out</option><option value=\"Completed\">Completed</option></select>" +
+    "<button type=\"button\" class=\"btn btn-gold btn-sm\" onclick=\"openModal('jobModal')\"><i class=\"fas fa-plus\"></i> Add Job Work</button></div></div>" +
+    "<div style=\"overflow-x:auto\"><table><thead><tr><th>Date</th><th>Job ID</th><th>Order ID</th><th>Worker</th><th>Item Code</th><th style=\"text-align:right\">Sent (Mtr)</th><th style=\"text-align:right\">Received</th><th style=\"text-align:right\">Balance</th><th style=\"text-align:right\">Wastage Mtr</th><th style=\"text-align:center\">Wastage %</th><th style=\"text-align:right\">Payment</th><th>Status</th></tr></thead><tbody id=\"jobBody\"></tbody></table></div></div>";
+  filterJobWork();
+}
+
+function filterJobWork() {
+  var q = (document.getElementById("jobSearch") || {}).value || "";
+  var st = (document.getElementById("jobStatus") || {}).value || "";
+  var tbody = document.getElementById("jobBody");
+  if (!tbody) return;
+  var items = (allData.jobWork || []).filter(function (j) {
+    var matchQ = !q || [j.JobID, j.WorkerName, j.OrderID, j.ItemCode].some(function (f) { return (f || "").toLowerCase().indexOf(q.toLowerCase()) !== -1; });
+    var matchSt = !st || j.Status === st;
+    return matchQ && matchSt;
+  });
+  if (!items.length) {
+    tbody.innerHTML = "<tr><td colspan=\"12\" class=\"empty-state\"><i class=\"fas fa-hammer\"></i><br>No job work records found</td></tr>";
+    return;
+  }
+  tbody.innerHTML = items.map(function (j) {
+    var sent = parseFloat(j.SentQtyMtr) || 0;
+    var recv = parseFloat(j.ReceivedQtyMtr) || 0;
+    var waste = parseFloat(j.WastageMtr) || 0;
+    var bal = Math.max(0, sent - recv);
+    var wastagePct = sent > 0 ? (waste / sent) * 100 : 0;
+    var payment = j.TotalPayment ? parseFloat(j.TotalPayment) : recv * 0.25;
+    var wastageClass = wastagePct > 4 ? "badge badge-critical" : "";
+    var statusBadge = j.Status === "Completed" ? "badge-done" : "badge-out";
+    return "<tr><td class=\"mono\" style=\"color:var(--text-muted)\">" + esc(j.Date || "—") + "</td><td><span class=\"mono\" style=\"font-weight:700\">" + esc(j.JobID) + "</span></td><td class=\"mono\">" + esc(j.OrderID) + "</td><td style=\"font-weight:600\">" + esc(j.WorkerName) + "</td><td class=\"mono\">" + esc(j.ItemCode) + "</td>" +
+      "<td style=\"text-align:right;color:#4f46e5;font-weight:600\">" + sent.toLocaleString() + "</td><td style=\"text-align:right;font-weight:700\">" + recv.toLocaleString() + "</td>" +
+      "<td style=\"text-align:right;color:var(--warning)\">" + (bal > 0 ? bal.toFixed(1) : "<span style=\"color:var(--success)\">Done</span>") + "</td><td style=\"text-align:right\">" + waste.toFixed(2) + "</td>" +
+      "<td style=\"text-align:center\"><span class=\"" + wastageClass + "\">" + wastagePct.toFixed(1) + "%</span></td>" +
+      "<td style=\"text-align:right;font-weight:700;color:var(--success)\">₹" + payment.toFixed(2) + "</td><td><span class=\"badge " + statusBadge + "\">" + esc(j.Status || "Active") + "</span></td></tr>";
+  }).join("");
+}
+
+function renderDispatch(c) {
+  c.innerHTML = "<div class=\"table-card\"><div class=\"table-header\"><h3><i class=\"fas fa-truck\" style=\"color:var(--accent);margin-right:6px\"></i> Dispatch Log</h3><div class=\"filter-bar\">" +
+    "<input type=\"text\" id=\"dispSearch\" placeholder=\"Search order / client / challan...\" oninput=\"filterDispatch()\" style=\"width:220px\">" +
+    "<select id=\"dispDateFilter\" onchange=\"filterDispatch()\"><option value=\"all\">All Dispatches</option><option value=\"today\">Today</option><option value=\"month\">This Month</option></select>" +
+    "<button type=\"button\" class=\"btn btn-gold btn-sm\" onclick=\"openModal('dispatchModal')\"><i class=\"fas fa-plus\"></i> Log Dispatch</button></div></div>" +
+    "<div class=\"table-header\" style=\"background:rgba(201,168,76,0.06);border-top:none\"><div></div><div style=\"display:flex;gap:20px;font-size:12px;font-weight:600\">" +
+    "<span>Total Volume: <span id=\"dispTotal\" style=\"color:var(--accent);font-size:15px;font-weight:800\">—</span></span><span>Records: <span id=\"dispCount\" style=\"color:var(--text-muted)\">—</span></span></div></div>" +
+    "<table><thead><tr><th>Dispatch ID</th><th>Order ID</th><th>Order Date</th><th>Client</th><th>Item Code</th><th style=\"text-align:right\">Qty (Mtr)</th><th>Dispatch Date</th><th>Challan No.</th></tr></thead><tbody id=\"dispBody\"></tbody></table></div>";
+  filterDispatch();
+}
+
+function filterDispatch() {
+  var q = (document.getElementById("dispSearch") || {}).value || "";
+  var dateF = (document.getElementById("dispDateFilter") || {}).value || "all";
+  var todayStr = today();
+  var monthStr = todayStr.substring(0, 7);
+  var tbody = document.getElementById("dispBody");
+  if (!tbody) return;
+  var items = (allData.dispatch || []).filter(function (d) {
+    var matchQ = !q || [d.DispatchID, d.OrderID, d.ClientName, d.ChallanNo].some(function (f) { return (f || "").toLowerCase().indexOf(q.toLowerCase()) !== -1; });
+    var matchDate = dateF === "all" || (dateF === "today" && d.DispatchDate === todayStr) || (dateF === "month" && (d.DispatchDate || "").toString().substring(0, 7) === monthStr);
+    return matchQ && matchDate;
+  });
+  var totalVol = items.reduce(function (s, d) { return s + (parseFloat(d.DispatchedQty) || 0); }, 0);
+  var totalEl = document.getElementById("dispTotal");
+  var countEl = document.getElementById("dispCount");
+  if (totalEl) totalEl.innerText = totalVol.toLocaleString() + " Mtr";
+  if (countEl) countEl.innerText = items.length + " records";
+  if (!items.length) {
+    tbody.innerHTML = "<tr><td colspan=\"8\" class=\"empty-state\"><i class=\"fas fa-shipping-fast\"></i><br>No dispatches found</td></tr>";
+    return;
+  }
+  tbody.innerHTML = items.map(function (d) {
+    var orderDate = (allData.orders || []).find(function (o) { return o.OrderID === d.OrderID; });
+    return "<tr><td><span class=\"mono\" style=\"font-weight:700\">" + esc(d.DispatchID) + "</span></td><td class=\"mono\">" + esc(d.OrderID) + "</td><td class=\"mono\" style=\"color:var(--text-muted)\">" + esc(orderDate ? orderDate.Date : "—") + "</td>" +
+      "<td style=\"font-weight:600\">" + esc(d.ClientName) + "</td><td class=\"mono\">" + esc(d.ItemCode) + "</td><td style=\"text-align:right;font-weight:700\">" + (parseFloat(d.DispatchedQty) || 0).toLocaleString() + "</td>" +
+      "<td style=\"font-weight:600;color:var(--success)\">" + esc(d.DispatchDate) + "</td><td class=\"mono\" style=\"color:var(--text-muted)\">" + esc(d.ChallanNo || "—") + "</td></tr>";
+  }).join("");
+}
+
+function renderClients(c) {
+  var opts = (allData.clients || []).map(function (cl) { return "<option value=\"" + esc(cl) + "\">" + esc(cl) + "</option>"; }).join("");
+  c.innerHTML = "<div style=\"background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow)\">" +
+    "<i class=\"fas fa-user-tie\" style=\"color:var(--accent);font-size:18px\"></i><select id=\"clientSelect\" style=\"flex-grow:1;border:none;background:transparent;font-size:14px;font-weight:700;color:var(--text);outline:none\" onchange=\"renderClientOrders()\">" +
+    "<option value=\"\">— Select a client to view portfolio —</option>" + opts + "</select></div><div id=\"clientResult\" style=\"display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px\"></div>";
+}
+
+function renderClientOrders() {
+  var sel = document.getElementById("clientSelect");
+  var client = sel ? sel.value : "";
+  var container = document.getElementById("clientResult");
+  if (!client || !container) return;
+  var orders = (allData.orders || []).filter(function (o) { return o.ClientName === client; });
+  if (!orders.length) {
+    container.innerHTML = "<div class=\"empty-state\" style=\"grid-column:1/-1\"><i class=\"fas fa-folder-open\"></i><br>No orders for this client</div>";
+    return;
+  }
+  container.innerHTML = orders.map(function (o) {
+    var statusMap = { Completed: "badge-completed", "In Production": "badge-production", Pending: "badge-pending" };
+    var hasDispatch = (allData.dispatch || []).some(function (d) { return d.OrderID === o.OrderID; });
+    var oid = String(o.OrderID || "").replace(/'/g, "\\'");
+    return "<div class=\"order-card\" onclick=\"openLifecycle('" + oid + "')\"><div style=\"display:flex;justify-content:space-between;margin-bottom:8px\"><span class=\"mono\" style=\"font-size:11px;color:var(--text-muted)\">" + esc(o.Date) + "</span><span class=\"badge " + (statusMap[o.Status] || "badge-pending") + "\">" + esc(o.Status) + "</span></div>" +
+      "<div style=\"font-size:13px;font-weight:700;margin-bottom:4px\">" + esc(o.ItemCode) + "</div><div style=\"font-size:11px;color:var(--text-muted);margin-bottom:10px\">ID: " + esc(o.OrderID) + "</div>" +
+      "<div style=\"display:flex;justify-content:space-between;align-items:center\"><span style=\"font-size:16px;font-weight:800\">" + (parseFloat(o.OrderedQtyMtrKG) || 0).toLocaleString() + " <span style=\"font-size:10px;font-weight:400;color:var(--text-muted)\">Mtr</span></span>" +
+      "<span style=\"font-size:10px;color:var(--accent)\">" + (hasDispatch ? "✓ Dispatched " : "") + "<i class=\"fas fa-arrow-right\" style=\"margin-left:4px\"></i></span></div></div>";
+  }).join("");
+}
+
+function openLifecycle(orderId) {
+  var order = (allData.orders || []).find(function (o) { return o.OrderID === orderId; });
+  var jobs = (allData.jobWork || []).filter(function (j) { return j.OrderID === orderId; });
+  var dispatches = (allData.dispatch || []).filter(function (d) { return d.OrderID === orderId; });
+  if (!order) return;
+  document.getElementById("lifecycleTitle").innerText = " Lifecycle — " + order.ClientName + " | " + orderId;
+  var step2Done = jobs.length > 0;
+  var step3Done = dispatches.length > 0;
+  var step4Done = order.Status === "Completed";
+  var jobHtml = jobs.length ? jobs.map(function (j) {
+    return "<p>Job <b>" + esc(j.JobID) + "</b> · Worker: " + esc(j.WorkerName) + " · Sent: " + (j.SentQtyMtr || 0) + "Mtr · Recv: " + (j.ReceivedQtyMtr || 0) + "Mtr · Status: " + esc(j.Status || "—") + "</p>";
+  }).join("") : "<p style=\"color:var(--text-muted)\">No job work records yet</p>";
+  var dispHtml = dispatches.length ? dispatches.map(function (d) {
+    return "<p>Dispatch <b>" + esc(d.DispatchID) + "</b> · Qty: " + esc(d.DispatchedQty) + "Mtr · Date: " + esc(d.DispatchDate) + " · Challan: " + esc(d.ChallanNo || "—") + "</p>";
+  }).join("") : "<p style=\"color:var(--text-muted)\">Not yet dispatched</p>";
+  document.getElementById("lifecycleBody").innerHTML =
+    "<div class=\"lifecycle\"><div class=\"lc-step\"><div class=\"lc-dot done\">1</div><div class=\"lc-content\"><div class=\"lc-title\">Order Placed</div><div class=\"lc-detail\">" +
+    "<p>Date: " + esc(order.Date || "—") + " · Client: " + esc(order.ClientName || "—") + "</p><p>Item: " + esc(order.ItemCode || "—") + " · Qty: " + esc(order.OrderedQtyMtrKG || 0) + " Mtr</p><p>Status: <span class=\"badge " +
+    (order.Status === "Completed" ? "badge-completed" : order.Status === "In Production" ? "badge-production" : "badge-pending") + "\">" + esc(order.Status) + "</span></p></div></div></div>" +
+    "<div class=\"lc-step\"><div class=\"lc-dot " + (step2Done ? "done" : "pending") + "\">2</div><div class=\"lc-content\"><div class=\"lc-title\">Job Work / Production</div><div class=\"lc-detail\">" + jobHtml + "</div></div></div>" +
+    "<div class=\"lc-step\"><div class=\"lc-dot " + (step3Done ? "done" : "pending") + "\">3</div><div class=\"lc-content\"><div class=\"lc-title\">Dispatch</div><div class=\"lc-detail\">" + dispHtml + "</div></div></div>" +
+    "<div class=\"lc-step\"><div class=\"lc-dot " + (step4Done ? "done" : "pending") + "\">4</div><div class=\"lc-content\"><div class=\"lc-title\">Completed</div><div class=\"lc-detail\">" +
+    (step4Done ? "<p style=\"color:var(--success);font-weight:600\"><i class=\"fas fa-check-circle\"></i> Order fully completed & delivered</p>" : "<p style=\"color:var(--text-muted)\">Awaiting completion</p>") +
+    "</div></div></div></div>";
+  openModal("lifecycleModal");
+}
+
+function renderAlerts(c) {
+  var alerts = [];
+  (allData.master || []).forEach(function (item) {
+    var bal = parseFloat(item.ClosingBalance) || 0;
+    var alloc = parseFloat(item.AllocatedtoOrders) || 0;
+    if (item.ReorderStatus === "REORDER (LOW)") {
+      alerts.push({ type: "critical", item: item.ItemCode, name: item.ItemName, bal: bal, alloc: alloc, msg: "Stock at critical level — immediate reorder required" });
+    } else if (bal > 0 && alloc / bal > 0.8) {
+      alerts.push({ type: "warning", item: item.ItemCode, name: item.ItemName, bal: bal, alloc: alloc, msg: "Over 80% of stock allocated to active orders" });
+    }
+  });
+  var html = alerts.length ? alerts.map(function (a) {
+    var bg = a.type === "critical" ? "#fee2e2" : "#fef3c7";
+    var border = a.type === "critical" ? "#dc2626" : "#d97706";
+    var icon = a.type === "critical" ? "fa-exclamation-circle" : "fa-exclamation-triangle";
+    var iconColor = a.type === "critical" ? "#dc2626" : "#d97706";
+    return "<div style=\"background:" + bg + ";border:1px solid " + border + ";border-radius:var(--radius);padding:16px;display:flex;gap:14px;align-items:flex-start\"><i class=\"fas " + icon + "\" style=\"color:" + iconColor + ";font-size:18px;flex-shrink:0;margin-top:2px\"></i><div><div style=\"font-weight:700;font-size:13px\">" + esc(a.item) + " — " + esc(a.name || "") + "</div><div style=\"font-size:12px;color:#374151;margin-top:4px\">" + esc(a.msg) + "</div><div style=\"font-size:11px;color:#6b7280;margin-top:6px\">Closing Balance: <b>" + a.bal.toLocaleString() + " Mtr</b> &nbsp;|&nbsp; Allocated: <b>" + a.alloc.toLocaleString() + " Mtr</b></div></div></div>";
+  }).join("") : "<div class=\"empty-state\"><i class=\"fas fa-check-circle\" style=\"color:var(--success)\"></i><br>No stock alerts right now!</div>";
+  c.innerHTML = "<div style=\"margin-bottom:16px;font-size:13px;font-weight:600;color:var(--text-muted)\">" + alerts.length + " alert(s) active</div><div style=\"display:flex;flex-direction:column;gap:12px\">" + html + "</div>";
+}
+
+function openModal(id) { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+function submitOrder() {
+  var data = {
+    date: document.getElementById("f-order-date").value,
+    clientName: document.getElementById("f-order-client").value.trim(),
+    itemCode: document.getElementById("f-order-item").value.trim(),
+    qty: document.getElementById("f-order-qty").value,
+    status: document.getElementById("f-order-status").value,
+    remarks: document.getElementById("f-order-remarks").value.trim()
+  };
+  if (!data.clientName || !data.itemCode || !data.qty) { toast("Please fill all required fields", "error"); return; }
+  if (!gs()) { toast("Not running inside Apps Script web app.", "error"); return; }
+  google.script.run
+    .withSuccessHandler(function (r) { toast(r.message, r.success ? "success" : "error"); if (r.success) { closeModal("orderModal"); refreshAll(); } })
+    .saveNewOrder(data);
+}
+
+function submitJobWork() {
+  var data = {
+    date: document.getElementById("f-job-date").value,
+    orderId: document.getElementById("f-job-orderid").value.trim(),
+    workerName: document.getElementById("f-job-worker").value.trim(),
+    itemCode: document.getElementById("f-job-item").value.trim(),
+    sentQty: document.getElementById("f-job-sent").value,
+    receivedQty: document.getElementById("f-job-received").value,
+    wastageMtr: document.getElementById("f-job-wastage").value,
+    status: document.getElementById("f-job-status").value,
+    totalPayment: document.getElementById("f-job-payment").value
+  };
+  if (!data.workerName || !data.itemCode || !data.sentQty) { toast("Please fill all required fields", "error"); return; }
+  if (!gs()) { toast("Not running inside Apps Script web app.", "error"); return; }
+  google.script.run
+    .withSuccessHandler(function (r) { toast(r.message, r.success ? "success" : "error"); if (r.success) { closeModal("jobModal"); refreshAll(); } })
+    .saveNewJobWork(data);
+}
+
+function submitDispatch() {
+  var data = {
+    orderId: document.getElementById("f-disp-orderid").value.trim(),
+    clientName: document.getElementById("f-disp-client").value.trim(),
+    itemCode: document.getElementById("f-disp-item").value.trim(),
+    dispatchedQty: document.getElementById("f-disp-qty").value,
+    dispatchDate: document.getElementById("f-disp-date").value,
+    challanNo: document.getElementById("f-disp-challan").value.trim(),
+    markCompleted: document.getElementById("f-disp-complete").checked
+  };
+  if (!data.orderId || !data.clientName || !data.dispatchedQty) { toast("Please fill all required fields", "error"); return; }
+  if (!gs()) { toast("Not running inside Apps Script web app.", "error"); return; }
+  google.script.run
+    .withSuccessHandler(function (r) { toast(r.message, r.success ? "success" : "error"); if (r.success) { closeModal("dispatchModal"); refreshAll(); } })
+    .saveNewDispatch(data);
+}
+
+function toast(message, type) {
+  type = type || "success";
+  var container = document.getElementById("toast-container");
+  var icons = { success: "fa-check-circle", error: "fa-times-circle", warning: "fa-exclamation-circle" };
+  var colors = { success: "#059669", error: "#dc2626", warning: "#d97706" };
+  var el = document.createElement("div");
+  el.className = "toast " + type;
+  el.innerHTML = "<i class=\"fas " + (icons[type] || "fa-info-circle") + "\" style=\"color:" + (colors[type] || "#2563eb") + "\"></i>" + esc(message);
+  container.appendChild(el);
+  setTimeout(function () { el.remove(); }, 4000);
+}
+</script>
+</body>
+</html>
