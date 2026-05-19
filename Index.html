@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IMS V7 - Textile Control Tower</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --primary: #1f2937;
+      --accent: #b48a35;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --success: #059669;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 100vh;
+    }
+    aside {
+      background: #0f172a;
+      color: #d1d5db;
+      padding: 18px 12px;
+      border-right: 1px solid #1f2937;
+    }
+    .brand {
+      color: #f8fafc;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      margin-bottom: 18px;
+      padding: 0 8px;
+    }
+    .sub-brand {
+      color: #94a3b8;
+      font-size: 11px;
+      margin-top: 4px;
+      letter-spacing: 0.04em;
+    }
+    .nav-btn {
+      width: 100%;
+      text-align: left;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      padding: 9px 10px;
+      margin-bottom: 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .nav-btn:hover, .nav-btn.active {
+      background: rgba(180, 138, 53, 0.18);
+      color: #f8fafc;
+    }
+    main { display: flex; flex-direction: column; min-width: 0; }
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .page-title { font-size: 16px; font-weight: 800; margin: 0; }
+    .page-sub { font-size: 12px; color: var(--muted); margin: 3px 0 0; }
+    .btn {
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn.accent { background: var(--accent); color: #111; border-color: var(--accent); }
+    .btn.ghost { background: transparent; }
+    #content { padding: 18px; overflow: auto; }
+    .grid { display: grid; gap: 14px; }
+    .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 14px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .kpi-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .kpi-value { font-size: 28px; font-weight: 800; margin-top: 8px; }
+    .kpi-foot { font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .two-col { grid-template-columns: 1.3fr 1fr; }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 9px; text-align: left; white-space: nowrap; }
+    th { font-size: 10px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.08em; }
+    .row-actions { display: flex; gap: 8px; }
+    .badge {
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .badge.pending { background: #fef3c7; color: #92400e; }
+    .badge.production { background: #dbeafe; color: #1d4ed8; }
+    .badge.completed { background: #d1fae5; color: #065f46; }
+    .badge.critical { background: #fee2e2; color: #991b1b; }
+    .badge.warning { background: #ffedd5; color: #9a3412; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-family: Inter, Arial, sans-serif;
+      background: #fff;
+    }
+    label { font-size: 11px; color: var(--muted); font-weight: 600; display: block; margin-bottom: 5px; }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 14px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: min(760px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 14px;
+    }
+    .muted { color: var(--muted); }
+    .alert {
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: #7f1d1d;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+    #toast {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      background: #111827;
+      color: white;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      display: none;
+      z-index: 120;
+    }
+    @media (max-width: 1080px) {
+      body { grid-template-columns: 1fr; }
+      aside { display: none; }
+      .two-col { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <div class="brand">
+      IMS V7
+      <div class="sub-brand">TEXTILE CONTROL TOWER</div>
+    </div>
+    <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="nav-btn" data-tab="inventory">Inventory</button>
+    <button class="nav-btn" data-tab="orders">Order Book</button>
+    <button class="nav-btn" data-tab="jobwork">Job Work</button>
+    <button class="nav-btn" data-tab="dispatch">Dispatch</button>
+    <button class="nav-btn" data-tab="planning">Procurement + Worker Scores</button>
+    <button class="nav-btn" data-tab="settings">Controls</button>
+  </aside>
+
+  <main>
+    <header>
+      <div>
+        <h1 class="page-title" id="pageTitle">Dashboard</h1>
+        <p class="page-sub" id="pageSub">Live KPI panel for textile operations</p>
+      </div>
+      <div class="row-actions">
+        <button class="btn ghost" onclick="syncSystem()">Sync Health</button>
+        <button class="btn primary" onclick="refreshData()">Refresh</button>
+      </div>
+    </header>
+    <div id="content"></div>
+  </main>
+
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="toolbar">
+        <strong id="modalTitle">Form</strong>
+        <button class="btn ghost" onclick="closeModal()">Close</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    let state = {
+      tab: "dashboard",
+      data: null,
+      charts: {}
+    };
+
+    const TAB_META = {
+      dashboard: { title: "Dashboard", sub: "Live KPI panel for textile operations" },
+      inventory: { title: "Inventory", sub: "Stock health, reorder risk and allocation load" },
+      orders: { title: "Order Book", sub: "Track order pipeline from pending to completion" },
+      jobwork: { title: "Job Work", sub: "Worker-level production, wastage and payouts" },
+      dispatch: { title: "Dispatch", sub: "Dispatch and challan history with totals" },
+      planning: { title: "Planning", sub: "Procurement recommendations and worker leaderboard" },
+      settings: { title: "Controls", sub: "Update system thresholds and permission settings" }
+    };
+
+    document.querySelectorAll(".nav-btn").forEach(btn => {
+      btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+    });
+
+    window.onload = refreshData;
+
+    function switchTab(tab) {
+      state.tab = tab;
+      document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tab));
+      document.getElementById("pageTitle").textContent = TAB_META[tab].title;
+      document.getElementById("pageSub").textContent = TAB_META[tab].sub;
+      render();
+    }
+
+    function refreshData() {
+      callServer("getAllIMSData", []).then(data => {
+        state.data = data;
+        render();
+      }).catch(err => toast("Refresh failed: " + err.message, true));
+    }
+
+    function render() {
+      if (!state.data) {
+        document.getElementById("content").innerHTML = "<div class='card'>Loading data...</div>";
+        return;
+      }
+      const content = document.getElementById("content");
+      if (state.tab === "dashboard") content.innerHTML = renderDashboard();
+      if (state.tab === "inventory") content.innerHTML = renderInventory();
+      if (state.tab === "orders") content.innerHTML = renderOrders();
+      if (state.tab === "jobwork") content.innerHTML = renderJobWork();
+      if (state.tab === "dispatch") content.innerHTML = renderDispatch();
+      if (state.tab === "planning") content.innerHTML = renderPlanning();
+      if (state.tab === "settings") content.innerHTML = renderSettings();
+      setupTabHooks();
+    }
+
+    function renderDashboard() {
+      const k = state.data.kpis || {};
+      const alerts = state.data.alerts || [];
+      const activity = state.data.recentActivity || [];
+      return `
+        ${alerts.length ? `<div class="alert"><b>${alerts.length} stock alert(s)</b> require attention. Open Planning or Inventory tab for details.</div>` : ""}
+        <div class="grid kpi-grid">
+          ${kpi("Critical Reorders", k.reorderCount, "Items below reorder threshold")}
+          ${kpi("Active Orders", k.activeOrderCount, `${k.pendingOrderCount || 0} pending`)}
+          ${kpi("Fulfilment", `${k.fulfilmentRate || 0}%`, `${k.completedOrderCount || 0}/${k.totalOrderCount || 0} completed`)}
+          ${kpi("Total Dispatch", num(k.totalDispatched), "Metres dispatched")}
+          ${kpi("Late Orders", k.lateOrders || 0, "Past due and not completed")}
+          ${kpi("Avg Wastage", `${k.avgWastagePct || 0}%`, "Across all job work")}
+        </div>
+        <div class="grid two-col">
+          <div class="card">
+            <div class="toolbar"><strong>Order Status Split</strong><span class="muted">Live</span></div>
+            <canvas id="orderStatusChart" height="180"></canvas>
+          </div>
+          <div class="card">
+            <div class="toolbar"><strong>Monthly Dispatch Trend</strong><span class="muted">Last months</span></div>
+            <canvas id="dispatchTrendChart" height="180"></canvas>
+          </div>
+          <div class="card">
+            <div class="toolbar"><strong>Recent Activity</strong><span class="muted">Audit log</span></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Entity</th></tr></thead>
+                <tbody>
+                  ${activity.length ? activity.slice(0, 12).map(a => `<tr><td>${esc(a.timestamp)}</td><td>${esc(a.user || "-")}</td><td>${esc(a.action)}</td><td>${esc(a.entityId)}</td></tr>`).join("") : "<tr><td colspan='4'>No activity yet.</td></tr>"}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="toolbar"><strong>Reorder Watchlist</strong><span class="muted">Action queue</span></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Item</th><th>Severity</th><th>Balance</th><th>Message</th></tr></thead>
+                <tbody>
+                  ${alerts.length ? alerts.slice(0, 12).map(a => `<tr><td>${esc(a.itemCode)}</td><td><span class="badge ${a.severity === "critical" ? "critical" : "warning"}">${esc(a.severity)}</span></td><td>${num(a.closingBalance)}</td><td>${esc(a.message)}</td></tr>`).join("") : "<tr><td colspan='4'>No active stock risk.</td></tr>"}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderInventory() {
+      const items = state.data.master || [];
+      return `
+        <div class="card">
+          <div class="toolbar"><strong>Inventory Master</strong><span class="muted">${items.length} items</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th><th>Name</th><th>Category</th><th>Closing</th><th>Allocated</th><th>Net Free</th><th>Reorder Level</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items.map(i => {
+                  const net = (i.closingBalance || 0) - (i.allocatedQty || 0);
+                  const cls = i.reorderStatus === "REORDER (LOW)" ? "critical" : (net < (i.reorderLevel || 0) ? "warning" : "production");
+                  return `<tr>
+                    <td>${esc(i.itemCode)}</td>
+                    <td>${esc(i.itemName)}</td>
+                    <td>${esc(i.category)}</td>
+                    <td>${num(i.closingBalance)}</td>
+                    <td>${num(i.allocatedQty)}</td>
+                    <td>${num(net)}</td>
+                    <td>${num(i.reorderLevel)}</td>
+                    <td><span class="badge ${cls}">${esc(i.reorderStatus || "NORMAL")}</span></td>
+                  </tr>`;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderOrders() {
+      const rows = state.data.orders || [];
+      return `
+        <div class="card">
+          <div class="toolbar">
+            <strong>Order Book</strong>
+            <div class="row-actions">
+              <button class="btn accent" onclick="openOrderModal()">Add Order</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>Date</th><th>Client</th><th>Item</th><th>Qty</th><th>Due Date</th><th>Status</th><th>Priority</th><th>Action</th></tr></thead>
+              <tbody>
+                ${rows.map(o => `<tr>
+                  <td>${esc(o.orderId)}</td>
+                  <td>${esc(o.date)}</td>
+                  <td>${esc(o.clientName)}</td>
+                  <td>${esc(o.itemCode)}</td>
+                  <td>${num(o.qty)}</td>
+                  <td>${esc(o.dueDate)}</td>
+                  <td>${statusBadge(o.status)}</td>
+                  <td>${esc(o.priority || "Medium")}</td>
+                  <td>
+                    <select onchange="changeOrderStatus('${esc(o.orderId)}', this.value)">
+                      <option value="">Change...</option>
+                      <option>Pending</option>
+                      <option>In Production</option>
+                      <option>Completed</option>
+                    </select>
+                  </td>
+                </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderJobWork() {
+      const rows = state.data.jobWork || [];
+      return `
+        <div class="card">
+          <div class="toolbar"><strong>Job Work Tracker</strong><button class="btn accent" onclick="openJobModal()">Add Job Work</button></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Job</th><th>Order</th><th>Worker</th><th>Item</th><th>Sent</th><th>Received</th><th>Wastage</th><th>Wastage %</th><th>Payment</th><th>Status</th></tr></thead>
+              <tbody>
+                ${rows.map(j => {
+                  const wastePct = j.sentQty > 0 ? (j.wastageMtr * 100 / j.sentQty) : 0;
+                  return `<tr>
+                    <td>${esc(j.date)}</td><td>${esc(j.jobId)}</td><td>${esc(j.orderId)}</td><td>${esc(j.workerName)}</td><td>${esc(j.itemCode)}</td>
+                    <td>${num(j.sentQty)}</td><td>${num(j.receivedQty)}</td><td>${num(j.wastageMtr)}</td>
+                    <td>${num(wastePct)}%</td><td>${num(j.totalPayment)}</td><td>${statusBadge(j.status)}</td>
+                  </tr>`;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDispatch() {
+      const rows = state.data.dispatch || [];
+      const total = rows.reduce((sum, d) => sum + (+d.dispatchedQty || 0), 0);
+      return `
+        <div class="card">
+          <div class="toolbar"><strong>Dispatch Log</strong><div class="row-actions"><span class="muted">Total: ${num(total)} Mtr</span><button class="btn accent" onclick="openDispatchModal()">Add Dispatch</button></div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>Order</th><th>Client</th><th>Item</th><th>Qty</th><th>Date</th><th>Challan</th><th>Vehicle</th></tr></thead>
+              <tbody>
+                ${rows.map(d => `<tr>
+                  <td>${esc(d.dispatchId)}</td><td>${esc(d.orderId)}</td><td>${esc(d.clientName)}</td><td>${esc(d.itemCode)}</td>
+                  <td>${num(d.dispatchedQty)}</td><td>${esc(d.dispatchDate)}</td><td>${esc(d.challanNo)}</td><td>${esc(d.vehicleNo)}</td>
+                </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPlanning() {
+      const plan = state.data.procurementPlan || [];
+      const workers = state.data.workerScores || [];
+      return `
+        <div class="grid two-col">
+          <div class="card">
+            <div class="toolbar"><strong>Procurement Planner</strong><span class="muted">${plan.length} items to buy</span></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Item</th><th>Name</th><th>Vendor</th><th>Net Free</th><th>Demand</th><th>Recommended Buy</th><th>Lead Days</th></tr></thead>
+                <tbody>
+                  ${plan.length ? plan.map(p => `<tr>
+                    <td>${esc(p.itemCode)}</td><td>${esc(p.itemName)}</td><td>${esc(p.vendor)}</td>
+                    <td>${num(p.netFree)}</td><td>${num(p.openDemand)}</td><td><b>${num(p.recommendedQty)}</b></td><td>${num(p.leadTimeDays)}</td>
+                  </tr>`).join("") : "<tr><td colspan='7'>No procurement required at this time.</td></tr>"}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="toolbar"><strong>Worker Performance</strong><span class="muted">Efficiency score</span></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Worker</th><th>Jobs</th><th>Recovery %</th><th>Wastage %</th><th>Score</th><th>Payment</th></tr></thead>
+                <tbody>
+                  ${workers.length ? workers.map(w => `<tr>
+                    <td>${esc(w.workerName)}</td><td>${num(w.jobs)}</td><td>${num(w.recoveryPct)}%</td><td>${num(w.wastagePct)}%</td><td><b>${num(w.efficiencyScore)}</b></td><td>${num(w.payment)}</td>
+                  </tr>`).join("") : "<tr><td colspan='6'>No worker data available.</td></tr>"}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSettings() {
+      const s = state.data.settings || {};
+      return `
+        <div class="card">
+          <div class="toolbar"><strong>Operational Controls</strong><span class="muted">Admin write only</span></div>
+          <div class="form-grid">
+            ${settingInput("WRITE_MODE", "Write Mode", s.WRITE_MODE)}
+            ${settingInput("PAYMENT_RATE_PER_MTR", "Payment Rate per Mtr", s.PAYMENT_RATE_PER_MTR)}
+            ${settingInput("WASTAGE_ALERT_PCT", "Wastage Alert Percent", s.WASTAGE_ALERT_PCT)}
+            ${settingInput("DEFAULT_LEAD_TIME_DAYS", "Default Lead Time Days", s.DEFAULT_LEAD_TIME_DAYS)}
+            ${settingInput("WRITE_ALLOWLIST", "Write Allowlist (comma emails)", s.WRITE_ALLOWLIST, "full")}
+            ${settingInput("ADMIN_ALLOWLIST", "Admin Allowlist (comma emails)", s.ADMIN_ALLOWLIST, "full")}
+          </div>
+          <div style="margin-top:10px">
+            <button class="btn primary" onclick="saveSettingsFromUI()">Save Settings</button>
+            <span class="muted" style="margin-left:8px">Current user: ${esc(state.data.currentUser || "(hidden)")}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function setupTabHooks() {
+      const k = state.data.kpis || {};
+      if (state.tab === "dashboard") {
+        renderPie("orderStatusChart", ["Completed", "In Production", "Pending"], [
+          k.completedOrderCount || 0,
+          k.activeOrderCount || 0,
+          k.pendingOrderCount || 0
+        ]);
+        const months = Object.keys(k.monthlyDispatch || {}).sort();
+        renderLine("dispatchTrendChart", months, months.map(m => k.monthlyDispatch[m]));
+      }
+    }
+
+    function renderPie(id, labels, data) {
+      const ctx = document.getElementById(id);
+      if (!ctx) return;
+      if (state.charts[id]) state.charts[id].destroy();
+      state.charts[id] = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels,
+          datasets: [{ data, backgroundColor: ["#059669", "#2563eb", "#d97706"] }]
+        },
+        options: { plugins: { legend: { position: "bottom" } } }
+      });
+    }
+
+    function renderLine(id, labels, data) {
+      const ctx = document.getElementById(id);
+      if (!ctx) return;
+      if (state.charts[id]) state.charts[id].destroy();
+      state.charts[id] = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{ data, borderColor: "#b48a35", backgroundColor: "rgba(180,138,53,.2)", fill: true, tension: 0.35 }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+    }
+
+    function openOrderModal() {
+      const clients = (state.data.clients || []).map(c => `<option value="${esc(c)}"></option>`).join("");
+      const items = (state.data.itemCodes || []).map(i => `<option value="${esc(i)}"></option>`).join("");
+      openModal("Add New Order", `
+        <div class="form-grid">
+          <div><label>Date</label><input id="ordDate" type="date" value="${today()}"></div>
+          <div><label>Client Name</label><input id="ordClient" list="clientList"></div>
+          <div><label>Item Code</label><input id="ordItem" list="itemList"></div>
+          <div><label>Qty</label><input id="ordQty" type="number" min="0" step="0.01"></div>
+          <div><label>Status</label><select id="ordStatus"><option>Pending</option><option>In Production</option></select></div>
+          <div><label>Priority</label><select id="ordPriority"><option>Low</option><option selected>Medium</option><option>High</option></select></div>
+          <div><label>Due Date</label><input id="ordDue" type="date"></div>
+          <div><label>Remarks</label><input id="ordRemarks"></div>
+          <div class="full"><button class="btn primary" onclick="submitOrder()">Save Order</button></div>
+        </div>
+        <datalist id="clientList">${clients}</datalist>
+        <datalist id="itemList">${items}</datalist>
+      `);
+    }
+
+    function openJobModal() {
+      const orders = (state.data.orders || []).map(o => `<option value="${esc(o.orderId)}"></option>`).join("");
+      const items = (state.data.itemCodes || []).map(i => `<option value="${esc(i)}"></option>`).join("");
+      const workers = (state.data.workers || []).map(w => `<option value="${esc(w)}"></option>`).join("");
+      openModal("Add Job Work", `
+        <div class="form-grid">
+          <div><label>Date</label><input id="jobDate" type="date" value="${today()}"></div>
+          <div><label>Order ID</label><input id="jobOrder" list="orderList"></div>
+          <div><label>Worker Name</label><input id="jobWorker" list="workerList"></div>
+          <div><label>Item Code</label><input id="jobItem" list="itemList"></div>
+          <div><label>Sent Qty</label><input id="jobSent" type="number" min="0" step="0.01"></div>
+          <div><label>Received Qty</label><input id="jobRecv" type="number" min="0" step="0.01"></div>
+          <div><label>Wastage</label><input id="jobWaste" type="number" min="0" step="0.01"></div>
+          <div><label>Status</label><select id="jobStatus"><option>Out</option><option>Completed</option></select></div>
+          <div><label>Total Payment (optional)</label><input id="jobPay" type="number" min="0" step="0.01"></div>
+          <div class="full"><button class="btn primary" onclick="submitJob()">Save Job Entry</button></div>
+        </div>
+        <datalist id="orderList">${orders}</datalist>
+        <datalist id="itemList">${items}</datalist>
+        <datalist id="workerList">${workers}</datalist>
+      `);
+    }
+
+    function openDispatchModal() {
+      const orders = (state.data.orders || []).map(o => `<option value="${esc(o.orderId)}"></option>`).join("");
+      const items = (state.data.itemCodes || []).map(i => `<option value="${esc(i)}"></option>`).join("");
+      const clients = (state.data.clients || []).map(c => `<option value="${esc(c)}"></option>`).join("");
+      openModal("Log Dispatch", `
+        <div class="form-grid">
+          <div><label>Order ID</label><input id="dispOrder" list="orderList"></div>
+          <div><label>Client Name</label><input id="dispClient" list="clientList"></div>
+          <div><label>Item Code</label><input id="dispItem" list="itemList"></div>
+          <div><label>Dispatch Qty</label><input id="dispQty" type="number" min="0" step="0.01"></div>
+          <div><label>Dispatch Date</label><input id="dispDate" type="date" value="${today()}"></div>
+          <div><label>Challan No</label><input id="dispChallan"></div>
+          <div><label>Vehicle No</label><input id="dispVehicle"></div>
+          <div><label>Mark Completed</label><select id="dispComplete"><option value="false">No</option><option value="true">Yes</option></select></div>
+          <div class="full"><button class="btn primary" onclick="submitDispatch()">Save Dispatch</button></div>
+        </div>
+        <datalist id="orderList">${orders}</datalist>
+        <datalist id="itemList">${items}</datalist>
+        <datalist id="clientList">${clients}</datalist>
+      `);
+    }
+
+    function openModal(title, html) {
+      document.getElementById("modalTitle").textContent = title;
+      document.getElementById("modalBody").innerHTML = html;
+      document.getElementById("modalBackdrop").classList.add("open");
+    }
+
+    function closeModal() {
+      document.getElementById("modalBackdrop").classList.remove("open");
+    }
+
+    function submitOrder() {
+      const payload = {
+        date: val("ordDate"),
+        clientName: val("ordClient"),
+        itemCode: val("ordItem"),
+        qty: val("ordQty"),
+        status: val("ordStatus"),
+        dueDate: val("ordDue"),
+        priority: val("ordPriority"),
+        remarks: val("ordRemarks")
+      };
+      callServer("saveNewOrder", [payload]).then(onMutation).catch(showError);
+    }
+
+    function submitJob() {
+      const payload = {
+        date: val("jobDate"),
+        orderId: val("jobOrder"),
+        workerName: val("jobWorker"),
+        itemCode: val("jobItem"),
+        sentQty: val("jobSent"),
+        receivedQty: val("jobRecv"),
+        wastageMtr: val("jobWaste"),
+        status: val("jobStatus"),
+        totalPayment: val("jobPay")
+      };
+      callServer("saveNewJobWork", [payload]).then(onMutation).catch(showError);
+    }
+
+    function submitDispatch() {
+      const payload = {
+        orderId: val("dispOrder"),
+        clientName: val("dispClient"),
+        itemCode: val("dispItem"),
+        dispatchedQty: val("dispQty"),
+        dispatchDate: val("dispDate"),
+        challanNo: val("dispChallan"),
+        vehicleNo: val("dispVehicle"),
+        markCompleted: val("dispComplete") === "true"
+      };
+      callServer("saveNewDispatch", [payload]).then(onMutation).catch(showError);
+    }
+
+    function changeOrderStatus(orderId, newStatus) {
+      if (!newStatus) return;
+      callServer("updateOrderStatus", [orderId, newStatus]).then(onMutation).catch(showError);
+    }
+
+    function syncSystem() {
+      callServer("syncSystemHealth", []).then(onMutation).catch(showError);
+    }
+
+    function saveSettingsFromUI() {
+      const keys = [
+        "WRITE_MODE",
+        "PAYMENT_RATE_PER_MTR",
+        "WASTAGE_ALERT_PCT",
+        "DEFAULT_LEAD_TIME_DAYS",
+        "WRITE_ALLOWLIST",
+        "ADMIN_ALLOWLIST"
+      ];
+      const updates = keys.map(key => callServer("upsertSetting", [key, val("set_" + key)]));
+      Promise.all(updates)
+        .then(() => {
+          toast("Settings updated");
+          refreshData();
+        })
+        .catch(showError);
+    }
+
+    function onMutation(result) {
+      if (!result || !result.success) {
+        toast(result && result.message ? result.message : "Operation failed", true);
+        return;
+      }
+      closeModal();
+      toast(result.message || "Saved");
+      refreshData();
+    }
+
+    function callServer(fnName, args) {
+      return new Promise((resolve, reject) => {
+        let runner = google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject);
+        runner[fnName].apply(runner, args || []);
+      });
+    }
+
+    function showError(err) {
+      toast(err.message || "Unexpected error", true);
+    }
+
+    function toast(message, isError) {
+      const box = document.getElementById("toast");
+      box.style.display = "block";
+      box.style.background = isError ? "#7f1d1d" : "#111827";
+      box.textContent = message;
+      window.clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => box.style.display = "none", 3200);
+    }
+
+    function settingInput(key, label, value, cls) {
+      return `
+        <div class="${cls || ""}">
+          <label>${label}</label>
+          ${key === "WRITE_MODE"
+            ? `<select id="set_${key}"><option ${value === "OPEN" ? "selected" : ""}>OPEN</option><option ${value === "RESTRICTED" ? "selected" : ""}>RESTRICTED</option></select>`
+            : `<input id="set_${key}" value="${esc(value || "")}">`
+          }
+        </div>
+      `;
+    }
+
+    function statusBadge(status) {
+      const s = (status || "").toLowerCase();
+      const cls = s === "completed" ? "completed" : (s === "in production" ? "production" : "pending");
+      return `<span class="badge ${cls}">${esc(status || "Pending")}</span>`;
+    }
+
+    function kpi(title, value, foot) {
+      return `<div class="card"><div class="kpi-title">${esc(title)}</div><div class="kpi-value">${esc(String(value))}</div><div class="kpi-foot">${esc(foot || "")}</div></div>`;
+    }
+
+    function esc(value) {
+      return String(value == null ? "" : value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function num(value) {
+      const n = Number(value || 0);
+      return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "0";
+    }
+
+    function val(id) {
+      const el = document.getElementById(id);
+      return el ? el.value : "";
+    }
+
+    function today() {
+      return new Date().toISOString().slice(0, 10);
+    }
+  </script>
+</body>
+</html>
