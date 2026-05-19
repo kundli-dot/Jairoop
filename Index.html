@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IMS Dashboard - Jai Roop Textiles</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f2f4f7;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #697386;
+      --border: #dfe4ea;
+      --sidebar: #0d1b2a;
+      --sidebar2: #14263d;
+      --gold: #c9a84c;
+      --gold2: #e6ca72;
+      --blue: #2563eb;
+      --green: #059669;
+      --red: #dc2626;
+      --amber: #d97706;
+      --purple: #7c3aed;
+      --radius: 14px;
+      --shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+      --font: "DM Sans", Arial, sans-serif;
+      --mono: "DM Mono", monospace;
+    }
+    .dark {
+      --bg: #08111f;
+      --card: #111b2b;
+      --text: #eef3fb;
+      --muted: #9aa9bd;
+      --border: #213047;
+      --sidebar: #050a12;
+      --sidebar2: #0b1728;
+      --shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
+    aside { width: 252px; background: linear-gradient(180deg, var(--sidebar), var(--sidebar2)); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
+    .brand { padding: 22px 18px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .brand-box { background: rgba(255,255,255,0.96); color: #0d1b2a; border-radius: 12px; padding: 16px 10px; text-align: center; font-weight: 800; letter-spacing: 0.16em; line-height: 1.4; }
+    .brand small { display: block; color: var(--gold2); margin-top: 10px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; font-size: 10px; text-align: center; }
+    nav { padding: 12px 10px; overflow-y: auto; flex: 1; }
+    .nav-section { color: rgba(255,255,255,0.35); font-size: 10px; font-weight: 800; letter-spacing: 0.16em; padding: 16px 12px 6px; text-transform: uppercase; }
+    .nav-item { width: 100%; border: 0; border-radius: 10px; background: transparent; color: rgba(255,255,255,0.68); padding: 11px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 650; font-size: 13px; text-align: left; }
+    .nav-item:hover { background: rgba(255,255,255,0.06); color: white; }
+    .nav-item.active { background: rgba(201,168,76,0.17); color: var(--gold2); box-shadow: inset 3px 0 var(--gold); }
+    .sidebar-foot { padding: 14px 18px; border-top: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.42); font-size: 11px; }
+    main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    header { height: 66px; background: var(--card); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; box-shadow: var(--shadow); z-index: 2; }
+    h1 { margin: 0; font-size: 18px; }
+    .subtitle { color: var(--muted); font-size: 12px; margin-top: 3px; }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+    #content { flex: 1; overflow: auto; padding: 24px; }
+    .btn { border: 0; border-radius: 10px; padding: 9px 14px; cursor: pointer; font-family: var(--font); font-size: 12px; font-weight: 800; display: inline-flex; gap: 8px; align-items: center; justify-content: center; }
+    .btn-primary { background: var(--sidebar); color: white; }
+    .btn-gold { background: var(--gold); color: #171717; }
+    .btn-green { background: var(--green); color: white; }
+    .btn-ghost { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-danger { background: var(--red); color: white; }
+    .btn-sm { padding: 6px 10px; font-size: 11px; border-radius: 8px; }
+    .grid { display: grid; gap: 16px; }
+    .kpi-grid { grid-template-columns: repeat(6, minmax(145px, 1fr)); margin-bottom: 18px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .kpi { padding: 17px; position: relative; overflow: hidden; }
+    .kpi:before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: var(--gold); }
+    .kpi.red:before { background: var(--red); }
+    .kpi.green:before { background: var(--green); }
+    .kpi.blue:before { background: var(--blue); }
+    .kpi.amber:before { background: var(--amber); }
+    .kpi.purple:before { background: var(--purple); }
+    .kpi-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-size: 10px; font-weight: 900; margin-bottom: 8px; }
+    .kpi-value { font-size: 27px; font-weight: 900; letter-spacing: -0.03em; }
+    .kpi-sub { color: var(--muted); font-size: 11px; margin-top: 5px; }
+    .section-head { padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .section-head h3 { margin: 0; font-size: 14px; display: flex; gap: 8px; align-items: center; }
+    .filter-bar { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+    input, select, textarea { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; font-family: var(--font); font-size: 12px; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { background: var(--sidebar); color: rgba(255,255,255,0.86); padding: 11px 13px; text-align: left; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; white-space: nowrap; }
+    td { border-bottom: 1px solid var(--border); padding: 11px 13px; vertical-align: middle; }
+    tr:hover td { background: rgba(201,168,76,0.045); }
+    .mono { font-family: var(--mono); }
+    .badge { border-radius: 999px; padding: 3px 8px; font-size: 10px; font-weight: 900; text-transform: uppercase; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .badge-ok { background: #d1fae5; color: #065f46; }
+    .badge-warn { background: #fef3c7; color: #92400e; }
+    .badge-bad { background: #fee2e2; color: #991b1b; }
+    .badge-blue { background: #dbeafe; color: #1d4ed8; }
+    .badge-purple { background: #ede9fe; color: #6d28d9; }
+    .progress { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; margin-top: 5px; }
+    .progress > span { display: block; height: 100%; border-radius: 999px; }
+    .charts { grid-template-columns: 1fr 1fr; margin-top: 18px; }
+    .chart-card { padding: 18px; min-height: 260px; }
+    canvas { max-height: 210px; }
+    .alert { border-radius: 14px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; border: 1px solid; }
+    .alert.critical { background: #fff1f2; border-color: #fda4af; color: #7f1d1d; }
+    .alert.warning { background: #fffbeb; border-color: #fcd34d; color: #78350f; }
+    .dark .alert.critical { background: rgba(127,29,29,0.22); color: #fecdd3; }
+    .dark .alert.warning { background: rgba(120,53,15,0.22); color: #fde68a; }
+    .empty { padding: 42px 20px; text-align: center; color: var(--muted); }
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.62); z-index: 30; align-items: center; justify-content: center; padding: 18px; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--card); width: min(720px, 100%); max-height: 90vh; overflow: hidden; border-radius: 18px; box-shadow: 0 24px 80px rgba(0,0,0,0.35); display: flex; flex-direction: column; }
+    .modal-head { background: var(--sidebar); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .modal-head h4 { margin: 0; font-size: 14px; letter-spacing: 0.04em; }
+    .modal-body { padding: 20px; overflow: auto; }
+    .modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; font-size: 10px; font-weight: 900; }
+    .toast-wrap { position: fixed; right: 22px; bottom: 22px; display: flex; flex-direction: column; gap: 10px; z-index: 40; }
+    .toast { background: var(--card); border-left: 4px solid var(--green); color: var(--text); box-shadow: var(--shadow); border-radius: 12px; padding: 12px 15px; min-width: 290px; font-size: 12px; font-weight: 700; }
+    .toast.error { border-color: var(--red); }
+    .toast.warning { border-color: var(--amber); }
+    .loading { position: fixed; inset: 0; background: var(--sidebar); color: white; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; letter-spacing: 0.14em; font-weight: 900; }
+    .loader-bar { width: 220px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 4px; margin-top: 22px; overflow: hidden; }
+    .loader-bar span { display: block; width: 55%; height: 100%; background: var(--gold); animation: load 1.1s ease-in-out infinite alternate; }
+    @keyframes load { from { transform: translateX(-70%); } to { transform: translateX(120%); } }
+    @media (max-width: 1180px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } .charts { grid-template-columns: 1fr; } }
+    @media (max-width: 760px) { body { display: block; overflow: auto; } aside { width: 100%; height: auto; } main { min-height: 100vh; } .kpi-grid { grid-template-columns: repeat(2, 1fr); } .form-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div id="loader" class="loading">
+    <div>JAI ROOP TEXTILES</div>
+    <small style="color:var(--gold);margin-top:8px">ADVANCED IMS V7</small>
+    <div class="loader-bar"><span></span></div>
+  </div>
+
+  <aside>
+    <div class="brand">
+      <div class="brand-box">JAI ROOP<br>TEXTILES</div>
+      <small>IMS Tracking System</small>
+    </div>
+    <nav>
+      <div class="nav-section">Overview</div>
+      <button class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-line"></i> Dashboard</button>
+      <button class="nav-item" data-tab="alerts" onclick="switchTab('alerts')"><i class="fa-solid fa-bell"></i> Alerts</button>
+      <div class="nav-section">Operations</div>
+      <button class="nav-item" data-tab="inventory" onclick="switchTab('inventory')"><i class="fa-solid fa-warehouse"></i> Inventory</button>
+      <button class="nav-item" data-tab="orders" onclick="switchTab('orders')"><i class="fa-solid fa-book-open"></i> Order Book</button>
+      <button class="nav-item" data-tab="purchases" onclick="switchTab('purchases')"><i class="fa-solid fa-cart-shopping"></i> Purchases</button>
+      <button class="nav-item" data-tab="jobwork" onclick="switchTab('jobwork')"><i class="fa-solid fa-screwdriver-wrench"></i> Job Work</button>
+      <button class="nav-item" data-tab="dispatch" onclick="switchTab('dispatch')"><i class="fa-solid fa-truck-fast"></i> Dispatch</button>
+      <div class="nav-section">Analytics</div>
+      <button class="nav-item" data-tab="clients" onclick="switchTab('clients')"><i class="fa-solid fa-users"></i> Clients</button>
+      <button class="nav-item" data-tab="workers" onclick="switchTab('workers')"><i class="fa-solid fa-user-gear"></i> Workers</button>
+      <button class="nav-item" data-tab="setup" onclick="switchTab('setup')"><i class="fa-solid fa-gear"></i> Setup Guide</button>
+    </nav>
+    <div class="sidebar-foot">
+      <div>Version <span id="version">7.0</span></div>
+      <div id="syncTime" class="mono" style="margin-top:4px">Not synced</div>
+    </div>
+  </aside>
+
+  <main>
+    <header>
+      <div>
+        <h1 id="pageTitle">Dashboard Overview</h1>
+        <div id="pageSub" class="subtitle">Live textile inventory, orders and production control</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost btn-sm" onclick="toggleDark()"><i class="fa-solid fa-moon"></i> Theme</button>
+        <button class="btn btn-primary btn-sm" onclick="refreshAll()"><i class="fa-solid fa-rotate"></i> Sync</button>
+      </div>
+    </header>
+    <section id="content"></section>
+  </main>
+
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-head">
+        <h4 id="modalTitle">Form</h4>
+        <button class="btn btn-danger btn-sm" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+      <div id="modalFoot" class="modal-foot"></div>
+    </div>
+  </div>
+  <div id="toasts" class="toast-wrap"></div>
+
+  <script>
+    let allData = {};
+    let currentTab = 'dashboard';
+    let charts = {};
+
+    const titles = {
+      dashboard: ['Dashboard Overview', 'Live textile inventory, orders and production control'],
+      alerts: ['Alerts & Exceptions', 'Low stock, over-allocation, overdue orders and wastage'],
+      inventory: ['Inventory Master', 'Stock balances, availability and reorder status'],
+      orders: ['Order Book', 'Client orders with lifecycle tracking'],
+      purchases: ['Purchase Register', 'Incoming stock and supplier purchases'],
+      jobwork: ['Job Work Tracker', 'Worker batches, wastage and payment tracking'],
+      dispatch: ['Dispatch Log', 'Challans, shipments and stock-out control'],
+      clients: ['Client Portfolios', 'Client-wise order and dispatch performance'],
+      workers: ['Worker Analytics', 'Job work output, wastage and payment summary'],
+      setup: ['Setup Guide', 'How to run and maintain this IMS']
+    };
+
+    window.onload = refreshAll;
+
+    function refreshAll() {
+      showLoader(true);
+      if (!window.google || !google.script || !google.script.run) {
+        showLoader(false);
+        toast('Open this file from the deployed Google Apps Script web app.', 'warning');
+        renderTab();
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(function(data) {
+          allData = data || {};
+          document.getElementById('version').textContent = allData.version || '7.0';
+          document.getElementById('syncTime').textContent = allData.lastSync || 'Synced';
+          renderTab();
+          showLoader(false);
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          toast('Sync failed: ' + (err.message || err), 'error');
+        })
+        .getAllIMSData();
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.nav-item').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+      });
+      document.getElementById('pageTitle').textContent = titles[tab][0];
+      document.getElementById('pageSub').textContent = titles[tab][1];
+      renderTab();
+    }
+
+    function renderTab() {
+      destroyCharts();
+      const c = document.getElementById('content');
+      if (currentTab === 'dashboard') renderDashboard(c);
+      if (currentTab === 'alerts') renderAlerts(c);
+      if (currentTab === 'inventory') renderInventory(c);
+      if (currentTab === 'orders') renderOrders(c);
+      if (currentTab === 'purchases') renderPurchases(c);
+      if (currentTab === 'jobwork') renderJobWork(c);
+      if (currentTab === 'dispatch') renderDispatch(c);
+      if (currentTab === 'clients') renderClients(c);
+      if (currentTab === 'workers') renderWorkers(c);
+      if (currentTab === 'setup') renderSetup(c);
+    }
+
+    function renderDashboard(c) {
+      const k = allData.kpis || {};
+      const alertBanner = (allData.alerts || []).length ? `
+        <div class="alert ${(allData.alerts || [])[0].type === 'critical' ? 'critical' : 'warning'}">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <div><b>${allData.alerts.length} active exception(s).</b> Review Alerts before committing new orders.</div>
+        </div>` : '';
+      c.innerHTML = alertBanner + `
+        <div class="grid kpi-grid">
+          ${kpi('Critical Reorders', k.reorderCount || 0, 'Items below safe stock', 'red')}
+          ${kpi('Active Orders', k.activeOrderCount || 0, (k.pendingOrderCount || 0) + ' pending', 'blue')}
+          ${kpi('Live Job Batches', k.liveJobCount || k.jwLiveCount || 0, 'Currently with workers', 'amber')}
+          ${kpi('Total Dispatched', fmt(k.totalDispatched || 0), 'Metres shipped', 'green')}
+          ${kpi('Stock Value', 'INR ' + fmt(k.stockValue || 0), 'Estimated inventory value', 'purple')}
+          ${kpi('Fulfilment', (k.fulfilmentRate || 0) + '%', (k.completedOrderCount || 0) + '/' + (k.totalOrderCount || 0) + ' completed', 'gold')}
+        </div>
+        <div class="grid charts">
+          <div class="card chart-card"><h3>Stock by Category</h3><canvas id="catChart"></canvas></div>
+          <div class="card chart-card"><h3>Order Status Split</h3><canvas id="orderChart"></canvas></div>
+          <div class="card chart-card"><h3>Top Stock Items</h3><canvas id="itemChart"></canvas></div>
+          <div class="card chart-card"><h3>Monthly Dispatch</h3><canvas id="dispatchChart"></canvas></div>
+        </div>`;
+      const cats = k.categoryBreakdown || {};
+      chart('catChart', 'bar', Object.keys(cats), Object.keys(cats).map(function(x) { return cats[x].totalStock; }), ['#c9a84c', '#2563eb', '#059669', '#d97706', '#7c3aed']);
+      chart('orderChart', 'doughnut', ['Completed', 'In Production', 'Pending'], [k.completedOrderCount || 0, k.activeOrderCount || 0, k.pendingOrderCount || 0], ['#059669', '#2563eb', '#d97706']);
+      const top = k.topItems || [];
+      chart('itemChart', 'bar', top.map(function(i) { return i.code; }), top.map(function(i) { return i.balance; }), ['#0d1b2a']);
+      const months = Object.keys(k.monthlyDispatch || {}).sort().slice(-8);
+      chart('dispatchChart', 'line', months, months.map(function(m) { return k.monthlyDispatch[m]; }), ['#c9a84c']);
+    }
+
+    function renderAlerts(c) {
+      const alerts = allData.alerts || [];
+      c.innerHTML = `
+        <div class="section-head card" style="margin-bottom:16px">
+          <h3><i class="fa-solid fa-bell" style="color:var(--gold)"></i> Active Exceptions</h3>
+          <button class="btn btn-primary btn-sm" onclick="callServer('refreshStockBalances', {}, refreshAll)"><i class="fa-solid fa-calculator"></i> Recalculate Stock</button>
+        </div>
+        ${alerts.length ? alerts.map(function(a) {
+          return `<div class="alert ${a.type === 'critical' ? 'critical' : 'warning'}">
+            <i class="fa-solid ${a.type === 'critical' ? 'fa-circle-exclamation' : 'fa-triangle-exclamation'}"></i>
+            <div>
+              <b>${esc(a.category || 'Alert')} ${a.itemCode ? '- ' + esc(a.itemCode) : ''} ${a.orderId ? '- ' + esc(a.orderId) : ''}</b>
+              <div style="margin-top:4px">${esc(a.message || '')}</div>
+              <div class="mono" style="margin-top:6px;font-size:11px;opacity:.75">${a.balance !== undefined ? 'Balance: ' + fmt(a.balance) + ' | Available: ' + fmt(a.available) : ''}${a.wastagePct ? 'Wastage: ' + a.wastagePct + '%' : ''}</div>
+            </div>
+          </div>`;
+        }).join('') : empty('No active alerts. Stock and production look healthy.')}
+      `;
+    }
+
+    function renderInventory(c) {
+      c.innerHTML = tableShell('Inventory Master', 'fa-warehouse', `
+        <input id="invSearch" placeholder="Search item, category, supplier" oninput="filterInventory()">
+        <select id="invStatus" onchange="filterInventory()"><option value="">All Status</option><option>STOCK OUT</option><option>REORDER (LOW)</option><option>NORMAL</option><option>ABOVE LEVEL</option></select>
+        <button class="btn btn-gold btn-sm" onclick="openItemModal()"><i class="fa-solid fa-plus"></i> Item</button>
+        <button class="btn btn-primary btn-sm" onclick="openMovementModal()"><i class="fa-solid fa-right-left"></i> Movement</button>
+      `, `<thead><tr><th>Item</th><th>Category</th><th>Opening</th><th>Total In</th><th>Total Out</th><th>Allocated</th><th>Job Work</th><th>Available</th><th>Status</th></tr></thead><tbody id="invBody"></tbody>`);
+      filterInventory();
+    }
+
+    function filterInventory() {
+      const q = lower(value('invSearch'));
+      const status = value('invStatus');
+      const rows = (allData.master || []).filter(function(i) {
+        return (!q || lower([i.ItemCode, i.ItemName, i.Category, i.Supplier].join(' ')).includes(q)) && (!status || i.ReorderStatus === status);
+      });
+      const maxBal = Math.max.apply(null, rows.map(function(i) { return n(i.ClosingBalance); }).concat([1]));
+      fillBody('invBody', rows, 9, function(i) {
+        const available = n(i.AvailableStock);
+        const statusClass = i.ReorderStatus === 'STOCK OUT' || i.ReorderStatus === 'REORDER (LOW)' ? 'badge-bad' : (i.ReorderStatus === 'ABOVE LEVEL' ? 'badge-purple' : 'badge-ok');
+        const pct = Math.max(0, Math.min(100, n(i.ClosingBalance) / maxBal * 100));
+        return `<tr>
+          <td><b class="mono">${esc(i.ItemCode)}</b><div style="color:var(--muted)">${esc(i.ItemName)}</div></td>
+          <td>${esc(i.Category || '-')}<div style="color:var(--muted);font-size:11px">${esc(i.Colour || '')}</div></td>
+          <td class="mono">${fmt(i.OpeningStock)}</td>
+          <td class="mono" style="color:var(--green)">${fmt(i.TotalIn)}</td>
+          <td class="mono" style="color:var(--red)">${fmt(i.TotalOut)}</td>
+          <td class="mono">${fmt(i.AllocatedToOrders)}</td>
+          <td class="mono">${fmt(i.InJobWork)}</td>
+          <td><b>${fmt(available)}</b><div class="progress"><span style="width:${pct}%;background:${available < 0 ? 'var(--red)' : 'var(--green)'}"></span></div></td>
+          <td><span class="badge ${statusClass}">${esc(i.ReorderStatus || 'NORMAL')}</span></td>
+        </tr>`;
+      });
+    }
+
+    function renderOrders(c) {
+      c.innerHTML = tableShell('Order Book', 'fa-book-open', `
+        <input id="orderSearch" placeholder="Search order, client, item" oninput="filterOrders()">
+        <select id="orderStatus" onchange="filterOrders()"><option value="">All Status</option><option>Pending</option><option>In Production</option><option>Completed</option><option>Cancelled</option></select>
+        <button class="btn btn-gold btn-sm" onclick="openOrderModal()"><i class="fa-solid fa-plus"></i> Order</button>
+      `, `<thead><tr><th>Order</th><th>Client</th><th>Item</th><th>Qty</th><th>Required</th><th>Priority</th><th>Status</th><th>Action</th></tr></thead><tbody id="orderBody"></tbody>`);
+      filterOrders();
+    }
+
+    function filterOrders() {
+      const q = lower(value('orderSearch'));
+      const status = value('orderStatus');
+      const rows = (allData.orders || []).filter(function(o) {
+        return (!q || lower([o.OrderID, o.ClientName, o.ItemCode, o.PONo].join(' ')).includes(q)) && (!status || o.Status === status);
+      });
+      fillBody('orderBody', rows, 8, function(o) {
+        const badge = o.Status === 'Completed' ? 'badge-ok' : (o.Status === 'In Production' ? 'badge-blue' : 'badge-warn');
+        return `<tr>
+          <td><b class="mono">${esc(o.OrderID)}</b><div style="color:var(--muted)">${esc(o.Date)}</div></td>
+          <td><b>${esc(o.ClientName)}</b><div class="mono" style="color:var(--muted)">${esc(o.PONo || '')}</div></td>
+          <td class="mono">${esc(o.ItemCode)}</td>
+          <td style="text-align:right"><b>${fmt(o.OrderedQty || o.OrderedQtyMtrKG)}</b></td>
+          <td class="mono">${esc(o.RequiredDate || '-')}</td>
+          <td><span class="badge ${o.Priority === 'Urgent' ? 'badge-bad' : 'badge-purple'}">${esc(o.Priority || 'Normal')}</span></td>
+          <td><span class="badge ${badge}">${esc(o.Status)}</span></td>
+          <td>
+            <button class="btn btn-ghost btn-sm" onclick='openLifecycle(${JSON.stringify(o.OrderID)})'><i class="fa-solid fa-eye"></i></button>
+            <select class="btn-sm" onchange='changeOrderStatus(${JSON.stringify(o.OrderID)}, this.value)'><option value="">Status...</option><option>Pending</option><option>In Production</option><option>Completed</option><option>Cancelled</option></select>
+          </td>
+        </tr>`;
+      });
+    }
+
+    function renderPurchases(c) {
+      c.innerHTML = tableShell('Purchase Register', 'fa-cart-shopping', `
+        <input id="purchaseSearch" placeholder="Search supplier, item, invoice" oninput="filterPurchases()">
+        <button class="btn btn-gold btn-sm" onclick="openPurchaseModal()"><i class="fa-solid fa-plus"></i> Purchase</button>
+      `, `<thead><tr><th>Purchase ID</th><th>Date</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th><th>Invoice</th><th>Status</th></tr></thead><tbody id="purchaseBody"></tbody>`);
+      filterPurchases();
+    }
+
+    function filterPurchases() {
+      const q = lower(value('purchaseSearch'));
+      const rows = (allData.purchases || []).filter(function(p) {
+        return !q || lower([p.PurchaseID, p.Supplier, p.ItemCode, p.InvoiceNo].join(' ')).includes(q);
+      });
+      fillBody('purchaseBody', rows, 9, function(p) {
+        return `<tr><td class="mono"><b>${esc(p.PurchaseID)}</b></td><td>${esc(p.Date)}</td><td>${esc(p.Supplier)}</td><td class="mono">${esc(p.ItemCode)}</td><td style="text-align:right">${fmt(p.Qty)}</td><td style="text-align:right">${money(p.Rate)}</td><td style="text-align:right"><b>${money(p.Amount)}</b></td><td class="mono">${esc(p.InvoiceNo || '-')}</td><td><span class="badge badge-ok">${esc(p.Status || 'Received')}</span></td></tr>`;
+      });
+    }
+
+    function renderJobWork(c) {
+      c.innerHTML = tableShell('Job Work Tracker', 'fa-screwdriver-wrench', `
+        <input id="jobSearch" placeholder="Search job, worker, item" oninput="filterJobWork()">
+        <select id="jobStatus" onchange="filterJobWork()"><option value="">All Status</option><option>Out</option><option>Completed</option></select>
+        <button class="btn btn-gold btn-sm" onclick="openJobModal()"><i class="fa-solid fa-plus"></i> Job Work</button>
+      `, `<thead><tr><th>Job</th><th>Worker</th><th>Order</th><th>Process</th><th>Sent</th><th>Received</th><th>Balance</th><th>Wastage</th><th>Payment</th><th>Status</th></tr></thead><tbody id="jobBody"></tbody>`);
+      filterJobWork();
+    }
+
+    function filterJobWork() {
+      const q = lower(value('jobSearch'));
+      const status = value('jobStatus');
+      const rows = (allData.jobWork || []).filter(function(j) {
+        return (!q || lower([j.JobID, j.WorkerName, j.OrderID, j.ItemCode].join(' ')).includes(q)) && (!status || j.Status === status);
+      });
+      fillBody('jobBody', rows, 10, function(j) {
+        const sent = n(j.SentQty || j.SentQtyMtr);
+        const received = n(j.ReceivedQty || j.ReceivedQtyMtr);
+        const waste = n(j.WastageQty || j.WastageMtr);
+        const wastePct = sent ? waste / sent * 100 : 0;
+        return `<tr>
+          <td><b class="mono">${esc(j.JobID)}</b><div style="color:var(--muted)">${esc(j.Date)}</div></td>
+          <td><b>${esc(j.WorkerName)}</b><div class="mono" style="color:var(--muted)">${esc(j.ItemCode)}</div></td>
+          <td class="mono">${esc(j.OrderID || '-')}</td><td>${esc(j.Process || 'Job Work')}</td>
+          <td style="text-align:right">${fmt(sent)}</td><td style="text-align:right">${fmt(received)}</td><td style="text-align:right">${fmt(Math.max(0, sent - received))}</td>
+          <td><span class="badge ${wastePct > 4 ? 'badge-bad' : 'badge-ok'}">${wastePct.toFixed(1)}%</span></td>
+          <td style="text-align:right">${money(j.TotalPayment)}</td><td><span class="badge ${j.Status === 'Completed' ? 'badge-ok' : 'badge-warn'}">${esc(j.Status || 'Out')}</span></td>
+        </tr>`;
+      });
+    }
+
+    function renderDispatch(c) {
+      c.innerHTML = tableShell('Dispatch Log', 'fa-truck-fast', `
+        <input id="dispatchSearch" placeholder="Search dispatch, client, challan" oninput="filterDispatch()">
+        <button class="btn btn-gold btn-sm" onclick="openDispatchModal()"><i class="fa-solid fa-plus"></i> Dispatch</button>
+      `, `<thead><tr><th>Dispatch</th><th>Order</th><th>Client</th><th>Item</th><th>Qty</th><th>Date</th><th>Challan</th><th>Transport</th></tr></thead><tbody id="dispatchBody"></tbody>`);
+      filterDispatch();
+    }
+
+    function filterDispatch() {
+      const q = lower(value('dispatchSearch'));
+      const rows = (allData.dispatch || []).filter(function(d) {
+        return !q || lower([d.DispatchID, d.OrderID, d.ClientName, d.ChallanNo].join(' ')).includes(q);
+      });
+      fillBody('dispatchBody', rows, 8, function(d) {
+        return `<tr><td class="mono"><b>${esc(d.DispatchID)}</b></td><td class="mono">${esc(d.OrderID)}</td><td>${esc(d.ClientName)}</td><td class="mono">${esc(d.ItemCode)}</td><td style="text-align:right"><b>${fmt(d.DispatchedQty)}</b></td><td>${esc(d.DispatchDate)}</td><td class="mono">${esc(d.ChallanNo || '-')}</td><td>${esc(d.Transport || '-')}</td></tr>`;
+      });
+    }
+
+    function renderClients(c) {
+      const rows = ((allData.kpis || {}).clientPerformance || []);
+      c.innerHTML = tableShell('Client Portfolios', 'fa-users', `<input id="clientSearch" placeholder="Search client" oninput="filterClientRows()">`, `<thead><tr><th>Client</th><th>Orders</th><th>Active</th><th>Ordered Qty</th><th>Dispatched Qty</th><th>Fulfilment</th></tr></thead><tbody id="clientBody"></tbody>`);
+      window._clientRows = rows;
+      filterClientRows();
+    }
+
+    function filterClientRows() {
+      const q = lower(value('clientSearch'));
+      const rows = (window._clientRows || []).filter(function(r) { return !q || lower(r.client).includes(q); });
+      fillBody('clientBody', rows, 6, function(r) {
+        const pct = r.orderedQty ? r.dispatchedQty / r.orderedQty * 100 : 0;
+        return `<tr><td><b>${esc(r.client)}</b></td><td>${r.orders}</td><td>${r.active}</td><td style="text-align:right">${fmt(r.orderedQty)}</td><td style="text-align:right">${fmt(r.dispatchedQty)}</td><td><b>${pct.toFixed(1)}%</b><div class="progress"><span style="width:${Math.min(100,pct)}%;background:var(--green)"></span></div></td></tr>`;
+      });
+    }
+
+    function renderWorkers(c) {
+      const rows = ((allData.kpis || {}).workerPerformance || []);
+      c.innerHTML = tableShell('Worker Analytics', 'fa-user-gear', `<input id="workerSearch" placeholder="Search worker" oninput="filterWorkerRows()">`, `<thead><tr><th>Worker</th><th>Jobs</th><th>Sent</th><th>Received</th><th>Wastage</th><th>Wastage %</th><th>Payment</th></tr></thead><tbody id="workerBody"></tbody>`);
+      window._workerRows = rows;
+      filterWorkerRows();
+    }
+
+    function filterWorkerRows() {
+      const q = lower(value('workerSearch'));
+      const rows = (window._workerRows || []).filter(function(r) { return !q || lower(r.worker).includes(q); });
+      fillBody('workerBody', rows, 7, function(r) {
+        return `<tr><td><b>${esc(r.worker)}</b></td><td>${r.jobs}</td><td style="text-align:right">${fmt(r.sent)}</td><td style="text-align:right">${fmt(r.received)}</td><td style="text-align:right">${fmt(r.wastage)}</td><td><span class="badge ${r.wastagePct > 4 ? 'badge-bad' : 'badge-ok'}">${r.wastagePct}%</span></td><td style="text-align:right">${money(r.payment)}</td></tr>`;
+      });
+    }
+
+    function renderSetup(c) {
+      c.innerHTML = `
+        <div class="card" style="padding:22px;line-height:1.7">
+          <h2 style="margin-top:0">How to run your IMS</h2>
+          <ol>
+            <li>Open the linked Google Sheet and paste <b>Code.gs</b> and <b>Index.html</b> into Apps Script.</li>
+            <li>Run <b>setupIMS()</b> once. It creates/repairs Master, Order Book, Purchase Register, Stock Ledger, Job Work Tracker, Dispatch Log and Settings.</li>
+            <li>Deploy as <b>Web app</b>, execute as owner, and allow access to your company users.</li>
+            <li>Enter each stock item in Inventory Master. Then use Purchases or Stock Movement to add stock.</li>
+            <li>Use Order Book, Job Work and Dispatch daily. The dashboard recalculates allocation, available stock, reorder status and alerts.</li>
+          </ol>
+          <p><b>Recommended daily workflow:</b> Purchase In -> Order Entry -> Job Work Out/Receive -> Dispatch -> mark order Completed.</p>
+          <button class="btn btn-primary" onclick="callServer('setupIMS', {}, refreshAll)"><i class="fa-solid fa-wand-magic-sparkles"></i> Run Setup / Repair Now</button>
+        </div>`;
+    }
+
+    function openItemModal() {
+      openForm('Add / Update Inventory Item', [
+        field('itemCode', 'Item Code', 'text', true), field('itemName', 'Item Name', 'text', true),
+        field('category', 'Category', 'text'), field('unit', 'Unit', 'text', false, 'Mtr'),
+        field('colour', 'Colour', 'text'), field('gsmWeight', 'GSM / Weight', 'text'),
+        field('openingStock', 'Opening Stock', 'number'), field('reorderLevel', 'Reorder Level', 'number'),
+        field('targetStock', 'Target Stock', 'number'), field('avgRate', 'Avg Rate', 'number'),
+        field('location', 'Location', 'text'), field('supplier', 'Supplier', 'text')
+      ], function(data) { callServer('saveMasterItem', data, refreshAll); });
+    }
+
+    function openPurchaseModal() {
+      openForm('Add Purchase / Stock In', [
+        field('date', 'Date', 'date', false, today()), field('supplier', 'Supplier', 'text', true, '', allData.suppliers),
+        field('itemCode', 'Item Code', 'text', true, '', allData.items), field('qty', 'Qty', 'number', true),
+        field('rate', 'Rate', 'number'), field('invoiceNo', 'Invoice No', 'text'),
+        selectField('status', 'Status', ['Received', 'Ordered', 'Partially Received'], 'Received'), field('remarks', 'Remarks', 'text')
+      ], function(data) { callServer('savePurchase', data, refreshAll); });
+    }
+
+    function openMovementModal() {
+      openForm('Manual Stock Movement', [
+        field('date', 'Date', 'date', false, today()), selectField('type', 'Type', ['Production In', 'Return In', 'Adjustment In', 'Sample Out', 'Damage Out', 'Adjustment Out'], 'Adjustment In'),
+        field('itemCode', 'Item Code', 'text', true, '', allData.items), field('qty', 'Qty', 'number', true),
+        field('rate', 'Rate', 'number'), field('party', 'Party', 'text'), field('referenceId', 'Reference ID', 'text'), field('remarks', 'Remarks', 'text')
+      ], function(data) { callServer('saveStockMovement', data, refreshAll); });
+    }
+
+    function openOrderModal() {
+      openForm('Add New Order', [
+        field('date', 'Order Date', 'date', false, today()), field('clientName', 'Client Name', 'text', true, '', allData.clients),
+        field('poNo', 'PO No', 'text'), field('itemCode', 'Item Code', 'text', true, '', allData.items),
+        field('qty', 'Ordered Qty', 'number', true), field('requiredDate', 'Required Date', 'date'),
+        field('rate', 'Rate', 'number'), selectField('priority', 'Priority', ['Normal', 'High', 'Urgent'], 'Normal'),
+        selectField('status', 'Status', ['Pending', 'In Production'], 'Pending'), field('remarks', 'Remarks', 'text')
+      ], function(data) { callServer('saveNewOrder', data, refreshAll); });
+    }
+
+    function openJobModal() {
+      openForm('Add Job Work Batch', [
+        field('date', 'Date', 'date', false, today()), field('orderId', 'Order ID', 'text', false, '', (allData.orders || []).map(function(o) { return o.OrderID; })),
+        field('workerName', 'Worker Name', 'text', true, '', allData.workers), field('process', 'Process', 'text', false, 'Cutting/Stitching'),
+        field('itemCode', 'Item Code', 'text', true, '', allData.items), field('sentQty', 'Sent Qty', 'number', true),
+        field('receivedQty', 'Received Qty', 'number'), field('wastageQty', 'Wastage Qty', 'number'),
+        field('rate', 'Rate per Mtr', 'number', false, '0.25'), field('dueDate', 'Due Date', 'date'),
+        selectField('status', 'Status', ['Out', 'Completed'], 'Out'), field('remarks', 'Remarks', 'text')
+      ], function(data) { callServer('saveNewJobWork', data, refreshAll); });
+    }
+
+    function openDispatchModal() {
+      openForm('Log Dispatch', [
+        field('orderId', 'Order ID', 'text', true, '', (allData.orders || []).map(function(o) { return o.OrderID; })),
+        field('clientName', 'Client Name', 'text', true, '', allData.clients),
+        field('itemCode', 'Item Code', 'text', true, '', allData.items), field('dispatchedQty', 'Dispatched Qty', 'number', true),
+        field('dispatchDate', 'Dispatch Date', 'date', false, today()), field('challanNo', 'Challan No', 'text'),
+        field('transport', 'Transport', 'text'), field('lrNo', 'LR No', 'text'), field('freight', 'Freight', 'number'),
+        checkboxField('markCompleted', 'Mark linked order as completed'), field('remarks', 'Remarks', 'text')
+      ], function(data) { callServer('saveNewDispatch', data, refreshAll); });
+    }
+
+    function openLifecycle(orderId) {
+      const order = (allData.orders || []).find(function(o) { return o.OrderID === orderId; });
+      if (!order) return;
+      const jobs = (allData.jobWork || []).filter(function(j) { return j.OrderID === orderId; });
+      const dispatches = (allData.dispatch || []).filter(function(d) { return d.OrderID === orderId; });
+      document.getElementById('modalTitle').textContent = 'Order Lifecycle - ' + orderId;
+      document.getElementById('modalBody').innerHTML = `
+        <div style="line-height:1.7">
+          <h3 style="margin-top:0">${esc(order.ClientName)} - ${esc(order.ItemCode)}</h3>
+          <p><b>Order:</b> ${fmt(order.OrderedQty || order.OrderedQtyMtrKG)} Mtr | <b>Status:</b> ${esc(order.Status)} | <b>Required:</b> ${esc(order.RequiredDate || '-')}</p>
+          <h4>Job Work</h4>
+          ${jobs.length ? jobs.map(function(j) { return `<p class="mono"> ${esc(j.JobID)} | ${esc(j.WorkerName)} | Sent ${fmt(j.SentQty || j.SentQtyMtr)} | Received ${fmt(j.ReceivedQty || j.ReceivedQtyMtr)} | ${esc(j.Status)}</p>`; }).join('') : '<p style="color:var(--muted)">No job work yet.</p>'}
+          <h4>Dispatch</h4>
+          ${dispatches.length ? dispatches.map(function(d) { return `<p class="mono"> ${esc(d.DispatchID)} | ${fmt(d.DispatchedQty)} Mtr | ${esc(d.DispatchDate)} | Challan ${esc(d.ChallanNo || '-')}</p>`; }).join('') : '<p style="color:var(--muted)">Not dispatched yet.</p>'}
+        </div>`;
+      document.getElementById('modalFoot').innerHTML = '<button class="btn btn-ghost" onclick="closeModal()">Close</button>';
+      document.getElementById('modalBackdrop').classList.add('open');
+    }
+
+    function changeOrderStatus(orderId, status) {
+      if (!status) return;
+      callServer('updateOrderStatus', [orderId, status], refreshAll);
+    }
+
+    function openForm(title, fields, submitHandler) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML = `<div class="form-grid">${fields.join('')}</div>`;
+      document.getElementById('modalFoot').innerHTML = '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-gold" id="modalSave"><i class="fa-solid fa-save"></i> Save</button>';
+      document.getElementById('modalSave').onclick = function() {
+        const data = {};
+        document.querySelectorAll('#modalBody [data-field]').forEach(function(el) {
+          data[el.dataset.field] = el.type === 'checkbox' ? el.checked : el.value;
+        });
+        submitHandler(data);
+      };
+      document.getElementById('modalBackdrop').classList.add('open');
+    }
+
+    function field(id, label, type, required, defaultValue, list) {
+      const listId = list && list.length ? 'list-' + id + '-' + Math.random().toString(36).slice(2) : '';
+      const dataList = listId ? `<datalist id="${listId}">${list.map(function(v) { return `<option value="${esc(v)}"></option>`; }).join('')}</datalist>` : '';
+      return `<div class="form-group"><label>${label}${required ? ' *' : ''}</label><input data-field="${id}" type="${type}" value="${esc(defaultValue || '')}" ${required ? 'required' : ''} ${listId ? 'list="' + listId + '"' : ''}>${dataList}</div>`;
+    }
+
+    function selectField(id, label, options, defaultValue) {
+      return `<div class="form-group"><label>${label}</label><select data-field="${id}">${options.map(function(o) { return `<option ${o === defaultValue ? 'selected' : ''}>${esc(o)}</option>`; }).join('')}</select></div>`;
+    }
+
+    function checkboxField(id, label) {
+      return `<div class="form-group full" style="flex-direction:row;align-items:center"><input data-field="${id}" type="checkbox" style="width:auto"><label style="text-transform:none;font-size:12px">${label}</label></div>`;
+    }
+
+    function callServer(name, payload, after) {
+      showLoader(true);
+      let runner = google.script.run
+        .withSuccessHandler(function(result) {
+          showLoader(false);
+          if (result && result.message) toast(result.message, result.success === false ? 'error' : 'success');
+          if (!result || result.success !== false) {
+            closeModal();
+            if (after) after(result);
+          }
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          toast((err && err.message) || String(err), 'error');
+        });
+      if (Array.isArray(payload)) runner[name].apply(runner, payload);
+      else runner[name](payload);
+    }
+
+    function tableShell(title, icon, controls, table) {
+      return `<div class="card"><div class="section-head"><h3><i class="fa-solid ${icon}" style="color:var(--gold)"></i>${title}</h3><div class="filter-bar">${controls}</div></div><div class="table-wrap"><table>${table}</table></div></div>`;
+    }
+
+    function fillBody(id, rows, colspan, render) {
+      const body = document.getElementById(id);
+      if (!body) return;
+      body.innerHTML = rows.length ? rows.map(render).join('') : `<tr><td colspan="${colspan}">${empty('No records found')}</td></tr>`;
+    }
+
+    function kpi(label, value, sub, color) {
+      return `<div class="card kpi ${color}"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div><div class="kpi-sub">${sub}</div></div>`;
+    }
+
+    function chart(id, type, labels, data, colors) {
+      const el = document.getElementById(id);
+      if (!el || !window.Chart) return;
+      charts[id] = new Chart(el, {
+        type: type,
+        data: { labels: labels, datasets: [{ label: 'Value', data: data, borderColor: colors[0], backgroundColor: type === 'line' ? 'rgba(201,168,76,0.14)' : colors, borderWidth: type === 'line' ? 3 : 0, tension: 0.35, fill: type === 'line' }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: type === 'doughnut' } }, scales: type === 'doughnut' ? {} : { x: { ticks: { color: getTextColor() } }, y: { ticks: { color: getTextColor() } } } }
+      });
+    }
+
+    function destroyCharts() {
+      Object.keys(charts).forEach(function(id) { charts[id].destroy(); });
+      charts = {};
+    }
+
+    function getTextColor() { return document.body.classList.contains('dark') ? '#9aa9bd' : '#697386'; }
+    function toggleDark() { document.body.classList.toggle('dark'); renderTab(); }
+    function showLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
+    function closeModal() { document.getElementById('modalBackdrop').classList.remove('open'); }
+    function today() { return new Date().toISOString().slice(0, 10); }
+    function value(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+    function lower(v) { return String(v || '').toLowerCase(); }
+    function n(v) { const x = parseFloat(v); return isNaN(x) ? 0 : x; }
+    function fmt(v) { return n(v).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
+    function money(v) { return 'INR ' + fmt(v); }
+    function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(ch) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]); }); }
+    function empty(message) { return `<div class="empty"><i class="fa-regular fa-folder-open" style="font-size:28px;opacity:.5"></i><br>${message}</div>`; }
+    function toast(message, type) {
+      const el = document.createElement('div');
+      el.className = 'toast ' + (type || 'success');
+      el.textContent = message;
+      document.getElementById('toasts').appendChild(el);
+      setTimeout(function() { el.remove(); }, 4200);
+    }
+  </script>
+</body>
+</html>
