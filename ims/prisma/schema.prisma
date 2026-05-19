@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model InventoryItem {
+  id             String   @id @default(cuid())
+  itemCode       String   @unique
+  itemName       String
+  category       String   @default("General")
+  weightPerMtr   Float    @default(0)
+  openingStock   Float    @default(0)
+  totalIn        Float    @default(0)
+  totalOut       Float    @default(0)
+  closingBalance Float    @default(0)
+  minStockLevel  Float    @default(50)
+  unit           String   @default("Mtr")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  orders     Order[]
+  jobWorks   JobWork[]
+  dispatches Dispatch[]
+
+  @@map("inventory_items")
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  orderId   String      @unique
+  date      String
+  clientName String
+  itemCode  String
+  quantity  Float
+  status    String      @default("Pending") // Pending, In Production, Completed, Cancelled
+  remarks   String      @default("")
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  item       InventoryItem @relation(fields: [itemCode], references: [itemCode])
+  jobWorks   JobWork[]
+  dispatches Dispatch[]
+
+  @@map("orders")
+}
+
+model JobWork {
+  id           String   @id @default(cuid())
+  jobId        String   @unique
+  date         String
+  orderId      String
+  workerName   String
+  itemCode     String
+  sentQty      Float    @default(0)
+  receivedQty  Float    @default(0)
+  wastageMtr   Float    @default(0)
+  status       String   @default("Out") // Out, Completed
+  totalPayment Float    @default(0)
+  ratePerMtr   Float    @default(0.25)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  order Order         @relation(fields: [orderId], references: [orderId])
+  item  InventoryItem @relation(fields: [itemCode], references: [itemCode])
+
+  @@map("job_works")
+}
+
+model Dispatch {
+  id             String   @id @default(cuid())
+  dispatchId     String   @unique
+  orderId        String
+  clientName     String
+  itemCode       String
+  dispatchedQty  Float
+  dispatchDate   String
+  challanNo      String   @default("")
+  vehicleNo      String   @default("")
+  transportName  String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  order Order         @relation(fields: [orderId], references: [orderId])
+  item  InventoryItem @relation(fields: [itemCode], references: [itemCode])
+
+  @@map("dispatches")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String
+  details   String   @default("")
+  createdAt DateTime @default(now())
+
+  @@map("activity_logs")
+}
