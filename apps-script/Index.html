@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IMS Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+      :root {
+        --bg: #f4f6fa;
+        --panel: #ffffff;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --line: #e5e7eb;
+        --brand: #0f172a;
+        --gold: #c7a642;
+        --ok: #059669;
+        --warn: #d97706;
+        --bad: #dc2626;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, Arial, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        min-height: 100vh;
+      }
+      .sidebar {
+        background: var(--brand);
+        color: #fff;
+        padding: 18px 12px;
+      }
+      .brand {
+        border: 1px solid rgba(255,255,255,.2);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 14px;
+      }
+      .brand h1 {
+        margin: 0;
+        font-size: 14px;
+        letter-spacing: .08em;
+      }
+      .brand p {
+        margin: 4px 0 0;
+        font-size: 11px;
+        color: #d1d5db;
+      }
+      .nav button {
+        width: 100%;
+        text-align: left;
+        border: 0;
+        margin: 4px 0;
+        padding: 10px 12px;
+        border-radius: 9px;
+        background: transparent;
+        color: rgba(255,255,255,.8);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+      }
+      .nav button.active,
+      .nav button:hover {
+        background: rgba(199,166,66,.16);
+        color: #fff;
+      }
+      .main { display: flex; flex-direction: column; }
+      .topbar {
+        height: 62px;
+        border-bottom: 1px solid var(--line);
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+      }
+      .topbar h2 { margin: 0; font-size: 17px; }
+      .topbar small { color: var(--muted); font-size: 11px; }
+      .btn {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+      .btn.dark { background: var(--brand); color: #fff; border-color: var(--brand); }
+      .btn.gold { background: var(--gold); color: #111; border-color: var(--gold); }
+      .content {
+        padding: 18px;
+        overflow: auto;
+      }
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      .kpi-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: .08em;
+      }
+      .kpi-value {
+        margin-top: 8px;
+        font-size: 24px;
+        font-weight: 800;
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .table-wrap {
+        overflow: auto;
+        max-height: 62vh;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      th, td {
+        border-bottom: 1px solid var(--line);
+        padding: 8px 10px;
+        text-align: left;
+        white-space: nowrap;
+      }
+      th {
+        background: #111827;
+        color: #fff;
+        position: sticky;
+        top: 0;
+      }
+      .status {
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 700;
+      }
+      .status.pending { background: #fef3c7; color: #92400e; }
+      .status.prod { background: #dbeafe; color: #1e40af; }
+      .status.done { background: #dcfce7; color: #166534; }
+      .status.low { background: #fee2e2; color: #991b1b; }
+      .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 8px;
+      }
+      input, select, textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px;
+        font: inherit;
+        font-size: 12px;
+      }
+      .muted { color: var(--muted); }
+      .space-top { margin-top: 12px; }
+      .toast {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        z-index: 999;
+      }
+      .ok { background: var(--ok); }
+      .bad { background: var(--bad); }
+      .warn { background: var(--warn); }
+      @media (max-width: 980px) {
+        .app { grid-template-columns: 1fr; }
+        .sidebar { display: none; }
+        .grid-2 { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <h1>JAI ROOP TEXTILES</h1>
+          <p>IMS Corporate Panel</p>
+        </div>
+        <div class="nav">
+          <button class="active" data-tab="dashboard">Dashboard</button>
+          <button data-tab="inventory">Inventory</button>
+          <button data-tab="orders">Order Book</button>
+          <button data-tab="purchase">Purchase Log</button>
+          <button data-tab="jobwork">Job Work</button>
+          <button data-tab="dispatch">Dispatch</button>
+          <button data-tab="alerts">Alerts</button>
+          <button data-tab="activity">Activity</button>
+        </div>
+      </aside>
+
+      <section class="main">
+        <header class="topbar">
+          <div>
+            <h2 id="title">Dashboard</h2>
+            <small id="sub">Real-time metrics from your Google Sheet</small>
+          </div>
+          <div>
+            <button class="btn" onclick="refreshAll()">Sync</button>
+            <button class="btn dark" onclick="recalculateMaster()">Recalculate Stock</button>
+          </div>
+        </header>
+        <main id="content" class="content"></main>
+      </section>
+    </div>
+
+    <script>
+      var allData = {};
+      var currentTab = 'dashboard';
+      var charts = {};
+
+      window.onload = function () {
+        wireNavigation();
+        refreshAll();
+      };
+
+      function wireNavigation() {
+        document.querySelectorAll('.nav button').forEach(function (btn) {
+          btn.onclick = function () {
+            document.querySelectorAll('.nav button').forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            currentTab = btn.getAttribute('data-tab');
+            renderTab();
+          };
+        });
+      }
+
+      function refreshAll() {
+        google.script.run
+          .withSuccessHandler(function (data) {
+            allData = data || {};
+            renderTab();
+            toast('Synced: ' + (allData.lastSync || ''), 'ok');
+          })
+          .withFailureHandler(function (err) {
+            toast('Sync failed: ' + err.message, 'bad');
+          })
+          .getAllIMSData();
+      }
+
+      function recalculateMaster() {
+        google.script.run
+          .withSuccessHandler(function (res) {
+            toast(res.message, res.success ? 'ok' : 'bad');
+            if (res.success) refreshAll();
+          })
+          .withFailureHandler(function (err) { toast(err.message, 'bad'); })
+          .recalculateMasterStock();
+      }
+
+      function renderTab() {
+        var titleMap = {
+          dashboard: ['Dashboard', 'Real-time metrics from your Google Sheet'],
+          inventory: ['Inventory', 'Stock, balance and reorder watch'],
+          orders: ['Order Book', 'New orders and status transitions'],
+          purchase: ['Purchase Log', 'Track inward material purchases'],
+          jobwork: ['Job Work', 'Vendor/worker production tracking'],
+          dispatch: ['Dispatch', 'Shipment log and order completion'],
+          alerts: ['Alerts', 'Low coverage and reorder risk items'],
+          activity: ['Activity', 'Audit trail of key actions']
+        };
+        var t = titleMap[currentTab];
+        document.getElementById('title').innerText = t[0];
+        document.getElementById('sub').innerText = t[1];
+        if (currentTab === 'dashboard') return renderDashboard();
+        if (currentTab === 'inventory') return renderInventory();
+        if (currentTab === 'orders') return renderOrders();
+        if (currentTab === 'purchase') return renderPurchase();
+        if (currentTab === 'jobwork') return renderJobWork();
+        if (currentTab === 'dispatch') return renderDispatch();
+        if (currentTab === 'alerts') return renderAlerts();
+        renderActivity();
+      }
+
+      function renderDashboard() {
+        var k = allData.kpis || {};
+        var html = ''
+          + '<div class="kpi-grid">'
+          + kpi('Critical Reorders', k.reorderCount || 0)
+          + kpi('Active Orders', k.activeOrderCount || 0)
+          + kpi('Pending Orders', k.pendingOrderCount || 0)
+          + kpi('Fulfilment %', (k.fulfilmentRate || 0) + '%')
+          + kpi('Total Dispatched', (k.totalDispatched || 0).toLocaleString())
+          + kpi('Avg Wastage %', (k.avgWastagePct || 0) + '%')
+          + '</div>'
+          + '<div class="grid-2">'
+          + '  <div class="card"><h4 style="margin:0 0 8px">Dispatch Trend (Monthly)</h4><canvas id="dispatchChart" height="140"></canvas></div>'
+          + '  <div class="card"><h4 style="margin:0 0 8px">Order Status Mix</h4><canvas id="orderChart" height="140"></canvas></div>'
+          + '</div>'
+          + '<div class="card space-top"><h4 style="margin:0 0 8px">Top Consumed Items</h4>' + tableTopConsumed() + '</div>';
+        document.getElementById('content').innerHTML = html;
+        renderDashboardCharts(k);
+      }
+
+      function renderInventory() {
+        var rows = allData.master || [];
+        var html = ''
+          + '<div class="card">'
+          + '<div class="table-wrap"><table><thead><tr>'
+          + '<th>Item Code</th><th>Item Name</th><th>Category</th><th>Opening</th><th>Total In</th><th>Total Out</th><th>Allocated</th><th>Closing</th><th>Status</th>'
+          + '</tr></thead><tbody>'
+          + rows.map(function (r) {
+              return '<tr>'
+                + '<td>' + safe(r.ItemCode) + '</td>'
+                + '<td>' + safe(r.ItemName) + '</td>'
+                + '<td>' + safe(r.Category) + '</td>'
+                + '<td>' + num(r.OpeningStock) + '</td>'
+                + '<td>' + num(r.TotalInMtrKG) + '</td>'
+                + '<td>' + num(r.TotalOutMtrKG) + '</td>'
+                + '<td>' + num(r.AllocatedtoOrders) + '</td>'
+                + '<td><b>' + num(r.ClosingBalance) + '</b></td>'
+                + '<td>' + statusBadge(r.ReorderStatus) + '</td>'
+                + '</tr>';
+            }).join('')
+          + '</tbody></table></div>'
+          + '</div>';
+        document.getElementById('content').innerHTML = html;
+      }
+
+      function renderOrders() {
+        var rows = allData.orders || [];
+        var html = ''
+          + '<div class="card">'
+          + '<h4 style="margin:0 0 10px">Add New Order</h4>'
+          + '<div class="form-row">'
+          + '<input type="date" id="oDate"/>'
+          + '<input type="text" id="oClient" placeholder="Client Name"/>'
+          + '<input type="text" id="oItem" placeholder="Item Code"/>'
+          + '<input type="number" id="oQty" placeholder="Qty"/>'
+          + '<select id="oStatus"><option>Pending</option><option>In Production</option></select>'
+          + '<button class="btn gold" onclick="submitOrder()">Save Order</button>'
+          + '</div>'
+          + '</div>'
+          + '<div class="card space-top"><div class="table-wrap"><table><thead><tr>'
+          + '<th>Order ID</th><th>Date</th><th>Client</th><th>Item</th><th>Qty</th><th>Status</th><th>Action</th>'
+          + '</tr></thead><tbody>'
+          + rows.map(function (r) {
+              return '<tr>'
+                + '<td>' + safe(r.OrderID) + '</td>'
+                + '<td>' + safe(r.Date) + '</td>'
+                + '<td>' + safe(r.ClientName) + '</td>'
+                + '<td>' + safe(r.ItemCode) + '</td>'
+                + '<td>' + num(r.OrderedQtyMtrKG) + '</td>'
+                + '<td>' + statusBadge(r.Status) + '</td>'
+                + '<td>' + orderStatusAction(r) + '</td>'
+                + '</tr>';
+            }).join('')
+          + '</tbody></table></div></div>';
+        document.getElementById('content').innerHTML = html;
+        document.getElementById('oDate').value = today();
+      }
+
+      function renderPurchase() {
+        var rows = allData.purchase || [];
+        var html = ''
+          + '<div class="card">'
+          + '<h4 style="margin:0 0 10px">Add Purchase Entry</h4>'
+          + '<div class="form-row">'
+          + '<input type="date" id="pDate"/>'
+          + '<input type="text" id="pVendor" placeholder="Vendor Name"/>'
+          + '<input type="text" id="pItem" placeholder="Item Code"/>'
+          + '<input type="number" id="pQty" placeholder="Purchased Qty"/>'
+          + '<input type="number" id="pRate" placeholder="Rate Per Unit"/>'
+          + '<button class="btn gold" onclick="submitPurchase()">Save Purchase</button>'
+          + '</div>'
+          + '</div>'
+          + '<div class="card space-top"><div class="table-wrap"><table><thead><tr>'
+          + '<th>Purchase ID</th><th>Date</th><th>Vendor</th><th>Item</th><th>Qty</th><th>Rate</th><th>Total</th><th>Invoice</th>'
+          + '</tr></thead><tbody>'
+          + rows.map(function (r) {
+              return '<tr>'
+                + '<td>' + safe(r.PurchaseID) + '</td>'
+                + '<td>' + safe(r.Date) + '</td>'
+                + '<td>' + safe(r.VendorName) + '</td>'
+                + '<td>' + safe(r.ItemCode) + '</td>'
+                + '<td>' + num(r.PurchasedQty) + '</td>'
+                + '<td>' + num(r.RatePerUnit) + '</td>'
+                + '<td><b>' + num(r.TotalAmount) + '</b></td>'
+                + '<td>' + safe(r.InvoiceNo) + '</td>'
+                + '</tr>';
+            }).join('')
+          + '</tbody></table></div></div>';
+        document.getElementById('content').innerHTML = html;
+        document.getElementById('pDate').value = today();
+      }
+
+      function renderJobWork() {
+        var rows = allData.jobWork || [];
+        var html = ''
+          + '<div class="card">'
+          + '<h4 style="margin:0 0 10px">Add Job Work Entry</h4>'
+          + '<div class="form-row">'
+          + '<input type="date" id="jDate"/>'
+          + '<input type="text" id="jOrder" placeholder="Order ID"/>'
+          + '<input type="text" id="jWorker" placeholder="Worker Name"/>'
+          + '<input type="text" id="jItem" placeholder="Item Code"/>'
+          + '<input type="number" id="jSent" placeholder="Sent Qty"/>'
+          + '<input type="number" id="jRecv" placeholder="Received Qty"/>'
+          + '<input type="number" id="jWaste" placeholder="Wastage"/>'
+          + '<button class="btn gold" onclick="submitJobWork()">Save Job Work</button>'
+          + '</div>'
+          + '</div>'
+          + '<div class="card space-top"><div class="table-wrap"><table><thead><tr>'
+          + '<th>Date</th><th>Job ID</th><th>Order</th><th>Worker</th><th>Item</th><th>Sent</th><th>Received</th><th>Wastage %</th><th>Status</th>'
+          + '</tr></thead><tbody>'
+          + rows.map(function (r) {
+              var sent = Number(r.SentQtyMtr || 0);
+              var waste = Number(r.WastageMtr || 0);
+              var wp = sent > 0 ? ((waste / sent) * 100).toFixed(1) : '0.0';
+              return '<tr>'
+                + '<td>' + safe(r.Date) + '</td>'
+                + '<td>' + safe(r.JobID) + '</td>'
+                + '<td>' + safe(r.OrderID) + '</td>'
+                + '<td>' + safe(r.WorkerName) + '</td>'
+                + '<td>' + safe(r.ItemCode) + '</td>'
+                + '<td>' + num(r.SentQtyMtr) + '</td>'
+                + '<td>' + num(r.ReceivedQtyMtr) + '</td>'
+                + '<td>' + wp + '%</td>'
+                + '<td>' + statusBadge(r.Status) + '</td>'
+                + '</tr>';
+            }).join('')
+          + '</tbody></table></div></div>';
+        document.getElementById('content').innerHTML = html;
+        document.getElementById('jDate').value = today();
+      }
+
+      function renderDispatch() {
+        var rows = allData.dispatch || [];
+        var html = ''
+          + '<div class="card">'
+          + '<h4 style="margin:0 0 10px">Log Dispatch</h4>'
+          + '<div class="form-row">'
+          + '<input type="text" id="dOrder" placeholder="Order ID"/>'
+          + '<input type="text" id="dClient" placeholder="Client Name"/>'
+          + '<input type="text" id="dItem" placeholder="Item Code"/>'
+          + '<input type="number" id="dQty" placeholder="Dispatched Qty"/>'
+          + '<input type="date" id="dDate"/>'
+          + '<input type="text" id="dChallan" placeholder="Challan No"/>'
+          + '<button class="btn gold" onclick="submitDispatch()">Save Dispatch</button>'
+          + '</div>'
+          + '</div>'
+          + '<div class="card space-top"><div class="table-wrap"><table><thead><tr>'
+          + '<th>Dispatch ID</th><th>Order</th><th>Client</th><th>Item</th><th>Qty</th><th>Date</th><th>Challan</th>'
+          + '</tr></thead><tbody>'
+          + rows.map(function (r) {
+              return '<tr>'
+                + '<td>' + safe(r.DispatchID) + '</td>'
+                + '<td>' + safe(r.OrderID) + '</td>'
+                + '<td>' + safe(r.ClientName) + '</td>'
+                + '<td>' + safe(r.ItemCode) + '</td>'
+                + '<td>' + num(r.DispatchedQty) + '</td>'
+                + '<td>' + safe(r.DispatchDate) + '</td>'
+                + '<td>' + safe(r.ChallanNo) + '</td>'
+                + '</tr>';
+            }).join('')
+          + '</tbody></table></div></div>';
+        document.getElementById('content').innerHTML = html;
+        document.getElementById('dDate').value = today();
+      }
+
+      function renderAlerts() {
+        var items = (allData.kpis && allData.kpis.lowCoverageItems) || [];
+        var html = '<div class="card"><h4 style="margin:0 0 8px">Low Coverage Alerts</h4>';
+        if (!items.length) {
+          html += '<p class="muted">No low coverage items right now.</p></div>';
+          return (document.getElementById('content').innerHTML = html);
+        }
+        html += '<div class="table-wrap"><table><thead><tr><th>Item</th><th>Closing</th><th>Avg Daily Dispatch</th><th>Coverage Days</th></tr></thead><tbody>';
+        html += items.map(function (x) {
+          return '<tr><td>' + safe(x.itemCode) + '</td><td>' + num(x.closingBalance) + '</td><td>' + num(x.avgDailyDispatch) + '</td><td><span class="status low">' + num(x.coverageDays) + ' days</span></td></tr>';
+        }).join('');
+        html += '</tbody></table></div></div>';
+        document.getElementById('content').innerHTML = html;
+      }
+
+      function renderActivity() {
+        var rows = allData.activity || [];
+        var html = '<div class="card"><div class="table-wrap"><table><thead><tr><th>Timestamp</th><th>Event</th><th>Details</th><th>User</th></tr></thead><tbody>';
+        html += rows.map(function (r) {
+          return '<tr><td>' + safe(r.Timestamp) + '</td><td>' + safe(r.EventType) + '</td><td>' + safe(r.Details) + '</td><td>' + safe(r.User) + '</td></tr>';
+        }).join('');
+        html += '</tbody></table></div></div>';
+        document.getElementById('content').innerHTML = html;
+      }
+
+      function submitOrder() {
+        var payload = {
+          date: val('oDate'),
+          clientName: val('oClient'),
+          itemCode: val('oItem'),
+          qty: val('oQty'),
+          status: val('oStatus')
+        };
+        runAction('saveNewOrder', payload);
+      }
+
+      function submitPurchase() {
+        var payload = {
+          date: val('pDate'),
+          vendorName: val('pVendor'),
+          itemCode: val('pItem'),
+          purchasedQty: val('pQty'),
+          ratePerUnit: val('pRate')
+        };
+        runAction('saveNewPurchase', payload);
+      }
+
+      function submitJobWork() {
+        var payload = {
+          date: val('jDate'),
+          orderId: val('jOrder'),
+          workerName: val('jWorker'),
+          itemCode: val('jItem'),
+          sentQty: val('jSent'),
+          receivedQty: val('jRecv'),
+          wastageMtr: val('jWaste'),
+          status: 'Out'
+        };
+        runAction('saveNewJobWork', payload);
+      }
+
+      function submitDispatch() {
+        var payload = {
+          orderId: val('dOrder'),
+          clientName: val('dClient'),
+          itemCode: val('dItem'),
+          dispatchedQty: val('dQty'),
+          dispatchDate: val('dDate'),
+          challanNo: val('dChallan'),
+          markCompleted: true
+        };
+        runAction('saveNewDispatch', payload);
+      }
+
+      function runAction(fnName, payload) {
+        google.script.run
+          .withSuccessHandler(function (res) {
+            toast(res.message || 'Saved', res.success ? 'ok' : 'bad');
+            if (res.success) refreshAll();
+          })
+          .withFailureHandler(function (err) {
+            toast(err.message || 'Action failed', 'bad');
+          })[fnName](payload);
+      }
+
+      function changeStatus(orderId, status) {
+        google.script.run
+          .withSuccessHandler(function (res) {
+            toast(res.message, res.success ? 'ok' : 'bad');
+            if (res.success) refreshAll();
+          })
+          .withFailureHandler(function (err) { toast(err.message, 'bad'); })
+          .updateOrderStatus(orderId, status);
+      }
+
+      function orderStatusAction(row) {
+        if (row.Status === 'Completed') return '<span class="muted">Done</span>';
+        return ''
+          + '<select onchange="changeStatus(\'' + safe(row.OrderID) + '\', this.value)">'
+          + '<option value="">Change...</option>'
+          + '<option value="Pending">Pending</option>'
+          + '<option value="In Production">In Production</option>'
+          + '<option value="Completed">Completed</option>'
+          + '</select>';
+      }
+
+      function renderDashboardCharts(k) {
+        if (charts.dispatch) charts.dispatch.destroy();
+        if (charts.order) charts.order.destroy();
+
+        var months = Object.keys(k.monthlyDispatch || {}).sort();
+        var dVals = months.map(function (m) { return k.monthlyDispatch[m]; });
+
+        var ctxD = document.getElementById('dispatchChart');
+        if (ctxD) {
+          charts.dispatch = new Chart(ctxD, {
+            type: 'line',
+            data: {
+              labels: months,
+              datasets: [{ label: 'Dispatch Qty', data: dVals, borderColor: '#0f172a', backgroundColor: 'rgba(15,23,42,0.08)', fill: true, tension: 0.35 }]
+            },
+            options: { plugins: { legend: { display: false } } }
+          });
+        }
+
+        var ctxO = document.getElementById('orderChart');
+        if (ctxO) {
+          charts.order = new Chart(ctxO, {
+            type: 'doughnut',
+            data: {
+              labels: ['Completed', 'In Production', 'Pending'],
+              datasets: [{
+                data: [k.completedOrderCount || 0, k.activeOrderCount || 0, k.pendingOrderCount || 0],
+                backgroundColor: ['#059669', '#2563eb', '#d97706']
+              }]
+            },
+            options: { plugins: { legend: { position: 'bottom' } } }
+          });
+        }
+      }
+
+      function tableTopConsumed() {
+        var arr = (allData.kpis && allData.kpis.topConsumed) || [];
+        if (!arr.length) return '<p class="muted">No dispatch data available.</p>';
+        var rows = arr.map(function (x) { return '<tr><td>' + safe(x.key) + '</td><td style="text-align:right">' + num(x.value) + '</td></tr>'; }).join('');
+        return '<table><thead><tr><th>Item</th><th style="text-align:right">Dispatched Qty</th></tr></thead><tbody>' + rows + '</tbody></table>';
+      }
+
+      function kpi(label, value) {
+        return '<div class="card"><div class="kpi-label">' + label + '</div><div class="kpi-value">' + value + '</div></div>';
+      }
+
+      function statusBadge(status) {
+        var s = String(status || '');
+        if (s === 'Completed') return '<span class="status done">Completed</span>';
+        if (s === 'In Production') return '<span class="status prod">In Production</span>';
+        if (s === 'Pending') return '<span class="status pending">Pending</span>';
+        if (s === 'REORDER (LOW)') return '<span class="status low">REORDER (LOW)</span>';
+        return '<span class="muted">' + safe(s) + '</span>';
+      }
+
+      function val(id) { return (document.getElementById(id) || {}).value || ''; }
+      function num(v) {
+        var n = Number(v || 0);
+        if (!isFinite(n)) return '0';
+        return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+      }
+      function today() { return new Date().toISOString().slice(0, 10); }
+      function safe(v) {
+        return String(v === undefined || v === null ? '' : v)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+      function toast(message, type) {
+        var el = document.createElement('div');
+        el.className = 'toast ' + (type || 'ok');
+        el.innerText = message;
+        document.body.appendChild(el);
+        setTimeout(function () { el.remove(); }, 2600);
+      }
+    </script>
+  </body>
+</html>
+
