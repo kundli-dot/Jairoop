@@ -607,10 +607,15 @@ function ensureSheet_(ss, sheetName, headers) {
     if (!existingHeaders.length) {
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     } else {
+      const existingNormalized = {};
+      existingHeaders.forEach(function(header) {
+        existingNormalized[normalizeHeader_(header)] = true;
+      });
       headers.forEach(function(header) {
-        if (existingHeaders.indexOf(header) === -1) {
+        if (!existingNormalized[normalizeHeader_(header)]) {
           sheet.getRange(1, sheet.getLastColumn() + 1).setValue(header);
           existingHeaders.push(header);
+          existingNormalized[normalizeHeader_(header)] = true;
         }
       });
     }
@@ -649,7 +654,9 @@ function readSheetObjects_(ss, sheetName) {
       const key = normalizeHeader_(header);
       const value = normalizeCell_(row[index]);
       if (value !== '' && value !== null && value !== undefined) hasData = true;
-      obj[key] = value;
+      if (!Object.prototype.hasOwnProperty.call(obj, key) || value !== '') {
+        obj[key] = value;
+      }
     });
     return hasData ? obj : null;
   }).filter(Boolean);
@@ -679,7 +686,7 @@ function setRowValues_(sheet, rowNumber, rowObject) {
 
 function setRowValuesByMap_(sheet, rowNumber, headerMap, rowObject) {
   Object.keys(rowObject).forEach(function(header) {
-    const index = headerMap[header];
+    const index = headerMap[header] || headerMap[normalizeHeader_(header)];
     if (!index) return;
     sheet.getRange(rowNumber, index).setValue(rowObject[header]);
   });
@@ -705,6 +712,7 @@ function headerIndexMap_(headers) {
   const map = {};
   headers.forEach(function(header, index) {
     map[header] = index + 1;
+    map[normalizeHeader_(header)] = index + 1;
   });
   return map;
 }
