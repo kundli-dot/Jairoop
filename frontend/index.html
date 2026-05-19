@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IMS V7 — Jai Roop Textiles</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f0f2f5;--sidebar:#0d1b2a;--sidebar-hover:#1a2e47;--accent:#c9a84c;--accent2:#e8c96b;
+  --card:#fff;--text:#1a202c;--text-muted:#6b7280;--border:#e5e7eb;
+  --danger:#dc2626;--success:#059669;--warning:#d97706;--info:#2563eb;--purple:#7c3aed;
+  --radius:12px;--shadow:0 2px 12px rgba(0,0,0,.08);--shadow-lg:0 8px 32px rgba(0,0,0,.13);
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+.dark{
+  --bg:#0a0f1a;--sidebar:#060b14;--sidebar-hover:#0f1c30;--card:#111827;
+  --text:#f1f5f9;--text-muted:#94a3b8;--border:#1e293b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;transition:background .3s,color .3s}
+
+/* ── SIDEBAR ── */
+aside{width:240px;flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;transition:width .25s;overflow:hidden;z-index:20}
+aside.collapsed{width:60px}
+aside.collapsed .nav-label,.aside.collapsed .nav-section,.aside.collapsed .sidebar-footer-text{display:none}
+.sidebar-logo{padding:16px 12px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:800;color:#1a1a1a}
+.logo-texts{overflow:hidden}
+.logo-title{font-size:12px;font-weight:800;letter-spacing:.08em;color:white;white-space:nowrap}
+.logo-sub{font-size:9px;color:rgba(201,168,76,.8);letter-spacing:.15em;font-weight:600;text-transform:uppercase;white-space:nowrap}
+nav{padding:10px 8px;flex-grow:1;overflow-y:auto;overflow-x:hidden}
+nav::-webkit-scrollbar{width:3px}
+nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.nav-section{font-size:9px;font-weight:700;letter-spacing:.15em;color:rgba(255,255,255,.25);padding:12px 12px 4px;text-transform:uppercase;white-space:nowrap;overflow:hidden}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;cursor:pointer;color:rgba(255,255,255,.5);font-size:12px;font-weight:500;transition:all .15s;margin-bottom:1px;border:none;background:none;width:100%;text-align:left;white-space:nowrap;position:relative}
+.nav-item:hover{background:var(--sidebar-hover);color:rgba(255,255,255,.85)}
+.nav-item.active{background:linear-gradient(135deg,rgba(201,168,76,.18),rgba(201,168,76,.06));color:var(--accent2);border-left:3px solid var(--accent);padding-left:9px}
+.nav-item i{width:16px;text-align:center;font-size:12px;flex-shrink:0}
+.nav-badge{background:var(--danger);color:white;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px;margin-left:auto}
+.sidebar-footer{padding:10px 14px;border-top:1px solid rgba(255,255,255,.06);font-size:10px;color:rgba(255,255,255,.2)}
+.sync-dot{display:inline-block;width:6px;height:6px;background:var(--success);border-radius:50%;margin-right:5px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── MAIN ── */
+main{flex-grow:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:var(--shadow);gap:12px}
+.header-left{display:flex;align-items:center;gap:12px;min-width:0}
+.header-left h1{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-left p{font-size:11px;color:var(--text-muted);white-space:nowrap}
+.header-right{display:flex;gap:8px;align-items:center;flex-shrink:0}
+#content{flex-grow:1;overflow-y:auto;padding:20px}
+#content::-webkit-scrollbar{width:5px}
+#content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;font-family:var(--font);text-decoration:none}
+.btn-primary{background:var(--sidebar);color:white}.btn-primary:hover{background:#1a2e47;transform:translateY(-1px)}
+.btn-success{background:var(--success);color:white}.btn-success:hover{background:#047857}
+.btn-danger{background:var(--danger);color:white}.btn-danger:hover{background:#b91c1c}
+.btn-warning{background:var(--warning);color:white}
+.btn-ghost{background:var(--bg);color:var(--text);border:1px solid var(--border)}.btn-ghost:hover{background:var(--border)}
+.btn-gold{background:var(--accent);color:#1a1a1a;font-weight:700}.btn-gold:hover{background:var(--accent2)}
+.btn-outline{background:transparent;color:var(--accent);border:1px solid var(--accent)}.btn-outline:hover{background:var(--accent);color:#1a1a1a}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-xs{padding:3px 7px;font-size:10px}
+.btn-icon{padding:7px;border-radius:7px;background:var(--bg);border:1px solid var(--border);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s}
+.btn-icon:hover{background:var(--border);color:var(--text)}
+
+/* ── LOADER ── */
+#loader{position:fixed;inset:0;background:var(--sidebar);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity .4s}
+.loader-logo{font-size:22px;font-weight:800;letter-spacing:.2em;color:white;margin-bottom:4px}
+.loader-sub{font-size:10px;color:var(--accent);letter-spacing:.2em;margin-bottom:30px;font-family:var(--mono)}
+.loader-bar{width:220px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.loader-fill{height:100%;width:0;background:var(--accent);border-radius:2px;animation:loadFill 1.4s ease forwards}
+@keyframes loadFill{to{width:100%}}
+
+/* ── TOAST ── */
+#toast-container{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--card);border-radius:10px;padding:11px 16px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-lg);border-left:4px solid;animation:slideIn .3s ease;min-width:260px;pointer-events:all}
+.toast.success{border-color:var(--success)}.toast.error{border-color:var(--danger)}.toast.warning{border-color:var(--warning)}
+@keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── KPI GRID ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:20px}
+.kpi-card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1px solid var(--border);position:relative;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi-card.red::before{background:var(--danger)}.kpi-card.green::before{background:var(--success)}
+.kpi-card.amber::before{background:var(--warning)}.kpi-card.blue::before{background:var(--info)}
+.kpi-card.gold::before{background:var(--accent)}.kpi-card.purple::before{background:var(--purple)}
+.kpi-label{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px}
+.kpi-value{font-size:26px;font-weight:800;line-height:1}
+.kpi-card.red .kpi-value{color:var(--danger)}.kpi-card.green .kpi-value{color:var(--success)}
+.kpi-card.amber .kpi-value{color:var(--warning)}.kpi-card.blue .kpi-value{color:var(--info)}
+.kpi-card.gold .kpi-value{color:var(--accent)}.kpi-card.purple .kpi-value{color:var(--purple)}
+.kpi-sub{font-size:10px;color:var(--text-muted);margin-top:4px}
+.kpi-icon{position:absolute;right:12px;top:14px;font-size:20px;opacity:.1}
+
+/* ── CHARTS ── */
+.charts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px}
+.chart-card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.chart-title{font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.chart-title i{color:var(--accent)}
+canvas{max-height:185px}
+
+/* ── TABLE CARD ── */
+.table-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden}
+.table-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.table-header h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px}
+.table-header h3 i{color:var(--accent)}
+.table-overflow{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:#0d1b2a;color:rgba(255,255,255,.8);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:9px 12px;text-align:left;white-space:nowrap;cursor:pointer;user-select:none;transition:background .15s}
+thead th:hover{background:#1a2e47}
+.dark thead th{background:#060b14}
+thead th.sort-asc::after{content:' ↑'}thead th.sort-desc::after{content:' ↓'}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:hover{background:rgba(201,168,76,.04)}
+tbody td{padding:9px 12px;color:var(--text);vertical-align:middle}
+.mono{font-family:var(--mono);font-size:11px}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.badge-pending{background:#fef3c7;color:#92400e}.badge-production{background:#dbeafe;color:#1e40af}
+.badge-completed{background:#d1fae5;color:#065f46}.badge-cancelled{background:#fee2e2;color:#991b1b}
+.badge-reorder{background:#fee2e2;color:#991b1b}.badge-above{background:#f3e8ff;color:#6b21a8}
+.badge-normal{background:#f1f5f9;color:#475569}.badge-out{background:#fef3c7;color:#92400e}
+.badge-done{background:#d1fae5;color:#065f46}.badge-critical{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.badge-raw{background:#e0f2fe;color:#0369a1}.badge-semi{background:#fef9c3;color:#854d0e}
+.badge-finished{background:#dcfce7;color:#166534}.badge-received{background:#d1fae5;color:#065f46}
+.badge-partial{background:#fef3c7;color:#92400e}.badge-urgent{background:#fee2e2;color:#991b1b}
+.badge-high{background:#fed7aa;color:#9a3412}.badge-low{background:#f1f5f9;color:#475569}
+
+/* ── PROGRESS BAR ── */
+.progress-wrap{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;border-radius:3px;transition:width .6s ease}
+
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input[type=text],input[type=date],input[type=number],input[type=email],input[type=tel],select,textarea{
+  background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 11px;
+  font-family:var(--font);font-size:12px;color:var(--text);outline:none;transition:border .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(201,168,76,.12)}
+.input-sm{padding:5px 9px;font-size:11px}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:14px;z-index:500;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:14px;width:100%;max-width:600px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-lg);animation:modalIn .2s ease}
+.modal-lg{max-width:800px}.modal-xl{max-width:960px}
+@keyframes modalIn{from{transform:scale(.95);opacity:0}}
+.modal-head{padding:14px 18px;background:var(--sidebar);color:white;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.modal-head h4{font-size:13px;font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
+.modal-head h4 i{color:var(--accent)}
+.modal-body{padding:18px;overflow-y:auto;flex-grow:1}
+.modal-foot{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:var(--card);flex-shrink:0}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid .full{grid-column:1/-1}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:10.5px;font-weight:700;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
+.form-group input,.form-group select,.form-group textarea{width:100%}
+.required::after{content:' *';color:var(--danger)}
+.form-hint{font-size:10px;color:var(--text-muted);margin-top:2px}
+
+/* ── TABS INSIDE CONTENT ── */
+.inner-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px}
+.inner-tab{padding:8px 16px;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.inner-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── LIFECYCLE ── */
+.lifecycle{position:relative;padding-left:32px}
+.lifecycle::before{content:'';position:absolute;left:12px;top:14px;bottom:14px;width:2px;background:var(--border)}
+.lc-step{padding:10px 0;position:relative}
+.lc-dot{position:absolute;left:-32px;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0;top:10px}
+.lc-dot.done{background:var(--success)}.lc-dot.active{background:var(--warning)}.lc-dot.pending{background:var(--border);color:var(--text-muted)}
+.lc-title{font-size:12px;font-weight:700;margin-bottom:3px}
+.lc-detail{font-size:11px;color:var(--text-muted);line-height:1.6}
+
+/* ── ORDER CARDS ── */
+.order-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .15s;border-left:4px solid var(--accent)}
+.order-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+
+/* ── SEARCH MODAL ── */
+#searchOverlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-start;justify-content:center;padding-top:120px;z-index:800;backdrop-filter:blur(6px)}
+#searchOverlay.open{display:flex}
+.search-modal{background:var(--card);border-radius:14px;width:100%;max-width:600px;overflow:hidden;box-shadow:var(--shadow-lg);animation:modalIn .18s ease}
+.search-input-wrap{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
+.search-input-wrap i{color:var(--text-muted);font-size:14px}
+.search-input-wrap input{border:none;background:none;font-size:14px;width:100%;color:var(--text);outline:none;font-family:var(--font)}
+.search-results{max-height:360px;overflow-y:auto}
+.search-result-item{padding:10px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);transition:background .1s}
+.search-result-item:hover{background:var(--bg)}
+.search-result-item i{color:var(--accent);width:16px;text-align:center}
+.search-tag{font-size:9px;background:var(--bg);border:1px solid var(--border);color:var(--text-muted);padding:1px 6px;border-radius:4px;margin-left:auto}
+
+/* ── MISC ── */
+.section-title{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:var(--text)}
+.section-title i{color:var(--accent)}
+.alert-banner{background:linear-gradient(135deg,#7f1d1d,#991b1b);border-radius:var(--radius);padding:11px 16px;color:white;font-size:12px;display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.divider{height:1px;background:var(--border);margin:16px 0}
+.empty-state{text-align:center;padding:36px 20px;color:var(--text-muted)}
+.empty-state i{font-size:28px;margin-bottom:10px;display:block;opacity:.4}
+.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;background:var(--bg);border:1px solid var(--border);color:var(--text-muted)}
+.fade-in{animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}}
+.toggle-dark{width:32px;height:17px;background:rgba(255,255,255,.15);border-radius:999px;position:relative;cursor:pointer;transition:background .2s;border:none;flex-shrink:0}
+.toggle-dark .knob{position:absolute;top:2px;left:2px;width:13px;height:13px;background:white;border-radius:50%;transition:left .2s}
+.dark .toggle-dark{background:var(--accent)}.dark .toggle-dark .knob{left:17px}
+.pagination{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.pagination button{padding:4px 9px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;cursor:pointer;font-family:var(--font)}
+.pagination button.active{background:var(--accent);border-color:var(--accent);color:#1a1a1a;font-weight:700}
+.pagination button:hover:not(.active):not(:disabled){background:var(--border)}
+.pagination button:disabled{opacity:.4;cursor:not-allowed}
+.page-size-select{padding:4px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg);font-size:11px;color:var(--text);font-family:var(--font)}
+.row-actions{display:flex;gap:4px;align-items:center}
+.stat-row{display:flex;gap:20px;flex-wrap:wrap;padding:10px 16px;background:rgba(201,168,76,.04);border-top:1px solid var(--border);font-size:12px}
+.stat-row span{color:var(--text-muted)}.stat-row b{color:var(--text)}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.info-item label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px}
+.info-item .val{font-size:13px;font-weight:600;color:var(--text)}
+.challan-print{padding:30px;font-family:Arial,sans-serif;font-size:12px;display:none}
+@media print{
+  aside,header,.no-print{display:none!important}
+  #content{overflow:visible;padding:0}
+  body{display:block}
+  .challan-print{display:block}
+}
+@media(max-width:900px){
+  .charts-grid{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .form-grid{grid-template-columns:1fr}
+  .info-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-logo">JAI ROOP</div>
+  <div class="loader-sub">IMS V7 — LOADING</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">JR</div>
+    <div class="logo-texts">
+      <div class="logo-title">JAI ROOP TEXTILES</div>
+      <div class="logo-sub">IMS v7</div>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <button class="nav-item active" id="nav-dashboard" onclick="switchTab('dashboard')"><i class="fas fa-chart-line"></i><span class="nav-label">Dashboard</span></button>
+
+    <div class="nav-section">Inventory</div>
+    <button class="nav-item" id="nav-inventory" onclick="switchTab('inventory')"><i class="fas fa-warehouse"></i><span class="nav-label">Stock / Inventory</span></button>
+    <button class="nav-item" id="nav-purchaseorders" onclick="switchTab('purchaseorders')"><i class="fas fa-file-invoice"></i><span class="nav-label">Purchase Orders</span></button>
+    <button class="nav-item" id="nav-suppliers" onclick="switchTab('suppliers')"><i class="fas fa-industry"></i><span class="nav-label">Suppliers</span></button>
+
+    <div class="nav-section">Production</div>
+    <button class="nav-item" id="nav-orderbook" onclick="switchTab('orderbook')"><i class="fas fa-book-open"></i><span class="nav-label">Order Book</span></button>
+    <button class="nav-item" id="nav-jobwork" onclick="switchTab('jobwork')"><i class="fas fa-tools"></i><span class="nav-label">Job Work Tracker</span></button>
+    <button class="nav-item" id="nav-dispatch" onclick="switchTab('dispatch')"><i class="fas fa-truck"></i><span class="nav-label">Dispatch Log</span></button>
+
+    <div class="nav-section">CRM</div>
+    <button class="nav-item" id="nav-clients" onclick="switchTab('clients')"><i class="fas fa-users"></i><span class="nav-label">Clients</span></button>
+    <button class="nav-item" id="nav-workers" onclick="switchTab('workers')"><i class="fas fa-hard-hat"></i><span class="nav-label">Workers</span></button>
+
+    <div class="nav-section">Insights</div>
+    <button class="nav-item" id="nav-reports" onclick="switchTab('reports')"><i class="fas fa-file-chart-line"></i><span class="nav-label">Reports</span></button>
+    <button class="nav-item" id="nav-alerts" onclick="switchTab('alerts')"><i class="fas fa-bell"></i><span class="nav-label">Alerts</span><span class="nav-badge" id="alertBadge" style="display:none">0</span></button>
+    <button class="nav-item" id="nav-settings" onclick="switchTab('settings')"><i class="fas fa-cog"></i><span class="nav-label">Settings</span></button>
+  </nav>
+  <div class="sidebar-footer">
+    <span class="sync-dot"></span><span id="lastSync" class="nav-label" style="font-size:9px;color:rgba(201,168,76,.6)">Ready</span>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main>
+  <header>
+    <div class="header-left">
+      <button class="btn-icon" onclick="toggleSidebar()" title="Toggle Sidebar"><i class="fas fa-bars"></i></button>
+      <div>
+        <h1 id="tab-title">Dashboard</h1>
+        <p id="tab-sub">Live KPIs &amp; Analytics</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-ghost btn-sm no-print" onclick="openSearch()" title="Global Search (Ctrl+K)"><i class="fas fa-search"></i> Search</button>
+      <button class="toggle-dark no-print" onclick="toggleDark()" title="Dark Mode"><div class="knob"></div></button>
+      <button class="btn btn-gold btn-sm no-print" onclick="refreshAll()"><i class="fas fa-sync-alt"></i> Sync</button>
+    </div>
+  </header>
+  <div id="content"></div>
+</main>
+
+<!-- ═══════════════════ MODALS ═══════════════════ -->
+
+<!-- ADD INVENTORY MODAL -->
+<div class="modal-overlay" id="invModal">
+  <div class="modal">
+    <div class="modal-head"><h4><i class="fas fa-plus-circle"></i>Add / Edit Stock Item</h4><button onclick="closeModal('invModal')" style="background:none;border:none;color:white;cursor:pointer"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="required">Item Code</label><input type="text" id="f-inv-code" placeholder="e.g. 3 MM Satin"></div>
+        <div class="form-group"><label class="required">Item Name</label><input type="text" id="f-inv-name" placeholder="Full descriptive name"></div>
+        <div class="form-group"><label>Color</label><input type="text" id="f-inv-color" placeholder="White / Black / Kora"></div>
+        <div class="form-group"><label>Category</label>
+          <select id="f-inv-category">
+            <option>Raw</option><option>Semi Finished</option><option>Finished</option><option>Consumable</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Weight per Mtr (gm)</label><input type="number" id="f-inv-weight" placeholder="0.00" step="0.01" min="0"></div>
+        <div class="form-group"><label>Unit</label>
+          <select id="f-inv-unit"><option>Mtr</option><option>KG</option><option>Nos</option></select>
+        </div>
+        <div class="form-group"><label>Opening Stock</label><input type="number" id="f-inv-opening" placeholder="0" step="0.01" min="0"></div>
+        <div class="form-group"><label>Reorder Level</label><input type="number" id="f-inv-reorder" placeholder="50" step="1" min="0"></div>
+        <div class="form-group"><label>Purchase Price (₹/unit)</label><input type="number" id="f-inv-pprice" placeholder="0.00" step="0.01" min="0"></div>
+        <div class="form-group"><label>Selling Price (₹/unit)</label><input type="number" id="f-inv-sprice" placeholder="0.00" step="0.01" min="0"></div>
+        <div class="form-group"><label>Supplier</label><input type="text" id="f-inv-supplier" placeholder="Supplier name" list="supplier-list-dl"></div>
+        <div class="form-group"><label>Notes</label><input type="text" id="f-inv-notes" placeholder="Optional"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('invModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="submitInventory()"><i class="fas fa-save"></i> Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- STOCK ADJUSTMENT MODAL -->
+<div class="modal-overlay" id="adjModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head"><h4><i class="fas fa-exchange-alt"></i>Stock Adjustment</h4><button onclick="closeModal('adjModal')" style="background:none;border:none;color:white;cursor:pointer"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full"><label>Item Code</label><input type="text" id="f-adj-code" readonly style="background:var(--bg)"></div>
+        <div class="form-group"><label class="required">Qty</label><input type="number" id="f-adj-qty" placeholder="0" step="0.01" min="0.01"></div>
+        <div class="form-group"><label>Movement</label>
+          <select id="f-adj-type"><option value="IN">IN (Add Stock)</option><option value="OUT">OUT (Remove Stock)</option></select>
+        </div>
+        <div class="form-group full"><label>Notes / Reason</label><input type="text" id="f-adj-notes" placeholder="Reason for adjustment"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('adjModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="submitAdjustment()"><i class="fas fa-check"></i> Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER MODAL -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal">
+    <div class="modal-head"><h4><i class="fas fa-plus-circle"></i>Add / Edit Order</h4><button onclick="closeModal('orderModal')" style="background:none;border:none;color:white;cursor:pointer"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="required">Order Date</label><input type="date" id="f-order-date"></div>
+        <div class="form-group"><label>Delivery Date</label><input type="date" id="f-order-ddate"></div>
+        <div class="form-group"><label class="required">Client Name</label><input type="text" id="f-order-client" list="client-dl" placeholder="Select or type client"></div>
+        <div class="form-group"><label class="required">Item Code</label><input type="text" id="f-order-item" list="item-dl" placeholder="Select item"></div>
+        <div class="form-group"><label class="required">Qty (Mtr/KG)</label><input type="number" id="f-order-qty" placeholder="0" step="0.01" min="0.01"></div>
+        <div class="form-group"><label>Status</label>
+          <select id="f-order-status"><option>Pending</option><option>In Production</option><option>Completed</option><option>Cancelled</option></select>
+        </div>
+        <div class="form-group"><label>Priority</label>
+          <select id="f-order-priority"><option>Low</option><option selected>Normal</option><option>High</option><option>Urgent</option></select>
+        </div>
+        <div class="form-group"><label>Selling Rate (₹/unit)</label><input type="number" id="f-order-rate" placeholder="0.00" step="0.01" min="0"></div>
+        <div class="form-group full"><label>Remarks</label><input type="text" id="f-order-remarks" placeholder="Optional notes"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('orderModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="submitOrder()"><i class="fas fa-save"></i> Save Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOB WORK MODAL -->
+<div class="modal-overlay" id="jobModal">
+  <div class="modal">
+    <div class="modal-head"><h4><i class="fas fa-hammer"></i>Add Job Work Entry</h4><button onclick="closeModal('jobModal')" style="background:none;border:none;color:white;cursor:pointer"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="required">Date</label><input type="date" id="f-job-date"></div>
+        <div class="form-group"><label>Order ID</label><input type="text" id="f-job-orderid" list="order-dl" placeholder="ORD-..."></div>
+        <div class="form-group"><label class="required">Worker Name</label><input type="text" id="f-job-worker" list="worker-dl" placeholder="Worker / Vendor"></div>
+        <div class="form-group"><label class="required">Item Code</label><input type="text" id="f-job-item" list="item-dl2" placeholder="Item code"></div>
+        <div class="form-group"><label>Sent Qty (Mtr)</label><input type="number" id="f-job-sent" placeholder="0" step="0.01" min="0" oninput="autoPayment()"></div>
+        <div class="form-group"><label>Received Qty (Mtr)</label><input type="number" id="f-job-received" placeholder="0" step="0.01" min="0" oninput="autoPayment()"></div>
+        <div class="form-group"><label>Wastage (Mtr)</label><input type="number" id="f-job-wastage" placeholder="0" step="0.01" min="0"></div>
+        <div class="form-group"><label>Status</label>
+          <select id="f-job-status"><option>Out</option><option>Completed</option></select>
+        </div>
+        <div class="form-group"><label>Rate / Mtr (₹)</label><input type="number" id="f-job-rate" value="0.25" step="0.01" min="0" oninput="autoPayment()"></div>
+        <div class="form-group"><label>Total Payment (₹)</label><input type="number" id="f-job-payment" placeholder="Auto-calculated" step="0.01" min="0"></div>
+        <div class="form-group full"><label>Remarks</label><input type="text" id="f-job-remarks" placeholder="Optional"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('jobModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="submitJobWork()"><i class="fas fa-save"></i> Save Job Work</button>
+    </div>
+  </div>
+</div>
+
+<!-- DISPATCH MODAL -->
+<div class="modal-overlay" id="dispatchModal">
+  <div class="modal">
+    <div class="modal-head"><h4><i class="fas fa-truck"></i>Log Dispatch</h4><button onclick="closeModal('dispatchModal')" style="background:none;border:none;color:white;cursor:pointer"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="required">Order ID</label><input type="text" id="f-disp-orderid" list="order-dl2" placeholder="ORD-..." oninput="autofillDispatch()"></div>
+        <div class="form-group"><label class="required">Client Name</label><input type="text" id="f-disp-client" list="client-dl2" placeholder="Client"></div>
+        <div class="form-group"><label class="required">Item Code</label><input type="text" id="f-disp-item" list="item-dl3" placeholder="Item code"></div>
+        <div class="form-group"><label class="required">Dispatched Qty</label><input type="number" id="f-disp-qty" placeholder="0" step="0.01" min="0.01"></div>
+        <div class="form-group"><label class="required">Dispatch Date</label><input type="date" id="f-disp-date"></div>
+        <div class="form-group"><label>Challan / DC No.</label><input type="text" id="f-disp-challan" placeholder="CH-2024-001"></div>
+        <div class="form-group"><label>Vehicle No.</label><input type="text" id="f-disp-vehicle" placeholder="MH01AB1234"></div>
+        <div class="form-group"><label>Driver Name</label><input type="text" id="f-disp-driver" placeholder="Driver name"></div>
+        <div class="form-group full"><label>Remarks</label><input type="text" id="f-disp-remarks" placeholder="Optional"></div>
+        <div class="form-group full" style="flex-direction:row;align-items:center;gap:10px">
+          <input type="checkbox" id="f-disp-complete" style="width:auto;accent-color:var(--accent)">
+          <label style="text-transform:none;font-size:12px;font-weight:600;color:var(--text)">Mark linked order as Completed</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('dispatchModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="submitDispatch()"><i class="fas fa-save"></i> Log Dispatch</button>
+    </div>
+  </div>
+</div>
+
+<!-- PURCHASE ORDER MODAL -->
+<div class="modal-overlay" id="poModal">
+  <div class="modal">
+    <div class="modal-head"><h4><i class="fas fa-file-invoice"></i>Create Purchase Order</h4><button onclick="closeModal('poModal')" style="background:none;border:none;color:white;cursor:pointer"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="required">PO Date</label><input type="date" id="f-po-date"></div>
+        <div class="form-group"><label>Expected Date</label><input type="date" id="f-po-edate"></div>
+        <div class="form-group"><label class="required">Supplier</label><input type="text" id="f-po-supplier" list="supplier-dl" placeholder="Supplier name"></div>
+        <div class="form-group"><label class="required">Item Code</label><input type="text" id="f-po-item" list="item-dl4" placeholder="Item code"></div>
+        <div class="form-group"><label class="required">Ordered Qty</label><input type="number" id="f-po-qty" placeholder="0" step="0.01" min="0.01"></div>
+        <div class="form-group"><label>Unit</label><select id="f-po-unit"><option>Mtr</option><option>KG</option><option>Nos</option></select></div>
+        <div class="form-group"><label>Purchase Rate (₹)</label><input type="number" id="f-po-rate" placeholder="0.00" step="0.01" min="0"></div>
+        <div class="form-group"><label>Invoice No.</label><input type="text" id="f-po-invoice" placeholder="INV-XXXX"></div>
+        <div class="form-group full"><label>Remarks</label><input type="text" id="f-po-remarks" placeholder="Optional"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('poModal')">Cancel</button>
+      <button class="btn btn-gold" onclick="submitPO()"><i class="fas fa-save"></i> Create PO</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECEIVE GOODS MODAL -->
+<div class="modal-overlay" id="receiveModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head"><h4><i class="fas fa-boxes"></i>Receive Goods</h4><button onclick="closeModal('receiveModal')" style="background:none;border:none;color:white;cursor:pointer"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body">
+      <div id="receiveInfo" style="margin-bottom:14px;padding:12px;background:var(--bg);border-radius:8px;font-size:12px"></div>
+      <div class="form-grid">
+        <div class="form-group"><label class="required">Qty Received</label><input type="number" id="f-recv-qty" placeholder="0" step="0.01" min="0.01"></div>
+        <div class="form-group"><label class="required">Received Date</label><input type="date" id="f-recv-date"></div>
+        <div class="form-group full"><label>Invoice No.</label><input type="text" id="f-recv-invoice" placeholder="INV-XXXX"></div>
+        <div class="form-group full" style="flex-direction:row;align-items:center;gap:10px">
+          <input type="checkbox" id="f-recv-stock" checked style="width:auto;accent-color:var(--accent)">
+          <label style="text-transform:none;font-size:12px;font-weight:600;color:var(--text)">Update inventory stock automatically</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('receiveModal')">Cancel</button>
+      <button class="btn btn-success" onclick="submitReceive()"><i class="fas fa-check"></i> Confirm Receipt</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLIENT / SUPPLIER / WORKER MODALS (shared) -->
+<div class="modal-overlay" id="entityModal">
+  <div class="modal">
+    <div class="modal-head"><h4 id="entityModalTitle"><i class="fas fa-user-plus"></i>Add Record</h4><button onclick="closeModal('entityModal')" style="background:none;border:none;color:white;cursor:pointer"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body" id="entityModalBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('entityModal')">Cancel</button>
+      <button class="btn btn-gold" id="entityModalSave" onclick="submitEntity()"><i class="fas fa-save"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIFECYCLE MODAL -->
+<div class="modal-overlay" id="lifecycleModal">
+  <div class="modal modal-lg">
+    <div class="modal-head"><h4 id="lifecycleTitle"><i class="fas fa-project-diagram"></i>Order Lifecycle</h4><button onclick="closeModal('lifecycleModal')" style="background:none;border:none;color:white;cursor:pointer"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body" id="lifecycleBody"></div>
+  </div>
+</div>
+
+<!-- CHALLAN PRINT MODAL -->
+<div class="modal-overlay" id="challanModal">
+  <div class="modal modal-lg">
+    <div class="modal-head"><h4><i class="fas fa-print"></i>Delivery Challan</h4>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-gold btn-sm no-print" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+        <button onclick="closeModal('challanModal')" style="background:none;border:none;color:white;cursor:pointer"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+    <div class="modal-body" id="challanBody"></div>
+  </div>
+</div>
+
+<!-- MOVEMENTS MODAL -->
+<div class="modal-overlay" id="movementsModal">
+  <div class="modal modal-lg">
+    <div class="modal-head"><h4 id="movementsTitle"><i class="fas fa-history"></i>Stock Movement History</h4><button onclick="closeModal('movementsModal')" style="background:none;border:none;color:white;cursor:pointer"><i class="fas fa-times"></i></button></div>
+    <div class="modal-body" id="movementsBody"></div>
+  </div>
+</div>
+
+<!-- GLOBAL SEARCH -->
+<div id="searchOverlay">
+  <div class="search-modal">
+    <div class="search-input-wrap">
+      <i class="fas fa-search"></i>
+      <input type="text" id="searchInput" placeholder="Search items, orders, clients, workers..." oninput="doSearch(this.value)" autocomplete="off">
+      <span style="font-size:10px;color:var(--text-muted);white-space:nowrap">ESC to close</span>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
+
+<!-- DATALISTS -->
+<datalist id="client-dl"></datalist>
+<datalist id="client-dl2"></datalist>
+<datalist id="item-dl"></datalist>
+<datalist id="item-dl2"></datalist>
+<datalist id="item-dl3"></datalist>
+<datalist id="item-dl4"></datalist>
+<datalist id="order-dl"></datalist>
+<datalist id="order-dl2"></datalist>
+<datalist id="worker-dl"></datalist>
+<datalist id="supplier-dl"></datalist>
+<datalist id="supplier-list-dl"></datalist>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- ═══════════════════ JAVASCRIPT ═══════════════════ -->
+<script>
+const API = '';
+let allData = { inventory:[], orders:[], jobWork:[], dispatch:[], po:[], clients:[], suppliers:[], workers:[], kpis:{}, settings:{} };
+let currentTab = 'dashboard';
+let charts = {};
+let editingId = null;
+let currentReceivePOId = null;
+let currentEntityType = null;
+let currentEntityId = null;
+let tableSortState = {};
+let tablePageState = {};
+const PAGE_SIZE_OPTIONS = [10,25,50,100];
+
+// ─────────────────────────── INIT ───────────────────────────
+window.onload = function() {
+  document.getElementById('f-order-date').value = today();
+  document.getElementById('f-job-date').value = today();
+  document.getElementById('f-disp-date').value = today();
+  document.getElementById('f-po-date').value = today();
+  document.getElementById('f-recv-date').value = today();
+  refreshAll();
+  document.addEventListener('keydown', handleKeyDown);
+};
+
+function today() { return new Date().toISOString().split('T')[0]; }
+
+async function refreshAll() {
+  document.getElementById('loader').style.display = 'flex';
+  document.getElementById('loader').style.opacity = '1';
+  try {
+    const [inv, orders, jw, disp, po, clients, suppliers, workers, kpis, settings] = await Promise.all([
+      api('inventory'), api('orders'), api('jobwork'), api('dispatch'),
+      api('purchase-orders'), api('clients'), api('suppliers'), api('workers'),
+      api('kpis'), api('settings'),
+    ]);
+    allData = { inventory: inv||[], orders: orders||[], jobWork: jw||[], dispatch: disp||[],
+                po: po||[], clients: clients||[], suppliers: suppliers||[], workers: workers||[],
+                kpis: kpis||{}, settings: settings||{} };
+    populateDataLists();
+    updateAlertBadge();
+    renderTab();
+    document.getElementById('lastSync').textContent = 'Synced ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    toast('Connection error: ' + e.message, 'error');
+    console.error(e);
+  }
+  document.getElementById('loader').style.opacity = '0';
+  setTimeout(() => document.getElementById('loader').style.display = 'none', 400);
+}
+
+async function api(endpoint, method='GET', body=null) {
+  const opts = { method, headers:{'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + '/api/' + endpoint, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({detail: res.statusText}));
+    throw new Error(err.detail || res.statusText);
+  }
+  return res.json();
+}
+
+function populateDataLists() {
+  const items = allData.inventory.map(i => i.item_code);
+  const orders = allData.orders.map(o => o.order_id);
+  const clients = allData.clients.map(c => c.client_name);
+  const workers = allData.workers.map(w => w.worker_name);
+  const suppliers = allData.suppliers.map(s => s.supplier_name);
+  setDL('item-dl', items); setDL('item-dl2', items); setDL('item-dl3', items); setDL('item-dl4', items);
+  setDL('order-dl', orders); setDL('order-dl2', orders);
+  setDL('client-dl', clients); setDL('client-dl2', clients);
+  setDL('worker-dl', workers);
+  setDL('supplier-dl', suppliers); setDL('supplier-list-dl', suppliers);
+}
+
+function setDL(id, arr) {
+  const dl = document.getElementById(id);
+  if (!dl) return;
+  dl.innerHTML = arr.map(v => `<option value="${v}">`).join('');
+}
+
+function updateAlertBadge() {
+  fetch(API + '/api/alerts').then(r=>r.json()).then(alerts => {
+    const badge = document.getElementById('alertBadge');
+    if (alerts.length > 0) { badge.textContent = alerts.length; badge.style.display = 'inline'; }
+    else badge.style.display = 'none';
+  }).catch(()=>{});
+}
+
+// ─────────────────────────── NAVIGATION ───────────────────────────
+const TAB_META = {
+  dashboard: ['Dashboard Overview','Live KPIs & Analytics'],
+  inventory: ['Stock / Inventory','Manage fabric & material stock'],
+  purchaseorders: ['Purchase Orders','Inbound stock from suppliers'],
+  suppliers: ['Suppliers','Manage supplier database'],
+  orderbook: ['Order Book','Track & manage all orders'],
+  jobwork: ['Job Work Tracker','Monitor production & workers'],
+  dispatch: ['Dispatch Log','Track shipments & challans'],
+  clients: ['Clients','Client portfolios & CRM'],
+  workers: ['Workers','Worker profiles & payments'],
+  reports: ['Reports','Generate & export reports'],
+  alerts: ['Stock Alerts','Reorder & allocation warnings'],
+  settings: ['Settings','Business configuration'],
+};
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const nav = document.getElementById('nav-' + tab);
+  if (nav) nav.classList.add('active');
+  const meta = TAB_META[tab] || [tab,''];
+  document.getElementById('tab-title').textContent = meta[0];
+  document.getElementById('tab-sub').textContent = meta[1];
+  renderTab();
+}
+
+function renderTab() {
+  const c = document.getElementById('content');
+  c.innerHTML = ''; c.classList.remove('fade-in'); void c.offsetWidth; c.classList.add('fade-in');
+  const fn = { dashboard:renderDashboard, inventory:renderInventory, purchaseorders:renderPurchaseOrders,
+    suppliers:renderSuppliers, orderbook:renderOrderBook, jobwork:renderJobWork, dispatch:renderDispatch,
+    clients:renderClients, workers:renderWorkers, reports:renderReports, alerts:renderAlerts, settings:renderSettings };
+  if (fn[currentTab]) fn[currentTab](c);
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+function toggleDark() {
+  document.body.classList.toggle('dark');
+  if (Object.keys(charts).length) setTimeout(renderTab, 50);
+}
+
+// ─────────────────────────── DASHBOARD ───────────────────────────
+function renderDashboard(c) {
+  const k = allData.kpis;
+  let alertHtml = '';
+  if (k.reorder_count > 0) {
+    alertHtml = `<div class="alert-banner"><i class="fas fa-exclamation-triangle" style="flex-shrink:0"></i><span><b>${k.reorder_count} item(s) need immediate reorder:</b> ${(k.reorder_items||[]).slice(0,4).join(', ')}${k.reorder_count>4?'...':''}</span></div>`;
+  }
+  c.innerHTML = alertHtml + `
+  <div class="kpi-grid">
+    <div class="kpi-card red" onclick="switchTab('alerts')"><div class="kpi-label">Critical Reorders</div><div class="kpi-value">${k.reorder_count||0}</div><div class="kpi-sub">Items below min stock</div><i class="fas fa-exclamation-circle kpi-icon"></i></div>
+    <div class="kpi-card blue" onclick="switchTab('orderbook')"><div class="kpi-label">Active Production</div><div class="kpi-value">${k.active_order_count||0}</div><div class="kpi-sub">${k.pending_order_count||0} orders pending</div><i class="fas fa-cogs kpi-icon"></i></div>
+    <div class="kpi-card amber" onclick="switchTab('jobwork')"><div class="kpi-label">Live Job Batches</div><div class="kpi-value">${k.jw_live_count||0}</div><div class="kpi-sub">Currently out for work</div><i class="fas fa-tools kpi-icon"></i></div>
+    <div class="kpi-card green" onclick="switchTab('dispatch')"><div class="kpi-label">Total Dispatched</div><div class="kpi-value">${(k.total_dispatched||0).toLocaleString()}</div><div class="kpi-sub">Metres shipped</div><i class="fas fa-truck kpi-icon"></i></div>
+    <div class="kpi-card gold" onclick="switchTab('orderbook')"><div class="kpi-label">Fulfilment Rate</div><div class="kpi-value">${k.fulfilment_rate||0}%</div><div class="kpi-sub">${k.completed_order_count||0}/${k.total_order_count||0} completed</div><i class="fas fa-check-circle kpi-icon"></i></div>
+    <div class="kpi-card blue"><div class="kpi-label">Avg Wastage</div><div class="kpi-value">${k.avg_wastage_pct||0}%</div><div class="kpi-sub">Across all job batches</div><i class="fas fa-cut kpi-icon"></i></div>
+    <div class="kpi-card purple" onclick="switchTab('inventory')"><div class="kpi-label">Total SKUs</div><div class="kpi-value">${k.total_items||0}</div><div class="kpi-sub">Active stock items</div><i class="fas fa-boxes kpi-icon"></i></div>
+    <div class="kpi-card green"><div class="kpi-label">Inventory Value</div><div class="kpi-value">₹${((k.total_inventory_value||0)/1000).toFixed(1)}K</div><div class="kpi-sub">At purchase price</div><i class="fas fa-rupee-sign kpi-icon"></i></div>
+  </div>
+  <div class="charts-grid">
+    <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-bar"></i> Stock by Category</div><canvas id="catChart"></canvas></div>
+    <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-pie"></i> Order Status Split</div><canvas id="orderChart"></canvas></div>
+    <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-line"></i> Monthly Dispatch Volume (Mtr)</div><canvas id="dispChart"></canvas></div>
+    <div class="chart-card"><div class="chart-title"><i class="fas fa-chart-bar"></i> Top 5 Items by Closing Balance</div><canvas id="itemChart"></canvas></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="table-card">
+      <div class="table-header"><h3><i class="fas fa-exclamation-triangle"></i> Reorder Alerts</h3><button class="btn btn-outline btn-sm" onclick="switchTab('alerts')">View All</button></div>
+      <table><thead><tr><th>Item Code</th><th>Category</th><th>Balance</th></tr></thead>
+      <tbody>${(allData.inventory||[]).filter(i=>(i.reorder_status||'NORMAL')==='REORDER (LOW)').slice(0,5).map(i=>`<tr>
+        <td class="mono" style="font-weight:700">${i.item_code}</td>
+        <td><span class="badge badge-${(i.category||'').toLowerCase().replace(' ','-')}">${i.category||''}</span></td>
+        <td class="mono" style="color:var(--danger);font-weight:700">${(i.closing_balance||0).toLocaleString()}</td>
+      </tr>`).join('') || '<tr><td colspan="3" class="empty-state"><i class="fas fa-check-circle"></i><br>All clear!</td></tr>'}</tbody></table>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3><i class="fas fa-clock"></i> Recent Orders</h3><button class="btn btn-outline btn-sm" onclick="switchTab('orderbook')">View All</button></div>
+      <table><thead><tr><th>Order ID</th><th>Client</th><th>Status</th></tr></thead>
+      <tbody>${(allData.orders||[]).slice(0,5).map(o=>`<tr>
+        <td class="mono" style="font-weight:700">${o.order_id}</td>
+        <td style="font-weight:600">${o.client_name}</td>
+        <td><span class="badge badge-${(o.status||'').toLowerCase().replace(' ','-')}">${o.status}</span></td>
+      </tr>`).join('') || '<tr><td colspan="3" class="empty-state"><i class="fas fa-box"></i><br>No orders</td></tr>'}</tbody></table>
+    </div>
+  </div>`;
+
+  // Charts
+  const catData = k.category_breakdown || {};
+  const catLabels = Object.keys(catData);
+  buildChart('catChart','bar', catLabels, catLabels.map(l=>catData[l].total_stock), 'Stock (Mtr)',['#c9a84c','#2563eb','#059669','#dc2626','#7c3aed']);
+  buildChart('orderChart','doughnut',['Completed','In Production','Pending','Cancelled'],
+    [k.completed_order_count||0, k.active_order_count||0, k.pending_order_count||0, 0],'Orders',['#059669','#2563eb','#d97706','#dc2626']);
+  const months = Object.keys(k.monthly_dispatch||{}).sort().slice(-6);
+  buildLineChart('dispChart', months, months.map(m => (k.monthly_dispatch||{})[m]||0));
+  const topItems = k.top_items || [];
+  buildChart('itemChart','horizontalBar', topItems.map(i=>i.code), topItems.map(i=>i.balance), 'Balance',['#0d1b2a','#1a2e47','#2d4a6f','#3d6491','#4d7db3']);
+}
+
+function buildChart(id, type, labels, data, label, colors) {
+  const ctx = document.getElementById(id); if (!ctx) return;
+  if (charts[id]) charts[id].destroy();
+  const isDark = document.body.classList.contains('dark');
+  const tc = isDark ? '#94a3b8' : '#6b7280';
+  const isHoriz = type === 'horizontalBar';
+  const chartType = isHoriz ? 'bar' : type;
+  charts[id] = new Chart(ctx, {
+    type: chartType,
+    data: { labels, datasets:[{ label, data,
+      backgroundColor: type==='doughnut' ? colors : colors.map(c=>c+'cc'),
+      borderRadius: type==='bar'||isHoriz ? 5 : 0, borderWidth: 0 }]},
+    options: { responsive:true, maintainAspectRatio:true, indexAxis: isHoriz ? 'y':'x',
+      plugins:{ legend:{ labels:{color:tc,font:{size:10}} } },
+      scales: type!=='doughnut' ? { x:{ticks:{color:tc,font:{size:9}}}, y:{ticks:{color:tc,font:{size:9}}} } : {} }
+  });
+}
+
+function buildLineChart(id, labels, data) {
+  const ctx = document.getElementById(id); if (!ctx) return;
+  if (charts[id]) charts[id].destroy();
+  const isDark = document.body.classList.contains('dark');
+  const tc = isDark ? '#94a3b8' : '#6b7280';
+  charts[id] = new Chart(ctx, { type:'line',
+    data:{ labels, datasets:[{ label:'Mtr Dispatched', data,
+      borderColor:'#c9a84c', backgroundColor:'rgba(201,168,76,.1)', tension:.4, fill:true, pointBackgroundColor:'#c9a84c', pointRadius:4 }]},
+    options:{ responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{labels:{color:tc,font:{size:10}}} },
+      scales:{ x:{ticks:{color:tc,font:{size:9}}}, y:{ticks:{color:tc,font:{size:9}}} } }
+  });
+}
+
+// ─────────────────────────── INVENTORY ───────────────────────────
+function renderInventory(c) {
+  const cats = [...new Set((allData.inventory||[]).map(i=>i.category).filter(Boolean))];
+  const maxBal = Math.max(...(allData.inventory||[]).map(i=>(i.closing_balance||0)));
+  c.innerHTML = `
+  <div class="table-card">
+    <div class="table-header">
+      <h3><i class="fas fa-warehouse"></i> All Stock Items <span style="font-size:10px;color:var(--text-muted);font-weight:400;margin-left:6px">${allData.inventory.length} items</span></h3>
+      <div class="filter-bar">
+        <input type="text" id="invSearch" placeholder="Search code / name / color..." style="width:200px" oninput="filterAndRenderInventory()">
+        <select id="invCat" onchange="filterAndRenderInventory()">
+          <option value="">All Categories</option>
+          ${cats.map(c=>`<option>${c}</option>`).join('')}
+        </select>
+        <select id="invStatus" onchange="filterAndRenderInventory()">
+          <option value="">All Status</option>
+          <option>REORDER (LOW)</option><option>ABOVE LEVEL</option><option>NORMAL</option>
+        </select>
+        <button class="btn btn-gold btn-sm" onclick="openAddInventory()"><i class="fas fa-plus"></i> Add Item</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportTable('inventory')"><i class="fas fa-download"></i> Export</button>
+      </div>
+    </div>
+    <div class="table-overflow">
+      <table id="invTable">
+        <thead><tr>
+          <th onclick="sortTable('inventory','item_code')">Item Code</th>
+          <th onclick="sortTable('inventory','item_name')">Description</th>
+          <th onclick="sortTable('inventory','color')">Color</th>
+          <th onclick="sortTable('inventory','category')">Category</th>
+          <th style="text-align:right">Wt/Mtr</th>
+          <th style="text-align:right">Opening</th>
+          <th style="text-align:right">Total In</th>
+          <th style="text-align:right">Total Out</th>
+          <th style="text-align:right">Allocated</th>
+          <th>Closing Balance</th>
+          <th>Status</th>
+          <th class="no-print">Actions</th>
+        </tr></thead>
+        <tbody id="invBody"></tbody>
+      </table>
+    </div>
+    <div class="stat-row" id="invStats"></div>
+    <div style="padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--border)">
+      <div class="pagination" id="invPagination"></div>
+      <select class="page-size-select" id="invPageSize" onchange="setPageSize('inventory',this.value)">
+        ${PAGE_SIZE_OPTIONS.map(s=>`<option value="${s}" ${s===25?'selected':''}>${s} / page</option>`).join('')}
+      </select>
+    </div>
+  </div>`;
+  window._invMax = maxBal;
+  filterAndRenderInventory();
+}
+
+let _filteredInventory = [];
+
+function filterAndRenderInventory() {
+  const q = (document.getElementById('invSearch')||{}).value || '';
+  const cat = (document.getElementById('invCat')||{}).value || '';
+  const st = (document.getElementById('invStatus')||{}).value || '';
+  _filteredInventory = (allData.inventory||[]).filter(item => {
+    const matchQ = !q || (item.item_code+item.item_name+(item.color||'')).toLowerCase().includes(q.toLowerCase());
+    const matchCat = !cat || item.category === cat;
+    const matchSt = !st || (item.reorder_status||'NORMAL') === st;
+    return matchQ && matchCat && matchSt;
+  });
+  // Sort
+  const sort = tableSortState['inventory'];
+  if (sort) {
+    _filteredInventory.sort((a,b) => {
+      const va = a[sort.col]||'', vb = b[sort.col]||'';
+      return sort.dir === 'asc' ? (va>vb?1:-1) : (va<vb?1:-1);
+    });
+  }
+  renderInventoryPage(1);
+}
+
+function renderInventoryPage(page) {
+  const ps = parseInt((document.getElementById('invPageSize')||{}).value||25);
+  const total = _filteredInventory.length;
+  const pages = Math.ceil(total/ps);
+  const cur = Math.min(Math.max(1,page), pages||1);
+  tablePageState['inventory'] = cur;
+  const slice = _filteredInventory.slice((cur-1)*ps, cur*ps);
+  const tbody = document.getElementById('invBody');
+  if (!tbody) return;
+  if (!slice.length) {
+    tbody.innerHTML = `<tr><td colspan="12" class="empty-state"><i class="fas fa-box-open"></i><br>No items match your filters</td></tr>`;
+  } else {
+    tbody.innerHTML = slice.map(item => {
+      const bal = item.closing_balance||0;
+      const pct = window._invMax > 0 ? Math.round(bal/window._invMax*100) : 0;
+      const rs = item.reorder_status||'NORMAL';
+      const barColor = rs==='REORDER (LOW)'?'var(--danger)':(rs==='ABOVE LEVEL'?'var(--purple)':'var(--success)');
+      const badgeMap={'REORDER (LOW)':'badge-reorder','ABOVE LEVEL':'badge-above','NORMAL':'badge-normal'};
+      return `<tr>
+        <td><span class="mono" style="font-weight:700">${item.item_code}</span></td>
+        <td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.item_name}">${item.item_name}</td>
+        <td>${item.color||'—'}</td>
+        <td><span class="badge badge-${(item.category||'').toLowerCase().replace(' ','-')}">${item.category||'—'}</span></td>
+        <td style="text-align:right" class="mono">${item.weight_per_mtr||'—'}</td>
+        <td style="text-align:right" class="mono">${(item.opening_stock||0).toLocaleString()}</td>
+        <td style="text-align:right;color:var(--success)" class="mono">${(item.total_in||0).toLocaleString()}</td>
+        <td style="text-align:right;color:var(--danger)" class="mono">${(item.total_out||0).toLocaleString()}</td>
+        <td style="text-align:right;color:var(--warning)" class="mono">${(item.allocated_qty||0).toLocaleString()}</td>
+        <td style="min-width:130px">
+          <div style="font-weight:700;font-size:13px">${bal.toLocaleString()} <span style="font-size:10px;color:var(--text-muted)">${item.unit||'Mtr'}</span></div>
+          <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%;background:${barColor}"></div></div>
+        </td>
+        <td><span class="badge ${badgeMap[rs]||'badge-normal'}">${rs}</span></td>
+        <td class="no-print">
+          <div class="row-actions">
+            <button class="btn btn-ghost btn-xs" onclick="openAdjustment('${item.item_code}')" title="Stock Adjustment"><i class="fas fa-exchange-alt"></i></button>
+            <button class="btn btn-ghost btn-xs" onclick="viewMovements('${item.item_code}')" title="Movement History"><i class="fas fa-history"></i></button>
+            <button class="btn btn-ghost btn-xs" onclick="editInventoryItem('${item.item_code}')" title="Edit"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-danger btn-xs" onclick="deleteInv('${item.item_code}')" title="Delete"><i class="fas fa-trash"></i></button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+  // Stats
+  const statsEl = document.getElementById('invStats');
+  if (statsEl) {
+    const totalBal = _filteredInventory.reduce((s,i)=>s+(i.closing_balance||0),0);
+    statsEl.innerHTML = `<span>Showing <b>${slice.length}</b> of <b>${total}</b></span><span>Total Balance: <b>${totalBal.toLocaleString()} Mtr</b></span>`;
+  }
+  // Pagination
+  renderPagination('invPagination', cur, pages, p => renderInventoryPage(p));
+}
+
+function sortTable(tableId, col) {
+  const cur = tableSortState[tableId];
+  tableSortState[tableId] = cur && cur.col===col ? {col, dir: cur.dir==='asc'?'desc':'asc'} : {col, dir:'asc'};
+  filterAndRenderInventory();
+}
+
+function renderPagination(containerId, cur, pages, cb) {
+  const el = document.getElementById(containerId); if (!el) return;
+  if (pages <= 1) { el.innerHTML = ''; return; }
+  let html = `<button ${cur<=1?'disabled':''} onclick="(${cb})(${cur-1})"><i class="fas fa-chevron-left"></i></button>`;
+  const range = Array.from({length:pages},(_, i)=>i+1).filter(p=>Math.abs(p-cur)<=2||p===1||p===pages);
+  let last = 0;
+  for (const p of range) {
+    if (last && p-last>1) html += `<button disabled>…</button>`;
+    html += `<button class="${p===cur?'active':''}" onclick="(${cb})(${p})">${p}</button>`;
+    last = p;
+  }
+  html += `<button ${cur>=pages?'disabled':''} onclick="(${cb})(${cur+1})"><i class="fas fa-chevron-right"></i></button>`;
+  el.innerHTML = html;
+}
+
+function setPageSize(tableId, size) {
+  if (tableId === 'inventory') filterAndRenderInventory();
+}
+
+function openAddInventory() {
+  editingId = null;
+  ['code','name','color','weight','opening','reorder','pprice','sprice','supplier','notes'].forEach(f => {
+    const el = document.getElementById('f-inv-'+f); if (el) el.value='';
+  });
+  document.getElementById('f-inv-category').value = 'Raw';
+  document.getElementById('f-inv-unit').value = 'Mtr';
+  document.getElementById('f-inv-reorder').value = '50';
+  openModal('invModal');
+}
+
+function editInventoryItem(code) {
+  const item = allData.inventory.find(i=>i.item_code===code); if (!item) return;
+  editingId = code;
+  document.getElementById('f-inv-code').value = item.item_code;
+  document.getElementById('f-inv-name').value = item.item_name||'';
+  document.getElementById('f-inv-color').value = item.color||'';
+  document.getElementById('f-inv-category').value = item.category||'Raw';
+  document.getElementById('f-inv-weight').value = item.weight_per_mtr||0;
+  document.getElementById('f-inv-unit').value = item.unit||'Mtr';
+  document.getElementById('f-inv-opening').value = item.opening_stock||0;
+  document.getElementById('f-inv-reorder').value = item.reorder_level||50;
+  document.getElementById('f-inv-pprice').value = item.purchase_price||0;
+  document.getElementById('f-inv-sprice').value = item.selling_price||0;
+  document.getElementById('f-inv-supplier').value = item.supplier_name||'';
+  document.getElementById('f-inv-notes').value = item.notes||'';
+  document.getElementById('f-inv-code').disabled = true;
+  openModal('invModal');
+}
+
+async function submitInventory() {
+  const code = document.getElementById('f-inv-code').value.trim();
+  const name = document.getElementById('f-inv-name').value.trim();
+  if (!code || !name) { toast('Item Code and Name are required', 'error'); return; }
+  const data = {
+    item_code:code, item_name:name, color:document.getElementById('f-inv-color').value.trim(),
+    category:document.getElementById('f-inv-category').value,
+    weight_per_mtr:parseFloat(document.getElementById('f-inv-weight').value)||0,
+    unit:document.getElementById('f-inv-unit').value,
+    opening_stock:parseFloat(document.getElementById('f-inv-opening').value)||0,
+    reorder_level:parseFloat(document.getElementById('f-inv-reorder').value)||50,
+    purchase_price:parseFloat(document.getElementById('f-inv-pprice').value)||0,
+    selling_price:parseFloat(document.getElementById('f-inv-sprice').value)||0,
+    supplier_name:document.getElementById('f-inv-supplier').value.trim(),
+    notes:document.getElementById('f-inv-notes').value.trim(),
+  };
+  try {
+    if (editingId) {
+      const r = await api(`inventory/${editingId}`, 'PUT', data);
+      toast(r.message||'Updated!', 'success');
+    } else {
+      const r = await api('inventory', 'POST', data);
+      toast(r.message||'Added!', 'success');
+    }
+    closeModal('invModal');
+    document.getElementById('f-inv-code').disabled = false;
+    refreshAll();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteInv(code) {
+  if (!confirm(`Delete item "${code}"? This cannot be undone.`)) return;
+  try { await api(`inventory/${code}`, 'DELETE'); toast('Item deleted', 'warning'); refreshAll(); }
+  catch(e) { toast(e.message, 'error'); }
+}
+
+function openAdjustment(code) {
+  document.getElementById('f-adj-code').value = code;
+  document.getElementById('f-adj-qty').value = '';
+  document.getElementById('f-adj-notes').value = '';
+  openModal('adjModal');
+}
+
+async function submitAdjustment() {
+  const code = document.getElementById('f-adj-code').value;
+  const qty = parseFloat(document.getElementById('f-adj-qty').value);
+  const type = document.getElementById('f-adj-type').value;
+  const notes = document.getElementById('f-adj-notes').value.trim();
+  if (!qty || qty <= 0) { toast('Enter a valid quantity', 'error'); return; }
+  try {
+    const r = await api('inventory/adjustment', 'POST', {item_code:code, qty, movement_type:type, notes});
+    toast(r.message, 'success');
+    closeModal('adjModal');
+    refreshAll();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function viewMovements(code) {
+  document.getElementById('movementsTitle').innerHTML = `<i class="fas fa-history"></i> Movement History — ${code}`;
+  try {
+    const movs = await api(`inventory/${code}/movements`);
+    document.getElementById('movementsBody').innerHTML = movs.length ? `
+      <table style="width:100%">
+        <thead><tr><th>Date</th><th>Type</th><th style="text-align:right">Qty</th><th>Reference</th><th>Notes</th></tr></thead>
+        <tbody>${movs.map(m=>`<tr>
+          <td class="mono" style="color:var(--text-muted)">${m.created_at||''}</td>
+          <td><span class="badge ${m.movement_type==='IN'?'badge-done':'badge-out'}">${m.movement_type}</span></td>
+          <td style="text-align:right;font-weight:700">${m.qty}</td>
+          <td class="mono">${m.reference_id||'—'}</td>
+          <td style="color:var(--text-muted)">${m.notes||'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table>` : `<div class="empty-state"><i class="fas fa-history"></i><br>No movements recorded yet</div>`;
+  } catch(e) { document.getElementById('movementsBody').innerHTML = '<div class="empty-state">Error loading</div>'; }
+  openModal('movementsModal');
+}
+
+// ─────────────────────────── PURCHASE ORDERS ───────────────────────────
+function renderPurchaseOrders(c) {
+  const statuses = [...new Set((allData.po||[]).map(p=>p.status).filter(Boolean))];
+  c.innerHTML = `
+  <div class="table-card">
+    <div class="table-header">
+      <h3><i class="fas fa-file-invoice"></i> Purchase Orders</h3>
+      <div class="filter-bar">
+        <input type="text" id="poSearch" placeholder="Search PO / supplier / item..." style="width:200px" oninput="filterAndRenderPO()">
+        <select id="poStatus" onchange="filterAndRenderPO()">
+          <option value="">All Status</option>
+          <option>Pending</option><option>Partial</option><option>Received</option><option>Cancelled</option>
+        </select>
+        <button class="btn btn-gold btn-sm" onclick="openModal('poModal')"><i class="fas fa-plus"></i> New PO</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportTable('po')"><i class="fas fa-download"></i> Export</button>
+      </div>
+    </div>
+    <div class="table-overflow">
+      <table><thead><tr>
+        <th>PO ID</th><th>PO Date</th><th>Supplier</th><th>Item Code</th>
+        <th style="text-align:right">Ordered Qty</th><th style="text-align:right">Received</th>
+        <th style="text-align:right">Pending</th><th style="text-align:right">Value (₹)</th>
+        <th>Expected</th><th>Status</th><th class="no-print">Actions</th>
+      </tr></thead>
+      <tbody id="poBody"></tbody></table>
+    </div>
+    <div style="padding:10px 16px;display:flex;justify-content:space-between;border-top:1px solid var(--border)">
+      <div class="pagination" id="poPagination"></div>
+    </div>
+  </div>`;
+  filterAndRenderPO();
+}
+
+let _filteredPO = [];
+function filterAndRenderPO() {
+  const q = (document.getElementById('poSearch')||{}).value||'';
+  const st = (document.getElementById('poStatus')||{}).value||'';
+  _filteredPO = (allData.po||[]).filter(p => {
+    const matchQ = !q || (p.po_id+p.supplier_name+p.item_code).toLowerCase().includes(q.toLowerCase());
+    const matchSt = !st || p.status===st;
+    return matchQ && matchSt;
+  });
+  renderPOPage(1);
+}
+
+function renderPOPage(page) {
+  const ps = 25; const total = _filteredPO.length; const pages = Math.ceil(total/ps)||1;
+  const cur = Math.min(Math.max(1,page),pages);
+  const slice = _filteredPO.slice((cur-1)*ps, cur*ps);
+  const tbody = document.getElementById('poBody'); if (!tbody) return;
+  if (!slice.length) { tbody.innerHTML = `<tr><td colspan="11" class="empty-state"><i class="fas fa-file-invoice"></i><br>No purchase orders found</td></tr>`; return; }
+  const statusMap = {Pending:'badge-pending', Partial:'badge-out', Received:'badge-completed', Cancelled:'badge-cancelled'};
+  tbody.innerHTML = slice.map(p => {
+    const pending = (p.ordered_qty||0) - (p.received_qty||0);
+    const value = (p.ordered_qty||0) * (p.purchase_rate||0);
+    return `<tr>
+      <td class="mono" style="font-weight:700">${p.po_id}</td>
+      <td class="mono" style="color:var(--text-muted)">${p.po_date||''}</td>
+      <td style="font-weight:600">${p.supplier_name}</td>
+      <td class="mono">${p.item_code}</td>
+      <td style="text-align:right;font-weight:700">${(p.ordered_qty||0).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--success);font-weight:700">${(p.received_qty||0).toLocaleString()}</td>
+      <td style="text-align:right;color:${pending>0?'var(--warning)':'var(--text-muted)'}">${pending.toLocaleString()}</td>
+      <td style="text-align:right" class="mono">₹${value.toLocaleString()}</td>
+      <td class="mono" style="color:var(--text-muted)">${p.expected_date||'—'}</td>
+      <td><span class="badge ${statusMap[p.status]||'badge-normal'}">${p.status}</span></td>
+      <td class="no-print">
+        <div class="row-actions">
+          ${p.status!=='Received'?`<button class="btn btn-success btn-xs" onclick="openReceive('${p.po_id}')" title="Receive Goods"><i class="fas fa-boxes"></i> Receive</button>`:''}
+          <button class="btn btn-danger btn-xs" onclick="deletePO('${p.po_id}')" title="Delete"><i class="fas fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  renderPagination('poPagination', cur, pages, p => renderPOPage(p));
+}
+
+function openReceive(poId) {
+  currentReceivePOId = poId;
+  const po = allData.po.find(p=>p.po_id===poId); if (!po) return;
+  document.getElementById('receiveInfo').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><b>PO ID:</b> ${po.po_id}</div><div><b>Supplier:</b> ${po.supplier_name}</div>
+      <div><b>Item:</b> ${po.item_code}</div><div><b>Ordered Qty:</b> ${po.ordered_qty}</div>
+      <div><b>Already Received:</b> ${po.received_qty||0}</div><div><b>Pending:</b> ${(po.ordered_qty||0)-(po.received_qty||0)}</div>
+    </div>`;
+  document.getElementById('f-recv-qty').value = '';
+  document.getElementById('f-recv-invoice').value = po.invoice_no||'';
+  openModal('receiveModal');
+}
+
+async function submitReceive() {
+  const qty = parseFloat(document.getElementById('f-recv-qty').value);
+  const date = document.getElementById('f-recv-date').value;
+  const invoice = document.getElementById('f-recv-invoice').value.trim();
+  const updateStock = document.getElementById('f-recv-stock').checked;
+  if (!qty||qty<=0) { toast('Enter valid quantity','error'); return; }
+  if (!date) { toast('Date is required','error'); return; }
+  try {
+    const r = await api(`purchase-orders/${currentReceivePOId}/receive`, 'PUT', {received_qty:qty, received_date:date, invoice_no:invoice, update_stock:updateStock});
+    toast(r.message, 'success');
+    closeModal('receiveModal');
+    refreshAll();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function deletePO(id) {
+  if (!confirm('Delete this Purchase Order?')) return;
+  try { await api(`purchase-orders/${id}`,'DELETE'); toast('PO deleted','warning'); refreshAll(); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+async function submitPO() {
+  const supplier = document.getElementById('f-po-supplier').value.trim();
+  const item = document.getElementById('f-po-item').value.trim();
+  const qty = parseFloat(document.getElementById('f-po-qty').value);
+  if (!supplier||!item||!qty) { toast('Fill all required fields','error'); return; }
+  const data = {
+    po_date: document.getElementById('f-po-date').value,
+    supplier_name: supplier, item_code: item, ordered_qty: qty,
+    unit: document.getElementById('f-po-unit').value,
+    purchase_rate: parseFloat(document.getElementById('f-po-rate').value)||0,
+    expected_date: document.getElementById('f-po-edate').value,
+    invoice_no: document.getElementById('f-po-invoice').value.trim(),
+    remarks: document.getElementById('f-po-remarks').value.trim(),
+  };
+  try {
+    const r = await api('purchase-orders','POST',data);
+    toast(r.message,'success'); closeModal('poModal'); refreshAll();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+// ─────────────────────────── SUPPLIERS ───────────────────────────
+function renderSuppliers(c) {
+  c.innerHTML = `
+  <div class="table-card">
+    <div class="table-header">
+      <h3><i class="fas fa-industry"></i> Suppliers</h3>
+      <div class="filter-bar">
+        <input type="text" id="supSearch" placeholder="Search suppliers..." style="width:200px" oninput="filterSuppliers()">
+        <button class="btn btn-gold btn-sm" onclick="openEntityModal('supplier')"><i class="fas fa-plus"></i> Add Supplier</button>
+      </div>
+    </div>
+    <div class="table-overflow">
+      <table><thead><tr>
+        <th>#</th><th>Supplier Name</th><th>Contact</th><th>Phone</th><th>City</th>
+        <th>GSTIN</th><th style="text-align:right">POs</th><th style="text-align:right">Total Ordered</th>
+        <th class="no-print">Actions</th>
+      </tr></thead>
+      <tbody id="supBody"></tbody></table>
+    </div>
+  </div>`;
+  filterSuppliers();
+}
+
+function filterSuppliers() {
+  const q = (document.getElementById('supSearch')||{}).value||'';
+  const tbody = document.getElementById('supBody'); if (!tbody) return;
+  const items = allData.suppliers.filter(s=>!q||s.supplier_name.toLowerCase().includes(q.toLowerCase()));
+  if (!items.length) { tbody.innerHTML=`<tr><td colspan="9" class="empty-state"><i class="fas fa-industry"></i><br>No suppliers found</td></tr>`; return; }
+  tbody.innerHTML = items.map((s,i)=>`<tr>
+    <td style="color:var(--text-muted)">${i+1}</td>
+    <td style="font-weight:700">${s.supplier_name}</td>
+    <td>${s.contact_person||'—'}</td>
+    <td class="mono">${s.phone||'—'}</td>
+    <td>${s.city||'—'}</td>
+    <td class="mono" style="color:var(--text-muted)">${s.gstin||'—'}</td>
+    <td style="text-align:right;font-weight:700">${s.po_count||0}</td>
+    <td style="text-align:right" class="mono">${(s.total_ordered||0).toLocaleString()}</td>
+    <td class="no-print">
+      <div class="row-actions">
+        <button class="btn btn-ghost btn-xs" onclick="editEntityModal('supplier',${s.id})"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-danger btn-xs" onclick="deleteEntity('supplier',${s.id})"><i class="fas fa-trash"></i></button>
+      </div>
+    </td>
+  </tr>`).join('');
+}
+
+// ─────────────────────────── ORDERS ───────────────────────────
+function renderOrderBook(c) {
+  c.innerHTML = `
+  <div class="table-card">
+    <div class="table-header">
+      <h3><i class="fas fa-book-open"></i> Order Book</h3>
+      <div class="filter-bar">
+        <input type="text" id="orderSearch" placeholder="Search order / client / item..." style="width:200px" oninput="filterOrders()">
+        <select id="orderStatusF" onchange="filterOrders()">
+          <option value="">All Status</option><option>Pending</option><option>In Production</option><option>Completed</option><option>Cancelled</option>
+        </select>
+        <select id="orderPriF" onchange="filterOrders()">
+          <option value="">All Priority</option><option>Low</option><option>Normal</option><option>High</option><option>Urgent</option>
+        </select>
+        <button class="btn btn-gold btn-sm" onclick="openAddOrder()"><i class="fas fa-plus"></i> New Order</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportTable('orders')"><i class="fas fa-download"></i> Export</button>
+      </div>
+    </div>
+    <div class="table-overflow">
+      <table><thead><tr>
+        <th>Order ID</th><th>Date</th><th>Delivery</th><th>Client</th><th>Item Code</th>
+        <th style="text-align:right">Qty</th><th>Priority</th><th>Status</th>
+        <th style="text-align:right">Value (₹)</th><th class="no-print">Actions</th>
+      </tr></thead>
+      <tbody id="orderBody"></tbody></table>
+    </div>
+    <div class="stat-row" id="orderStats"></div>
+    <div style="padding:10px 16px;border-top:1px solid var(--border)"><div class="pagination" id="orderPag"></div></div>
+  </div>`;
+  filterOrders();
+}
+
+let _filteredOrders=[];
+function filterOrders() {
+  const q=(document.getElementById('orderSearch')||{}).value||'';
+  const st=(document.getElementById('orderStatusF')||{}).value||'';
+  const pr=(document.getElementById('orderPriF')||{}).value||'';
+  _filteredOrders=(allData.orders||[]).filter(o=>{
+    const mQ=!q||(o.order_id+o.client_name+o.item_code).toLowerCase().includes(q.toLowerCase());
+    const mS=!st||o.status===st;
+    const mP=!pr||o.priority===pr;
+    return mQ&&mS&&mP;
+  });
+  renderOrderPage(1);
+}
+
+function renderOrderPage(page) {
+  const ps=25, total=_filteredOrders.length, pages=Math.ceil(total/ps)||1;
+  const cur=Math.min(Math.max(1,page),pages);
+  const slice=_filteredOrders.slice((cur-1)*ps,cur*ps);
+  const tbody=document.getElementById('orderBody'); if(!tbody) return;
+  const statusMap={'Completed':'badge-completed','In Production':'badge-production','Pending':'badge-pending','Cancelled':'badge-cancelled'};
+  const priMap={'Urgent':'badge-urgent','High':'badge-high','Normal':'badge-normal','Low':'badge-low'};
+  if(!slice.length){tbody.innerHTML=`<tr><td colspan="10" class="empty-state"><i class="fas fa-clipboard-list"></i><br>No orders found</td></tr>`;return;}
+  tbody.innerHTML=slice.map(o=>`<tr>
+    <td class="mono" style="font-weight:700">${o.order_id}</td>
+    <td class="mono" style="color:var(--text-muted)">${o.order_date||''}</td>
+    <td class="mono" style="color:${o.delivery_date?'var(--warning)':'var(--text-muted)'}">${o.delivery_date||'—'}</td>
+    <td style="font-weight:600">${o.client_name}</td>
+    <td class="mono">${o.item_code}</td>
+    <td style="text-align:right;font-weight:700">${(o.ordered_qty||0).toLocaleString()}</td>
+    <td><span class="badge ${priMap[o.priority]||'badge-normal'}">${o.priority||'Normal'}</span></td>
+    <td><span class="badge ${statusMap[o.status]||'badge-pending'}">${o.status}</span></td>
+    <td style="text-align:right" class="mono">₹${((o.ordered_qty||0)*(o.selling_rate||0)).toLocaleString()}</td>
+    <td class="no-print">
+      <div class="row-actions">
+        <button class="btn btn-ghost btn-xs" onclick="openLifecycle('${o.order_id}')" title="Lifecycle"><i class="fas fa-project-diagram"></i></button>
+        <button class="btn btn-ghost btn-xs" onclick="editOrder('${o.order_id}')" title="Edit"><i class="fas fa-edit"></i></button>
+        ${o.status!=='Completed'&&o.status!=='Cancelled'?`<button class="btn btn-success btn-xs" onclick="quickStatus('${o.order_id}','Completed')" title="Mark Completed"><i class="fas fa-check"></i></button>`:''}
+        <button class="btn btn-danger btn-xs" onclick="deleteOrder('${o.order_id}')" title="Delete"><i class="fas fa-trash"></i></button>
+      </div>
+    </td>
+  </tr>`).join('');
+  const statsEl=document.getElementById('orderStats');
+  if(statsEl){const totalVal=_filteredOrders.reduce((s,o)=>s+(o.ordered_qty||0)*(o.selling_rate||0),0);
+    statsEl.innerHTML=`<span>Showing <b>${slice.length}</b> of <b>${total}</b></span><span>Total Value: <b>₹${totalVal.toLocaleString()}</b></span>`;}
+  renderPagination('orderPag', cur, pages, p=>renderOrderPage(p));
+}
+
+function openAddOrder() {
+  editingId=null;
+  document.getElementById('f-order-date').value=today();
+  ['client','item','qty','rate','remarks'].forEach(f=>{const el=document.getElementById('f-order-'+f);if(el)el.value='';});
+  document.getElementById('f-order-status').value='Pending';
+  document.getElementById('f-order-priority').value='Normal';
+  document.getElementById('f-order-ddate').value='';
+  openModal('orderModal');
+}
+
+function editOrder(id) {
+  editingId=id;
+  const o=allData.orders.find(x=>x.order_id===id); if(!o) return;
+  document.getElementById('f-order-date').value=o.order_date||today();
+  document.getElementById('f-order-ddate').value=o.delivery_date||'';
+  document.getElementById('f-order-client').value=o.client_name||'';
+  document.getElementById('f-order-item').value=o.item_code||'';
+  document.getElementById('f-order-qty').value=o.ordered_qty||'';
+  document.getElementById('f-order-status').value=o.status||'Pending';
+  document.getElementById('f-order-priority').value=o.priority||'Normal';
+  document.getElementById('f-order-rate').value=o.selling_rate||0;
+  document.getElementById('f-order-remarks').value=o.remarks||'';
+  openModal('orderModal');
+}
+
+async function submitOrder() {
+  const client=document.getElementById('f-order-client').value.trim();
+  const item=document.getElementById('f-order-item').value.trim();
+  const qty=parseFloat(document.getElementById('f-order-qty').value);
+  if(!client||!item||!qty){toast('Fill all required fields','error');return;}
+  const data={
+    order_date:document.getElementById('f-order-date').value,
+    delivery_date:document.getElementById('f-order-ddate').value,
+    client_name:client, item_code:item, ordered_qty:qty,
+    status:document.getElementById('f-order-status').value,
+    priority:document.getElementById('f-order-priority').value,
+    selling_rate:parseFloat(document.getElementById('f-order-rate').value)||0,
+    remarks:document.getElementById('f-order-remarks').value.trim(),
+  };
+  try {
+    const r = editingId ? await api(`orders/${editingId}`,'PUT',data) : await api('orders','POST',data);
+    toast(r.message||'Saved!','success'); closeModal('orderModal'); refreshAll();
+  } catch(e){toast(e.message,'error');}
+}
+
+async function quickStatus(id, status) {
+  try { const r=await api(`orders/${id}`,'PUT',{status}); toast(r.message,'success'); refreshAll(); }
+  catch(e){toast(e.message,'error');}
+}
+
+async function deleteOrder(id) {
+  if(!confirm('Delete this order?')) return;
+  try{await api(`orders/${id}`,'DELETE');toast('Order deleted','warning');refreshAll();}catch(e){toast(e.message,'error');}
+}
+
+async function openLifecycle(orderId) {
+  try {
+    const lc=await api(`orders/${orderId}/lifecycle`);
+    const o=lc.order; const jobs=lc.jobs; const disps=lc.dispatches;
+    document.getElementById('lifecycleTitle').innerHTML=`<i class="fas fa-project-diagram"></i> ${orderId} — ${o.client_name}`;
+    const step2=jobs.length>0; const step3=disps.length>0; const step4=o.status==='Completed';
+    const jobHtml=jobs.length?jobs.map(j=>`<p>Job <b>${j.job_id}</b> · Worker: ${j.worker_name} · Sent: ${j.sent_qty||0}Mtr · Recv: ${j.received_qty||0}Mtr · Status: <span class="badge badge-${j.status==='Completed'?'done':'out'}">${j.status}</span></p>`).join(''):'<p style="color:var(--text-muted)">No job work records yet</p>';
+    const dispHtml=disps.length?disps.map(d=>`<p>Dispatch <b>${d.dispatch_id}</b> · ${d.dispatched_qty}Mtr · ${d.dispatch_date} · Challan: ${d.challan_no||'—'}</p>`).join(''):'<p style="color:var(--text-muted)">Not dispatched yet</p>';
+    document.getElementById('lifecycleBody').innerHTML=`
+    <div style="padding:4px 0">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:8px;font-size:12px">
+        <div><b>Item:</b> ${o.item_code}</div><div><b>Qty:</b> ${o.ordered_qty}</div>
+        <div><b>Status:</b> <span class="badge badge-${(o.status||'').toLowerCase().replace(' ','-')}">${o.status}</span></div>
+        <div><b>Priority:</b> <span class="badge badge-${(o.priority||'normal').toLowerCase()}">${o.priority}</span></div>
+        ${o.delivery_date?`<div><b>Delivery:</b> ${o.delivery_date}</div>`:''}
+        ${o.selling_rate?`<div><b>Rate:</b> ₹${o.selling_rate}/unit</div>`:''}
+      </div>
+      <div class="lifecycle">
+        <div class="lc-step"><div class="lc-dot done">1</div><div><div class="lc-title">Order Placed</div><div class="lc-detail"><p>Date: ${o.order_date} · Client: ${o.client_name}</p><p>Item: ${o.item_code} · Qty: ${o.ordered_qty}</p></div></div></div>
+        <div class="lc-step"><div class="lc-dot ${step2?'done':'pending'}">2</div><div><div class="lc-title">Job Work / Production</div><div class="lc-detail">${jobHtml}</div></div></div>
+        <div class="lc-step"><div class="lc-dot ${step3?'done':'pending'}">3</div><div><div class="lc-title">Dispatch</div><div class="lc-detail">${dispHtml}</div></div></div>
+        <div class="lc-step"><div class="lc-dot ${step4?'done':'pending'}">4</div><div><div class="lc-title">Completed</div><div class="lc-detail">${step4?'<p style="color:var(--success);font-weight:600"><i class="fas fa-check-circle"></i> Fully completed & delivered</p>':'<p style="color:var(--text-muted)">Awaiting completion</p>'}</div></div></div>
+      </div>
+    </div>`;
+    openModal('lifecycleModal');
+  } catch(e){toast('Error loading lifecycle','error');}
+}
+
+// ─────────────────────────── JOB WORK ───────────────────────────
+function renderJobWork(c) {
+  const wt = parseFloat(allData.settings.wastage_threshold||4);
+  c.innerHTML=`
+  <div class="alert-banner" style="background:linear-gradient(135deg,#78350f,#92400e);margin-bottom:14px">
+    <i class="fas fa-info-circle" style="flex-shrink:0"></i>
+    <span><b>Active Rules:</b> Payment @ ₹${allData.settings.default_payment_rate||0.25}/Mtr | Wastage above <b>${wt}%</b> flagged critical</span>
+  </div>
+  <div class="table-card">
+    <div class="table-header">
+      <h3><i class="fas fa-tools"></i> Job Work Tracker</h3>
+      <div class="filter-bar">
+        <input type="text" id="jobSearch" placeholder="Search Job ID / Worker / Order..." style="width:200px" oninput="filterJobWork()">
+        <select id="jobStatusF" onchange="filterJobWork()"><option value="">All Status</option><option>Out</option><option>Completed</option></select>
+        <select id="jobWorkerF" onchange="filterJobWork()">
+          <option value="">All Workers</option>
+          ${allData.workers.map(w=>`<option>${w.worker_name}</option>`).join('')}
+        </select>
+        <button class="btn btn-gold btn-sm" onclick="openAddJobWork()"><i class="fas fa-plus"></i> Add Job Work</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportTable('jobwork')"><i class="fas fa-download"></i> Export</button>
+      </div>
+    </div>
+    <div class="table-overflow">
+      <table><thead><tr>
+        <th>Date</th><th>Job ID</th><th>Order ID</th><th>Worker</th><th>Item</th>
+        <th style="text-align:right">Sent</th><th style="text-align:right">Received</th>
+        <th style="text-align:right">Balance</th><th style="text-align:right">Wastage</th>
+        <th style="text-align:center">W%</th><th style="text-align:right">Payment</th>
+        <th>Status</th><th class="no-print">Actions</th>
+      </tr></thead>
+      <tbody id="jobBody"></tbody></table>
+    </div>
+    <div class="stat-row" id="jobStats"></div>
+    <div style="padding:10px 16px;border-top:1px solid var(--border)"><div class="pagination" id="jobPag"></div></div>
+  </div>`;
+  filterJobWork();
+}
+
+let _filteredJob=[];
+function filterJobWork() {
+  const q=(document.getElementById('jobSearch')||{}).value||'';
+  const st=(document.getElementById('jobStatusF')||{}).value||'';
+  const w=(document.getElementById('jobWorkerF')||{}).value||'';
+  _filteredJob=(allData.jobWork||[]).filter(j=>{
+    const mQ=!q||(j.job_id+j.worker_name+(j.order_id||'')+j.item_code).toLowerCase().includes(q.toLowerCase());
+    const mS=!st||j.status===st;
+    const mW=!w||j.worker_name===w;
+    return mQ&&mS&&mW;
+  });
+  renderJobPage(1);
+}
+
+function renderJobPage(page) {
+  const ps=25, total=_filteredJob.length, pages=Math.ceil(total/ps)||1;
+  const cur=Math.min(Math.max(1,page),pages);
+  const slice=_filteredJob.slice((cur-1)*ps,cur*ps);
+  const tbody=document.getElementById('jobBody'); if(!tbody) return;
+  const wt=parseFloat(allData.settings.wastage_threshold||4);
+  if(!slice.length){tbody.innerHTML=`<tr><td colspan="13" class="empty-state"><i class="fas fa-hammer"></i><br>No job work records</td></tr>`;return;}
+  tbody.innerHTML=slice.map(j=>{
+    const sent=j.sent_qty||0, recv=j.received_qty||0, waste=j.wastage_mtr||0;
+    const bal=Math.max(0,sent-recv);
+    const wp=sent>0?waste/sent*100:0;
+    const payment=j.total_payment||(recv*(j.rate_per_mtr||0.25));
+    return `<tr>
+      <td class="mono" style="color:var(--text-muted)">${j.job_date||'—'}</td>
+      <td class="mono" style="font-weight:700">${j.job_id}</td>
+      <td class="mono" style="color:var(--text-muted)">${j.order_id||'—'}</td>
+      <td style="font-weight:600">${j.worker_name}</td>
+      <td class="mono">${j.item_code}</td>
+      <td style="text-align:right;color:#4f46e5;font-weight:600">${sent.toLocaleString()}</td>
+      <td style="text-align:right;font-weight:700">${recv.toLocaleString()}</td>
+      <td style="text-align:right;color:var(--warning)">${bal>0?bal.toFixed(1):'<span style="color:var(--success)">✓</span>'}</td>
+      <td style="text-align:right">${waste.toFixed(2)}</td>
+      <td style="text-align:center"><span class="${wp>wt?'badge badge-critical':''}" style="${wp>wt?'':'color:var(--text-muted)'}">${wp.toFixed(1)}%</span></td>
+      <td style="text-align:right;font-weight:700;color:var(--success)">₹${payment.toFixed(2)}</td>
+      <td><span class="badge ${j.status==='Completed'?'badge-done':'badge-out'}">${j.status}</span></td>
+      <td class="no-print">
+        <div class="row-actions">
+          <button class="btn btn-ghost btn-xs" onclick="editJobWork('${j.job_id}')"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-danger btn-xs" onclick="deleteJob('${j.job_id}')"><i class="fas fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  const statsEl=document.getElementById('jobStats');
+  if(statsEl){
+    const totSent=_filteredJob.reduce((s,j)=>s+(j.sent_qty||0),0);
+    const totPay=_filteredJob.reduce((s,j)=>s+(j.total_payment||0),0);
+    statsEl.innerHTML=`<span>Showing <b>${slice.length}</b> of <b>${total}</b></span><span>Total Sent: <b>${totSent.toLocaleString()} Mtr</b></span><span>Total Payment: <b>₹${totPay.toLocaleString()}</b></span>`;
+  }
+  renderPagination('jobPag',cur,pages,p=>renderJobPage(p));
+}
+
+function openAddJobWork() {
+  editingId=null;
+  ['job-date','job-orderid','job-worker','job-item','job-sent','job-received','job-wastage','job-payment','job-remarks'].forEach(f=>{
+    const el=document.getElementById('f-'+f); if(el) el.value=f==='job-date'?today():'';
+  });
+  document.getElementById('f-job-rate').value=allData.settings.default_payment_rate||0.25;
+  document.getElementById('f-job-status').value='Out';
+  openModal('jobModal');
+}
+
+function editJobWork(id) {
+  editingId=id;
+  const j=allData.jobWork.find(x=>x.job_id===id); if(!j) return;
+  document.getElementById('f-job-date').value=j.job_date||today();
+  document.getElementById('f-job-orderid').value=j.order_id||'';
+  document.getElementById('f-job-worker').value=j.worker_name||'';
+  document.getElementById('f-job-item').value=j.item_code||'';
+  document.getElementById('f-job-sent').value=j.sent_qty||0;
+  document.getElementById('f-job-received').value=j.received_qty||0;
+  document.getElementById('f-job-wastage').value=j.wastage_mtr||0;
+  document.getElementById('f-job-status').value=j.status||'Out';
+  document.getElementById('f-job-rate').value=j.rate_per_mtr||0.25;
+  document.getElementById('f-job-payment').value=j.total_payment||0;
+  document.getElementById('f-job-remarks').value=j.remarks||'';
+  openModal('jobModal');
+}
+
+function autoPayment() {
+  const recv=parseFloat(document.getElementById('f-job-received').value)||0;
+  const rate=parseFloat(document.getElementById('f-job-rate').value)||0;
+  document.getElementById('f-job-payment').value=(recv*rate).toFixed(2);
+}
+
+async function submitJobWork() {
+  const worker=document.getElementById('f-job-worker').value.trim();
+  const item=document.getElementById('f-job-item').value.trim();
+  const sent=parseFloat(document.getElementById('f-job-sent').value)||0;
+  if(!worker||!item){toast('Worker and Item are required','error');return;}
+  const data={
+    job_date:document.getElementById('f-job-date').value,
+    order_id:document.getElementById('f-job-orderid').value.trim(),
+    worker_name:worker, item_code:item, sent_qty:sent,
+    received_qty:parseFloat(document.getElementById('f-job-received').value)||0,
+    wastage_mtr:parseFloat(document.getElementById('f-job-wastage').value)||0,
+    status:document.getElementById('f-job-status').value,
+    rate_per_mtr:parseFloat(document.getElementById('f-job-rate').value)||0.25,
+    total_payment:parseFloat(document.getElementById('f-job-payment').value)||0,
+    remarks:document.getElementById('f-job-remarks').value.trim(),
+  };
+  try {
+    const r=editingId?await api(`jobwork/${editingId}`,'PUT',data):await api('jobwork','POST',data);
+    toast(r.message||'Saved!','success'); closeModal('jobModal'); refreshAll();
+  } catch(e){toast(e.message,'error');}
+}
+
+async function deleteJob(id) {
+  if(!confirm('Delete this job work entry?')) return;
+  try{await api(`jobwork/${id}`,'DELETE');toast('Deleted','warning');refreshAll();}catch(e){toast(e.message,'error');}
+}
+
+// ─────────────────────────── DISPATCH ───────────────────────────
+function renderDispatch(c) {
+  c.innerHTML=`
+  <div class="table-card">
+    <div class="table-header">
+      <h3><i class="fas fa-truck"></i> Dispatch Log</h3>
+      <div class="filter-bar">
+        <input type="text" id="dispSearch" placeholder="Search order / client / challan..." style="width:200px" oninput="filterDispatch()">
+        <select id="dispDateF" onchange="filterDispatch()">
+          <option value="all">All Dispatches</option><option value="today">Today</option><option value="month">This Month</option>
+        </select>
+        <button class="btn btn-gold btn-sm" onclick="openModal('dispatchModal')"><i class="fas fa-plus"></i> Log Dispatch</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportTable('dispatch')"><i class="fas fa-download"></i> Export</button>
+      </div>
+    </div>
+    <div class="stat-row" id="dispTotals" style="border-bottom:1px solid var(--border)"></div>
+    <div class="table-overflow">
+      <table><thead><tr>
+        <th>Dispatch ID</th><th>Order ID</th><th>Date</th><th>Client</th><th>Item</th>
+        <th style="text-align:right">Qty (Mtr)</th><th>Challan No.</th><th>Vehicle</th><th>Driver</th>
+        <th class="no-print">Actions</th>
+      </tr></thead>
+      <tbody id="dispBody"></tbody></table>
+    </div>
+    <div style="padding:10px 16px;border-top:1px solid var(--border)"><div class="pagination" id="dispPag"></div></div>
+  </div>`;
+  filterDispatch();
+}
+
+let _filteredDisp=[];
+function filterDispatch() {
+  const q=(document.getElementById('dispSearch')||{}).value||'';
+  const df=(document.getElementById('dispDateF')||{}).value||'all';
+  const t=today(); const m=t.substring(0,7);
+  _filteredDisp=(allData.dispatch||[]).filter(d=>{
+    const mQ=!q||(d.dispatch_id+d.order_id+d.client_name+(d.challan_no||'')).toLowerCase().includes(q.toLowerCase());
+    const mD=df==='all'||(df==='today'&&d.dispatch_date===t)||(df==='month'&&(d.dispatch_date||'').startsWith(m));
+    return mQ&&mD;
+  });
+  renderDispPage(1);
+}
+
+function renderDispPage(page) {
+  const ps=25, total=_filteredDisp.length, pages=Math.ceil(total/ps)||1;
+  const cur=Math.min(Math.max(1,page),pages);
+  const slice=_filteredDisp.slice((cur-1)*ps,cur*ps);
+  const tbody=document.getElementById('dispBody'); if(!tbody) return;
+  const totalVol=_filteredDisp.reduce((s,d)=>s+(d.dispatched_qty||0),0);
+  const totEl=document.getElementById('dispTotals');
+  if(totEl) totEl.innerHTML=`<span>Showing <b>${total}</b> dispatches</span><span>Total Volume: <b style="color:var(--accent)">${totalVol.toLocaleString()} Mtr</b></span>`;
+  if(!slice.length){tbody.innerHTML=`<tr><td colspan="10" class="empty-state"><i class="fas fa-shipping-fast"></i><br>No dispatches found</td></tr>`;return;}
+  tbody.innerHTML=slice.map(d=>`<tr>
+    <td class="mono" style="font-weight:700">${d.dispatch_id}</td>
+    <td class="mono">${d.order_id}</td>
+    <td style="font-weight:600;color:var(--success)">${d.dispatch_date||''}</td>
+    <td style="font-weight:600">${d.client_name}</td>
+    <td class="mono">${d.item_code}</td>
+    <td style="text-align:right;font-weight:700">${(d.dispatched_qty||0).toLocaleString()}</td>
+    <td class="mono" style="color:var(--text-muted)">${d.challan_no||'—'}</td>
+    <td class="mono" style="color:var(--text-muted)">${d.vehicle_no||'—'}</td>
+    <td>${d.driver_name||'—'}</td>
+    <td class="no-print">
+      <div class="row-actions">
+        <button class="btn btn-ghost btn-xs" onclick="printChallan('${d.dispatch_id}')" title="Print Challan"><i class="fas fa-print"></i></button>
+        <button class="btn btn-danger btn-xs" onclick="deleteDisp('${d.dispatch_id}')"><i class="fas fa-trash"></i></button>
+      </div>
+    </td>
+  </tr>`).join('');
+  renderPagination('dispPag',cur,pages,p=>renderDispPage(p));
+}
+
+function autofillDispatch() {
+  const oid=document.getElementById('f-disp-orderid').value.trim();
+  const order=allData.orders.find(o=>o.order_id===oid); if(!order) return;
+  document.getElementById('f-disp-client').value=order.client_name||'';
+  document.getElementById('f-disp-item').value=order.item_code||'';
+  document.getElementById('f-disp-qty').value=order.ordered_qty||'';
+}
+
+async function submitDispatch() {
+  const oid=document.getElementById('f-disp-orderid').value.trim();
+  const client=document.getElementById('f-disp-client').value.trim();
+  const qty=parseFloat(document.getElementById('f-disp-qty').value);
+  if(!oid||!client||!qty){toast('Fill required fields','error');return;}
+  const data={
+    order_id:oid, client_name:client,
+    item_code:document.getElementById('f-disp-item').value.trim(),
+    dispatched_qty:qty,
+    dispatch_date:document.getElementById('f-disp-date').value,
+    challan_no:document.getElementById('f-disp-challan').value.trim(),
+    vehicle_no:document.getElementById('f-disp-vehicle').value.trim(),
+    driver_name:document.getElementById('f-disp-driver').value.trim(),
+    remarks:document.getElementById('f-disp-remarks').value.trim(),
+    mark_completed:document.getElementById('f-disp-complete').checked,
+  };
+  try{const r=await api('dispatch','POST',data);toast(r.message,'success');closeModal('dispatchModal');refreshAll();}catch(e){toast(e.message,'error');}
+}
+
+async function deleteDisp(id) {
+  if(!confirm('Delete this dispatch record?')) return;
+  try{await api(`dispatch/${id}`,'DELETE');toast('Deleted','warning');refreshAll();}catch(e){toast(e.message,'error');}
+}
+
+function printChallan(dispId) {
+  const d=allData.dispatch.find(x=>x.dispatch_id===dispId); if(!d) return;
+  const order=allData.orders.find(o=>o.order_id===d.order_id)||{};
+  const settings=allData.settings;
+  document.getElementById('challanBody').innerHTML=`
+  <div style="padding:20px;font-family:Arial,sans-serif;font-size:12px">
+    <div style="text-align:center;border-bottom:2px solid #333;padding-bottom:12px;margin-bottom:16px">
+      <h2 style="margin:0;font-size:18px">${settings.company_name||'Jai Roop Textiles'}</h2>
+      <p style="margin:4px 0;color:#555">${settings.company_address||''}</p>
+      <p style="margin:4px 0;color:#555">Tel: ${settings.company_phone||''} | GSTIN: ${settings.company_gstin||''}</p>
+      <h3 style="margin:12px 0 0;font-size:16px;letter-spacing:0.1em">DELIVERY CHALLAN</h3>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div><b>Challan No.:</b> ${d.challan_no||'—'}</div><div><b>Date:</b> ${d.dispatch_date||''}</div>
+      <div><b>Dispatch ID:</b> ${d.dispatch_id}</div><div><b>Order ID:</b> ${d.order_id}</div>
+    </div>
+    <div style="margin-bottom:16px;padding:10px;border:1px solid #ddd;border-radius:6px">
+      <b>To:</b> ${d.client_name}<br>
+      ${order.delivery_date?`<small>Expected Delivery: ${order.delivery_date}</small>`:''}
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+      <thead><tr style="background:#f5f5f5">
+        <th style="border:1px solid #ddd;padding:8px">Item Code</th>
+        <th style="border:1px solid #ddd;padding:8px;text-align:right">Qty</th>
+        <th style="border:1px solid #ddd;padding:8px">Unit</th>
+        <th style="border:1px solid #ddd;padding:8px">Remarks</th>
+      </tr></thead>
+      <tbody><tr>
+        <td style="border:1px solid #ddd;padding:8px"><b>${d.item_code}</b></td>
+        <td style="border:1px solid #ddd;padding:8px;text-align:right"><b>${d.dispatched_qty}</b></td>
+        <td style="border:1px solid #ddd;padding:8px">Mtr</td>
+        <td style="border:1px solid #ddd;padding:8px">${d.remarks||''}</td>
+      </tr></tbody>
+    </table>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div><b>Vehicle No.:</b> ${d.vehicle_no||'—'}</div><div><b>Driver:</b> ${d.driver_name||'—'}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;margin-top:40px;gap:40px">
+      <div style="text-align:center;border-top:1px solid #333;padding-top:6px">Received By (Client)</div>
+      <div style="text-align:center;border-top:1px solid #333;padding-top:6px">Authorised Signatory</div>
+    </div>
+  </div>`;
+  openModal('challanModal');
+}
+
+// ─────────────────────────── CLIENTS ───────────────────────────
+function renderClients(c) {
+  c.innerHTML=`
+  <div style="display:grid;grid-template-columns:300px 1fr;gap:16px">
+    <div class="table-card">
+      <div class="table-header"><h3><i class="fas fa-users"></i> Clients</h3>
+        <button class="btn btn-gold btn-sm" onclick="openEntityModal('client')"><i class="fas fa-plus"></i> Add</button>
+      </div>
+      <div id="clientListBody"></div>
+    </div>
+    <div id="clientDetail" style="display:none"></div>
+    <div id="clientPlaceholder" style="display:flex;align-items:center;justify-content:center;height:300px">
+      <div class="empty-state"><i class="fas fa-users"></i><br>Select a client to view portfolio</div>
+    </div>
+  </div>`;
+  renderClientList();
+}
+
+function renderClientList() {
+  const body=document.getElementById('clientListBody'); if(!body) return;
+  body.innerHTML=allData.clients.map(c=>`
+    <div style="padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s" onclick="showClientDetail('${c.client_name}')" onmouseenter="this.style.background='rgba(201,168,76,.05)'" onmouseleave="this.style.background=''">
+      <div style="font-weight:700;font-size:13px">${c.client_name}</div>
+      <div style="font-size:11px;color:var(--text-muted)">${c.city||''} ${c.phone?'· '+c.phone:''}</div>
+      <div style="font-size:10px;color:var(--accent);margin-top:3px">${c.order_count||0} orders · ${(c.total_ordered||0).toLocaleString()} Mtr</div>
+    </div>`).join('') || `<div class="empty-state"><i class="fas fa-users"></i><br>No clients</div>`;
+}
+
+function showClientDetail(name) {
+  const client=allData.clients.find(c=>c.client_name===name); if(!client) return;
+  const orders=allData.orders.filter(o=>o.client_name===name);
+  const dispatches=allData.dispatch.filter(d=>d.client_name===name);
+  const totalOrdered=orders.reduce((s,o)=>s+(o.ordered_qty||0),0);
+  const totalDispatched=dispatches.reduce((s,d)=>s+(d.dispatched_qty||0),0);
+  document.getElementById('clientPlaceholder').style.display='none';
+  const detail=document.getElementById('clientDetail');
+  detail.style.display='block';
+  detail.innerHTML=`
+  <div class="table-card">
+    <div class="table-header" style="background:linear-gradient(135deg,var(--sidebar),#1a2e47)">
+      <div style="color:white">
+        <div style="font-size:15px;font-weight:800">${client.client_name}</div>
+        <div style="font-size:11px;opacity:.7;margin-top:2px">${client.city||''} ${client.email?'· '+client.email:''}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-gold btn-sm" onclick="editEntityModal('client',${client.id})"><i class="fas fa-edit"></i> Edit</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px;border-bottom:1px solid var(--border)">
+      <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:var(--accent)">${orders.length}</div><div style="font-size:10px;color:var(--text-muted)">Total Orders</div></div>
+      <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:var(--success)">${totalOrdered.toLocaleString()}</div><div style="font-size:10px;color:var(--text-muted)">Mtr Ordered</div></div>
+      <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:var(--info)">${totalDispatched.toLocaleString()}</div><div style="font-size:10px;color:var(--text-muted)">Mtr Dispatched</div></div>
+    </div>
+    <div class="table-overflow">
+      <table><thead><tr><th>Order ID</th><th>Date</th><th>Item</th><th style="text-align:right">Qty</th><th>Priority</th><th>Status</th></tr></thead>
+      <tbody>${orders.map(o=>`<tr style="cursor:pointer" onclick="openLifecycle('${o.order_id}')">
+        <td class="mono" style="font-weight:700">${o.order_id}</td>
+        <td class="mono" style="color:var(--text-muted)">${o.order_date||''}</td>
+        <td class="mono">${o.item_code}</td>
+        <td style="text-align:right;font-weight:700">${(o.ordered_qty||0).toLocaleString()}</td>
+        <td><span class="badge badge-${(o.priority||'normal').toLowerCase()}">${o.priority}</span></td>
+        <td><span class="badge badge-${(o.status||'').toLowerCase().replace(' ','-')}">${o.status}</span></td>
+      </tr>`).join('') || '<tr><td colspan="6" class="empty-state">No orders</td></tr>'}</tbody></table>
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────── WORKERS ───────────────────────────
+function renderWorkers(c) {
+  c.innerHTML=`
+  <div class="table-card">
+    <div class="table-header">
+      <h3><i class="fas fa-hard-hat"></i> Workers</h3>
+      <button class="btn btn-gold btn-sm" onclick="openEntityModal('worker')"><i class="fas fa-plus"></i> Add Worker</button>
+    </div>
+    <div class="table-overflow">
+      <table><thead><tr>
+        <th>#</th><th>Worker Name</th><th>Specialty</th><th>Phone</th>
+        <th style="text-align:right">Jobs</th><th style="text-align:right">Sent (Mtr)</th>
+        <th style="text-align:right">Received</th><th style="text-align:right">Wastage</th>
+        <th style="text-align:right">Total Payment</th><th class="no-print">Actions</th>
+      </tr></thead>
+      <tbody>${allData.workers.map((w,i)=>`<tr>
+        <td style="color:var(--text-muted)">${i+1}</td>
+        <td style="font-weight:700">${w.worker_name}</td>
+        <td>${w.specialty||'—'}</td>
+        <td class="mono">${w.phone||'—'}</td>
+        <td style="text-align:right;font-weight:700">${w.job_count||0}</td>
+        <td style="text-align:right" class="mono">${(w.total_sent||0).toLocaleString()}</td>
+        <td style="text-align:right" class="mono">${(w.total_received||0).toLocaleString()}</td>
+        <td style="text-align:right;color:var(--warning)" class="mono">${(w.total_wastage||0).toFixed(2)}</td>
+        <td style="text-align:right;font-weight:700;color:var(--success)">₹${(w.total_payment||0).toLocaleString()}</td>
+        <td class="no-print">
+          <div class="row-actions">
+            <button class="btn btn-ghost btn-xs" onclick="editEntityModal('worker',${w.id})"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-danger btn-xs" onclick="deleteEntity('worker',${w.id})"><i class="fas fa-trash"></i></button>
+          </div>
+        </td>
+      </tr>`).join('') || '<tr><td colspan="10" class="empty-state"><i class="fas fa-hard-hat"></i><br>No workers registered</td></tr>'}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────── REPORTS ───────────────────────────
+function renderReports(c) {
+  c.innerHTML=`
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+    ${[
+      ['fas fa-boxes','Stock Summary','Complete inventory snapshot with closing balances','stock-summary','blue'],
+      ['fas fa-clipboard-list','Order Summary','All orders with status & values','order-summary','amber'],
+      ['fas fa-truck','Dispatch Summary','All dispatches with challans','dispatch-summary','green'],
+      ['fas fa-hard-hat','Worker Payments','Payment summary per worker','worker-payments','purple'],
+      ['fas fa-exclamation-triangle','Reorder List','Items needing restock','reorder-list','red'],
+    ].map(([icon,title,desc,type,color])=>`
+    <div class="kpi-card ${color}" style="cursor:default">
+      <div class="kpi-label">${title}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${desc}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="previewReport('${type}')"><i class="fas fa-eye"></i> Preview</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadReport('${type}')"><i class="fas fa-download"></i> CSV</button>
+      </div>
+      <i class="${icon} kpi-icon"></i>
+    </div>`).join('')}
+    <div class="kpi-card gold" style="cursor:default">
+      <div class="kpi-label">Client Statement</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Order history for a specific client</div>
+      <select id="reportClientSel" style="width:100%;margin-bottom:10px">
+        ${allData.clients.map(c=>`<option>${c.client_name}</option>`).join('')}
+      </select>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="previewClientReport()"><i class="fas fa-eye"></i> Preview</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadClientReport()"><i class="fas fa-download"></i> CSV</button>
+      </div>
+      <i class="fas fa-user-tie kpi-icon"></i>
+    </div>
+  </div>
+  <div id="reportPreview" style="margin-top:20px"></div>`;
+}
+
+async function previewReport(type) {
+  try {
+    const data=await api(`reports/${type}`);
+    renderReportPreview(data, type);
+  } catch(e){toast(e.message,'error');}
+}
+
+async function previewClientReport() {
+  const client=document.getElementById('reportClientSel').value;
+  if(!client) return;
+  try {
+    const data=await api(`reports/client-statement/${encodeURIComponent(client)}`);
+    renderReportPreview(data.orders||[], 'client-'+client);
+  } catch(e){toast(e.message,'error');}
+}
+
+function renderReportPreview(data, type) {
+  const container=document.getElementById('reportPreview');
+  if(!data||!data.length){container.innerHTML=`<div class="empty-state"><i class="fas fa-file"></i><br>No data available</div>`;return;}
+  const keys=Object.keys(data[0]);
+  container.innerHTML=`
+  <div class="table-card">
+    <div class="table-header"><h3><i class="fas fa-table"></i> ${type.replace(/-/g,' ').toUpperCase()} — ${data.length} records</h3></div>
+    <div class="table-overflow">
+      <table><thead><tr>${keys.map(k=>`<th>${k}</th>`).join('')}</tr></thead>
+      <tbody>${data.slice(0,50).map(row=>`<tr>${keys.map(k=>`<td>${row[k]||'—'}</td>`).join('')}</tr>`).join('')}</tbody></table>
+    </div>
+    ${data.length>50?`<div style="padding:10px 16px;color:var(--text-muted);font-size:11px">Showing first 50 of ${data.length} rows. Download CSV for full data.</div>`:''}
+  </div>`;
+}
+
+async function downloadReport(type) {
+  window.location.href = `/api/reports/${type}?fmt=csv`;
+  toast('Downloading report...', 'success');
+}
+
+async function downloadClientReport() {
+  const client=document.getElementById('reportClientSel').value;
+  window.location.href=`/api/reports/client-statement/${encodeURIComponent(client)}?fmt=csv`;
+  toast('Downloading...','success');
+}
+
+// ─────────────────────────── ALERTS ───────────────────────────
+function renderAlerts(c) {
+  fetch(API+'/api/alerts').then(r=>r.json()).then(alerts=>{
+    const crit=alerts.filter(a=>a.type==='critical');
+    const warn=alerts.filter(a=>a.type==='warning');
+    c.innerHTML=`
+    <div style="display:flex;gap:12px;margin-bottom:16px">
+      <div class="kpi-card red" style="flex:1"><div class="kpi-label">Critical (Reorder)</div><div class="kpi-value">${crit.length}</div><div class="kpi-sub">Items at 0 or below threshold</div><i class="fas fa-exclamation-circle kpi-icon"></i></div>
+      <div class="kpi-card amber" style="flex:1"><div class="kpi-label">Warnings</div><div class="kpi-value">${warn.length}</div><div class="kpi-sub">Over 80% stock allocated</div><i class="fas fa-exclamation-triangle kpi-icon"></i></div>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3><i class="fas fa-bell"></i> Active Alerts (${alerts.length})</h3>
+        <button class="btn btn-ghost btn-sm" onclick="renderAlerts(document.getElementById('content'))"><i class="fas fa-sync"></i> Refresh</button>
+      </div>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+        ${alerts.length ? alerts.map(a=>`
+        <div style="background:${a.type==='critical'?'#fee2e2':'#fef3c7'};border:1px solid ${a.type==='critical'?'#dc2626':'#d97706'};border-radius:10px;padding:14px;display:flex;gap:14px;align-items:flex-start">
+          <i class="fas ${a.type==='critical'?'fa-exclamation-circle':'fa-exclamation-triangle'}" style="color:${a.type==='critical'?'#dc2626':'#d97706'};font-size:18px;flex-shrink:0;margin-top:2px"></i>
+          <div style="flex-grow:1">
+            <div style="font-weight:700;font-size:13px">${a.item_code} — <span style="font-weight:400">${a.item_name||''}</span></div>
+            <div style="font-size:12px;color:#374151;margin-top:4px">${a.message}</div>
+            <div style="font-size:11px;color:#6b7280;margin-top:6px">
+              Closing Balance: <b>${(a.closing_balance||0).toLocaleString()} Mtr</b> &nbsp;|&nbsp;
+              Allocated: <b>${(a.allocated||0).toLocaleString()} Mtr</b> &nbsp;|&nbsp;
+              Reorder Level: <b>${a.reorder_level||0}</b>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-xs" onclick="openModal('poModal');document.getElementById('f-po-item').value='${a.item_code}'" style="flex-shrink:0"><i class="fas fa-cart-plus"></i> Create PO</button>
+        </div>`).join('') : `<div class="empty-state"><i class="fas fa-check-circle" style="color:var(--success)"></i><br><b style="color:var(--success)">All clear!</b><br>No stock alerts at this time</div>`}
+      </div>
+    </div>`;
+  });
+}
+
+// ─────────────────────────── SETTINGS ───────────────────────────
+function renderSettings(c) {
+  const s=allData.settings;
+  c.innerHTML=`
+  <div style="max-width:640px">
+    <div class="table-card" style="margin-bottom:16px">
+      <div class="table-header"><h3><i class="fas fa-building"></i> Company Profile</h3></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group full"><label>Company Name</label><input type="text" id="s-company-name" value="${s.company_name||''}"></div>
+          <div class="form-group full"><label>Address</label><input type="text" id="s-company-address" value="${s.company_address||''}"></div>
+          <div class="form-group"><label>Phone</label><input type="tel" id="s-company-phone" value="${s.company_phone||''}"></div>
+          <div class="form-group"><label>GSTIN</label><input type="text" id="s-company-gstin" value="${s.company_gstin||''}"></div>
+        </div>
+      </div>
+    </div>
+    <div class="table-card" style="margin-bottom:16px">
+      <div class="table-header"><h3><i class="fas fa-sliders-h"></i> Business Rules</h3></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group"><label>Wastage Threshold (%)</label><input type="number" id="s-wastage" value="${s.wastage_threshold||4}" step="0.1" min="0"></div>
+          <div class="form-group"><label>Default Payment Rate (₹/Mtr)</label><input type="number" id="s-payrate" value="${s.default_payment_rate||0.25}" step="0.01" min="0"></div>
+          <div class="form-group"><label>Currency</label><select id="s-currency"><option value="INR" ${s.currency==='INR'?'selected':''}>INR (₹)</option><option value="USD" ${s.currency==='USD'?'selected':''}>USD ($)</option></select></div>
+          <div class="form-group"><label>Financial Year Start Month</label><select id="s-fy">
+            ${['01-Jan','02-Feb','03-Mar','04-Apr','07-Jul','10-Oct'].map(m=>`<option value="${m.split('-')[0]}" ${s.financial_year_start===m.split('-')[0]?'selected':''}>${m.split('-')[1]}</option>`).join('')}
+          </select></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="refreshAll()"><i class="fas fa-times"></i> Cancel</button>
+      <button class="btn btn-gold" onclick="saveSettings()"><i class="fas fa-save"></i> Save Settings</button>
+    </div>
+  </div>`;
+}
+
+async function saveSettings() {
+  const settings={
+    company_name: document.getElementById('s-company-name').value,
+    company_address: document.getElementById('s-company-address').value,
+    company_phone: document.getElementById('s-company-phone').value,
+    company_gstin: document.getElementById('s-company-gstin').value,
+    wastage_threshold: document.getElementById('s-wastage').value,
+    default_payment_rate: document.getElementById('s-payrate').value,
+    currency: document.getElementById('s-currency').value,
+    financial_year_start: document.getElementById('s-fy').value,
+  };
+  try {
+    await api('settings','PUT',{settings});
+    toast('Settings saved successfully!','success');
+    refreshAll();
+  } catch(e){toast(e.message,'error');}
+}
+
+// ─────────────────────────── ENTITY MODAL (Client/Supplier/Worker) ───────────────────────────
+function openEntityModal(type) {
+  currentEntityType=type; currentEntityId=null;
+  const titles={client:'Add Client', supplier:'Add Supplier', worker:'Add Worker'};
+  document.getElementById('entityModalTitle').innerHTML=`<i class="fas fa-plus-circle"></i> ${titles[type]}`;
+  document.getElementById('entityModalBody').innerHTML=entityForm(type,null);
+  openModal('entityModal');
+}
+
+function editEntityModal(type, id) {
+  currentEntityType=type; currentEntityId=id;
+  let entity;
+  if(type==='client') entity=allData.clients.find(c=>c.id===id);
+  else if(type==='supplier') entity=allData.suppliers.find(s=>s.id===id);
+  else entity=allData.workers.find(w=>w.id===id);
+  const titles={client:'Edit Client', supplier:'Edit Supplier', worker:'Edit Worker'};
+  document.getElementById('entityModalTitle').innerHTML=`<i class="fas fa-edit"></i> ${titles[type]}`;
+  document.getElementById('entityModalBody').innerHTML=entityForm(type,entity);
+  openModal('entityModal');
+}
+
+function entityForm(type, data) {
+  data=data||{};
+  if(type==='client') return `
+    <div class="form-grid">
+      <div class="form-group full"><label class="required">Client Name</label><input type="text" id="ef-name" value="${data.client_name||''}"></div>
+      <div class="form-group"><label>Contact Person</label><input type="text" id="ef-contact" value="${data.contact_person||''}"></div>
+      <div class="form-group"><label>Phone</label><input type="tel" id="ef-phone" value="${data.phone||''}"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="ef-email" value="${data.email||''}"></div>
+      <div class="form-group"><label>City</label><input type="text" id="ef-city" value="${data.city||''}"></div>
+      <div class="form-group"><label>Payment Terms (days)</label><input type="number" id="ef-terms" value="${data.payment_terms||30}"></div>
+      <div class="form-group full"><label>Address</label><textarea id="ef-address" rows="2">${data.address||''}</textarea></div>
+      <div class="form-group full"><label>Notes</label><input type="text" id="ef-notes" value="${data.notes||''}"></div>
+    </div>`;
+  if(type==='supplier') return `
+    <div class="form-grid">
+      <div class="form-group full"><label class="required">Supplier Name</label><input type="text" id="ef-name" value="${data.supplier_name||''}"></div>
+      <div class="form-group"><label>Contact Person</label><input type="text" id="ef-contact" value="${data.contact_person||''}"></div>
+      <div class="form-group"><label>Phone</label><input type="tel" id="ef-phone" value="${data.phone||''}"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="ef-email" value="${data.email||''}"></div>
+      <div class="form-group"><label>City</label><input type="text" id="ef-city" value="${data.city||''}"></div>
+      <div class="form-group"><label>GSTIN</label><input type="text" id="ef-gstin" value="${data.gstin||''}"></div>
+      <div class="form-group"><label>Payment Terms (days)</label><input type="number" id="ef-terms" value="${data.payment_terms||30}"></div>
+      <div class="form-group full"><label>Notes</label><input type="text" id="ef-notes" value="${data.notes||''}"></div>
+    </div>`;
+  return `
+    <div class="form-grid">
+      <div class="form-group full"><label class="required">Worker Name</label><input type="text" id="ef-name" value="${data.worker_name||''}"></div>
+      <div class="form-group"><label>Phone</label><input type="tel" id="ef-phone" value="${data.phone||''}"></div>
+      <div class="form-group"><label>Specialty</label><input type="text" id="ef-specialty" value="${data.specialty||''}" placeholder="e.g. Ribbon Weaving"></div>
+      <div class="form-group"><label>Rate / Mtr (₹)</label><input type="number" id="ef-rate" value="${data.rate_per_mtr||0.25}" step="0.01"></div>
+      <div class="form-group full"><label>Address</label><input type="text" id="ef-address" value="${data.address||''}"></div>
+      <div class="form-group full"><label>Notes</label><input type="text" id="ef-notes" value="${data.notes||''}"></div>
+    </div>`;
+}
+
+async function submitEntity() {
+  const name = document.getElementById('ef-name').value.trim();
+  if(!name){toast('Name is required','error');return;}
+  let data={}, endpoint, method='POST';
+  if(currentEntityType==='client'){
+    data={client_name:name, contact_person:(document.getElementById('ef-contact')||{}).value||'',
+      phone:(document.getElementById('ef-phone')||{}).value||'', email:(document.getElementById('ef-email')||{}).value||'',
+      city:(document.getElementById('ef-city')||{}).value||'', address:(document.getElementById('ef-address')||{}).value||'',
+      payment_terms:parseInt((document.getElementById('ef-terms')||{}).value)||30, notes:(document.getElementById('ef-notes')||{}).value||''};
+    endpoint=currentEntityId?`clients/${currentEntityId}`:'clients';
+    if(currentEntityId) method='PUT';
+  } else if(currentEntityType==='supplier'){
+    data={supplier_name:name, contact_person:(document.getElementById('ef-contact')||{}).value||'',
+      phone:(document.getElementById('ef-phone')||{}).value||'', email:(document.getElementById('ef-email')||{}).value||'',
+      city:(document.getElementById('ef-city')||{}).value||'', gstin:(document.getElementById('ef-gstin')||{}).value||'',
+      payment_terms:parseInt((document.getElementById('ef-terms')||{}).value)||30, notes:(document.getElementById('ef-notes')||{}).value||''};
+    endpoint=currentEntityId?`suppliers/${currentEntityId}`:'suppliers';
+    if(currentEntityId) method='PUT';
+  } else {
+    data={worker_name:name, phone:(document.getElementById('ef-phone')||{}).value||'',
+      address:(document.getElementById('ef-address')||{}).value||'', specialty:(document.getElementById('ef-specialty')||{}).value||'',
+      rate_per_mtr:parseFloat((document.getElementById('ef-rate')||{}).value)||0.25, notes:(document.getElementById('ef-notes')||{}).value||''};
+    endpoint=currentEntityId?`workers/${currentEntityId}`:'workers';
+    if(currentEntityId) method='PUT';
+  }
+  try{
+    const r=await api(endpoint,method,data);
+    toast(r.message||'Saved!','success'); closeModal('entityModal'); refreshAll();
+  } catch(e){toast(e.message,'error');}
+}
+
+async function deleteEntity(type, id) {
+  if(!confirm(`Delete this ${type}?`)) return;
+  try{await api(`${type}s/${id}`,'DELETE');toast('Deleted','warning');refreshAll();}catch(e){toast(e.message,'error');}
+}
+
+// ─────────────────────────── EXPORT ───────────────────────────
+function exportTable(type) {
+  const endpoints={inventory:'reports/stock-summary',orders:'reports/order-summary',dispatch:'reports/dispatch-summary',jobwork:'reports/worker-payments',po:'reports/order-summary'};
+  window.location.href=`/api/${endpoints[type]||type}?fmt=csv`;
+  toast('Downloading CSV...','success');
+}
+
+// ─────────────────────────── GLOBAL SEARCH ───────────────────────────
+function openSearch() { document.getElementById('searchOverlay').classList.add('open'); document.getElementById('searchInput').focus(); }
+function closeSearch() { document.getElementById('searchOverlay').classList.remove('open'); document.getElementById('searchInput').value=''; document.getElementById('searchResults').innerHTML=''; }
+
+function doSearch(q) {
+  const container=document.getElementById('searchResults');
+  if(!q||q.length<2){container.innerHTML='';return;}
+  const ql=q.toLowerCase();
+  const results=[];
+  (allData.inventory||[]).forEach(i=>{if((i.item_code+i.item_name).toLowerCase().includes(ql)) results.push({icon:'fa-box',label:i.item_code+' — '+i.item_name,tag:'Inventory',action:()=>{switchTab('inventory');closeSearch();}});});
+  (allData.orders||[]).forEach(o=>{if((o.order_id+o.client_name+o.item_code).toLowerCase().includes(ql)) results.push({icon:'fa-file-alt',label:o.order_id+' — '+o.client_name,tag:'Order',action:()=>{switchTab('orderbook');closeSearch();}});});
+  (allData.clients||[]).forEach(c=>{if(c.client_name.toLowerCase().includes(ql)) results.push({icon:'fa-user',label:c.client_name,tag:'Client',action:()=>{switchTab('clients');showClientDetail(c.client_name);closeSearch();}});});
+  (allData.workers||[]).forEach(w=>{if(w.worker_name.toLowerCase().includes(ql)) results.push({icon:'fa-hard-hat',label:w.worker_name,tag:'Worker',action:()=>{switchTab('workers');closeSearch();}});});
+  if(!results.length){container.innerHTML=`<div class="empty-state" style="padding:20px"><i class="fas fa-search"></i><br>No results for "${q}"</div>`;return;}
+  container.innerHTML=results.slice(0,8).map((r,i)=>`
+    <div class="search-result-item" id="sr-${i}" onclick="(${r.action})()" onmouseenter="this.style.background='rgba(201,168,76,.06)'" onmouseleave="this.style.background=''">
+      <i class="fas ${r.icon}"></i>
+      <span style="flex-grow:1;font-size:13px">${r.label}</span>
+      <span class="search-tag">${r.tag}</span>
+    </div>`).join('');
+}
+
+// ─────────────────────────── MODAL HELPERS ───────────────────────────
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+
+// Close modals on backdrop click
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
+  if(e.target===document.getElementById('searchOverlay')) closeSearch();
+});
+
+function handleKeyDown(e) {
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();openSearch();}
+  if(e.key==='Escape'){
+    document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
+    closeSearch();
+  }
+}
+
+// ─────────────────────────── TOAST ───────────────────────────
+function toast(message, type='success') {
+  const icons={success:'fa-check-circle',error:'fa-times-circle',warning:'fa-exclamation-circle'};
+  const colors={success:'var(--success)',error:'var(--danger)',warning:'var(--warning)'};
+  const container=document.getElementById('toast-container');
+  const el=document.createElement('div');
+  el.className='toast '+type;
+  el.innerHTML=`<i class="fas ${icons[type]||'fa-info-circle'}" style="color:${colors[type]}"></i><span>${message}</span>`;
+  container.appendChild(el);
+  setTimeout(()=>el.style.animation='slideIn .3s ease reverse',3500);
+  setTimeout(()=>el.remove(),4000);
+}
+
+// ─────────────────────────── FILTER SUPPLIERS ───────────────────────────
+// Note: filterSuppliers defined earlier in the supplier section.
+// This ensures it's defined for the search callback as well.
+</script>
+</body>
+</html>
