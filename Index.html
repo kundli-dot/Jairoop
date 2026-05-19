@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jai Roop Textiles IMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f5f8;
+      --panel: #ffffff;
+      --sidebar: #0d1b2a;
+      --sidebar-soft: #14263b;
+      --gold: #c9a84c;
+      --gold-soft: #f8edc8;
+      --text: #172033;
+      --muted: #687386;
+      --border: #e2e8f0;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --success: #059669;
+      --info: #2563eb;
+      --violet: #7c3aed;
+      --radius: 14px;
+      --shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+      --font: "DM Sans", Arial, sans-serif;
+      --mono: "DM Mono", monospace;
+    }
+
+    .dark {
+      --bg: #0a0f1a;
+      --panel: #111827;
+      --sidebar: #060b14;
+      --sidebar-soft: #0f1c30;
+      --text: #f8fafc;
+      --muted: #9aa7ba;
+      --border: #213044;
+      --shadow: 0 10px 34px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+    }
+    aside {
+      width: 260px;
+      flex: 0 0 260px;
+      background: var(--sidebar);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .brand {
+      padding: 22px 18px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .brand-badge {
+      background: #fff;
+      color: #172033;
+      border-radius: 12px;
+      padding: 16px 12px;
+      text-align: center;
+      font-weight: 800;
+      letter-spacing: .12em;
+      line-height: 1.3;
+    }
+    .brand small {
+      display: block;
+      margin-top: 10px;
+      color: var(--gold);
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-size: 10px;
+      text-align: center;
+    }
+    nav {
+      flex: 1;
+      padding: 12px 10px;
+      overflow-y: auto;
+    }
+    .nav-section {
+      padding: 16px 12px 7px;
+      color: rgba(255,255,255,0.34);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .nav-item {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: rgba(255,255,255,0.68);
+      display: flex;
+      gap: 11px;
+      align-items: center;
+      padding: 11px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 700;
+      text-align: left;
+    }
+    .nav-item:hover { background: var(--sidebar-soft); color: #fff; }
+    .nav-item.active {
+      color: #fff;
+      background: linear-gradient(135deg, rgba(201,168,76,.28), rgba(201,168,76,.08));
+      box-shadow: inset 3px 0 0 var(--gold);
+    }
+    .nav-item i { width: 17px; color: var(--gold); text-align: center; }
+    .sidebar-foot {
+      padding: 14px 18px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.48);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      height: 68px;
+      padding: 0 24px;
+      flex: 0 0 68px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow);
+      z-index: 2;
+    }
+    header h1 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
+    header p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    #content {
+      padding: 24px;
+      overflow-y: auto;
+      height: calc(100vh - 68px);
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--sidebar); color: #fff; }
+    .btn-gold { background: var(--gold); color: #172033; }
+    .btn-ghost { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 6px 10px; font-size: 11px; border-radius: 8px; }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(145px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .kpi-card {
+      position: relative;
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      min-height: 112px;
+    }
+    .kpi-card:before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 4px;
+      background: var(--gold);
+    }
+    .kpi-card.red:before { background: var(--danger); }
+    .kpi-card.blue:before { background: var(--info); }
+    .kpi-card.green:before { background: var(--success); }
+    .kpi-card.amber:before { background: var(--warning); }
+    .kpi-label {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+      margin-bottom: 9px;
+    }
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -.04em;
+      line-height: 1;
+    }
+    .kpi-sub { margin-top: 8px; color: var(--muted); font-size: 11px; }
+    .kpi-icon {
+      position: absolute;
+      right: 14px;
+      top: 16px;
+      color: var(--text);
+      opacity: .09;
+      font-size: 26px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-pad { padding: 18px; }
+    .card-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-title h3 {
+      margin: 0;
+      font-size: 14px;
+      display: flex;
+      gap: 9px;
+      align-items: center;
+    }
+    .card-title h3 i { color: var(--gold); }
+    canvas { max-height: 240px; }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+    input, select, textarea {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 11px;
+      outline: 0;
+      font-size: 12px;
+      font-family: var(--font);
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(201,168,76,.18);
+    }
+    textarea { min-height: 78px; resize: vertical; }
+
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    thead th {
+      background: var(--sidebar);
+      color: rgba(255,255,255,.86);
+      padding: 11px 13px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    tbody td {
+      padding: 11px 13px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tbody tr:hover { background: rgba(201,168,76,.05); }
+    .mono { font-family: var(--mono); font-size: 11px; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .muted { color: var(--muted); }
+    .strong { font-weight: 800; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      white-space: nowrap;
+    }
+    .badge-normal { background: #eef2ff; color: #3730a3; }
+    .badge-good { background: #d1fae5; color: #065f46; }
+    .badge-warn { background: #fef3c7; color: #92400e; }
+    .badge-bad { background: #fee2e2; color: #991b1b; }
+    .badge-info { background: #dbeafe; color: #1e40af; }
+    .badge-purple { background: #f3e8ff; color: #6b21a8; }
+
+    .progress {
+      width: 130px;
+      height: 7px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .progress > span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--success);
+      border-radius: inherit;
+    }
+    .alert-list { display: grid; gap: 12px; }
+    .alert {
+      border: 1px solid var(--border);
+      border-left-width: 5px;
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      gap: 13px;
+    }
+    .alert.critical { border-left-color: var(--danger); }
+    .alert.warning { border-left-color: var(--warning); }
+    .alert i { margin-top: 2px; }
+
+    .empty {
+      padding: 42px 18px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .empty i {
+      display: block;
+      font-size: 30px;
+      opacity: .38;
+      margin-bottom: 10px;
+    }
+
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: rgba(13,27,42,.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 1000;
+      color: #fff;
+    }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 4px solid rgba(255,255,255,.18);
+      border-top-color: var(--gold);
+      animation: spin .85s linear infinite;
+      margin-bottom: 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #toast {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      display: grid;
+      gap: 10px;
+      z-index: 1100;
+    }
+    .toast {
+      min-width: 290px;
+      padding: 13px 16px;
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--success);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .toast.error { border-left-color: var(--danger); }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2,6,23,.58);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 1050;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: min(720px, 100%);
+      max-height: 90vh;
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 18px;
+      box-shadow: 0 24px 72px rgba(0,0,0,.32);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-head {
+      background: var(--sidebar);
+      color: #fff;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-head h3 { margin: 0; font-size: 15px; }
+    .modal-body {
+      padding: 20px;
+      overflow: auto;
+    }
+    .modal-foot {
+      border-top: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .form-group { display: grid; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; }
+
+    .guide-steps {
+      counter-reset: step;
+      display: grid;
+      gap: 12px;
+    }
+    .guide-step {
+      position: relative;
+      padding: 15px 16px 15px 52px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 13px;
+    }
+    .guide-step:before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: 16px;
+      top: 15px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--gold);
+      color: #172033;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    @media (max-width: 1180px) {
+      .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+      .grid-3 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 900px) {
+      aside { display: none; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      header { padding: 0 14px; }
+      #content { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <div class="brand">
+      <div class="brand-badge">JAI ROOP<br>TEXTILES</div>
+      <small>Advanced IMS</small>
+    </div>
+    <nav id="nav"></nav>
+    <div class="sidebar-foot">
+      <div>Google Sheets connected</div>
+      <div class="mono" id="lastSync">Not synced</div>
+    </div>
+  </aside>
+  <main>
+    <header>
+      <div>
+        <h1 id="pageTitle">Dashboard</h1>
+        <p id="pageSub">Live stock, orders, job work and dispatch control</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost btn-sm" onclick="toggleDark()"><i class="fa-solid fa-moon"></i> Theme</button>
+        <button class="btn btn-primary btn-sm" onclick="refreshAll()"><i class="fa-solid fa-rotate"></i> Sync</button>
+      </div>
+    </header>
+    <div id="content"></div>
+  </main>
+
+  <div id="loader"><div class="spinner"></div><div class="strong">Loading Jai Roop Textiles IMS...</div></div>
+  <div id="toast"></div>
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">Form</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-foot" id="modalFoot"></div>
+    </div>
+  </div>
+
+  <script>
+    const tabs = [
+      { id: 'dashboard', title: 'Dashboard', sub: 'Live stock, orders, job work and dispatch control', icon: 'fa-chart-line', section: 'Overview' },
+      { id: 'inventory', title: 'Inventory', sub: 'Master stock, levels, value and reorder status', icon: 'fa-warehouse', section: 'Operations' },
+      { id: 'ledger', title: 'Stock Ledger', sub: 'Every stock in, stock out and adjustment movement', icon: 'fa-right-left', section: 'Operations' },
+      { id: 'orders', title: 'Order Book', sub: 'Client orders, due dates, priority and fulfilment', icon: 'fa-book-open', section: 'Operations' },
+      { id: 'jobs', title: 'Job Work', sub: 'Worker/vendor production, wastage and payment', icon: 'fa-screwdriver-wrench', section: 'Production' },
+      { id: 'dispatch', title: 'Dispatch', sub: 'Challan-wise dispatch and pending balance', icon: 'fa-truck-fast', section: 'Production' },
+      { id: 'clients', title: 'Clients', sub: 'Client-wise portfolio and order history', icon: 'fa-users', section: 'Analytics' },
+      { id: 'alerts', title: 'Alerts', sub: 'Reorder, allocation, overdue and wastage warnings', icon: 'fa-bell', section: 'Analytics' },
+      { id: 'guide', title: 'Setup Guide', sub: 'How to deploy, operate and extend the IMS', icon: 'fa-circle-info', section: 'Help' }
+    ];
+
+    let state = {};
+    let currentTab = 'dashboard';
+    let charts = {};
+
+    window.onload = function() {
+      buildNav();
+      refreshAll();
+    };
+
+    function buildNav() {
+      const nav = document.getElementById('nav');
+      let html = '';
+      let lastSection = '';
+      tabs.forEach(tab => {
+        if (tab.section !== lastSection) {
+          html += `<div class="nav-section">${esc(tab.section)}</div>`;
+          lastSection = tab.section;
+        }
+        html += `<button class="nav-item ${tab.id === currentTab ? 'active' : ''}" id="nav-${tab.id}" onclick="switchTab('${tab.id}')"><i class="fa-solid ${tab.icon}"></i>${esc(tab.title)}</button>`;
+      });
+      nav.innerHTML = html;
+    }
+
+    function refreshAll() {
+      showLoader(true);
+      google.script.run
+        .withSuccessHandler(data => {
+          state = data || {};
+          document.getElementById('lastSync').innerText = state.lastSync || 'Synced';
+          showLoader(false);
+          render();
+        })
+        .withFailureHandler(err => {
+          showLoader(false);
+          toast('Sync failed: ' + (err.message || err), true);
+        })
+        .getAllIMSData();
+    }
+
+    function switchTab(tabId) {
+      currentTab = tabId;
+      buildNav();
+      render();
+    }
+
+    function render() {
+      const tab = tabs.find(t => t.id === currentTab) || tabs[0];
+      document.getElementById('pageTitle').innerText = tab.title;
+      document.getElementById('pageSub').innerText = tab.sub;
+      Object.values(charts).forEach(chart => chart && chart.destroy());
+      charts = {};
+      const content = document.getElementById('content');
+      if (currentTab === 'dashboard') renderDashboard(content);
+      if (currentTab === 'inventory') renderInventory(content);
+      if (currentTab === 'ledger') renderLedger(content);
+      if (currentTab === 'orders') renderOrders(content);
+      if (currentTab === 'jobs') renderJobs(content);
+      if (currentTab === 'dispatch') renderDispatch(content);
+      if (currentTab === 'clients') renderClients(content);
+      if (currentTab === 'alerts') renderAlerts(content);
+      if (currentTab === 'guide') renderGuide(content);
+    }
+
+    function renderDashboard(el) {
+      const k = state.kpis || {};
+      const alerts = state.alerts || [];
+      el.innerHTML = `
+        ${alerts.length ? `<div class="alert ${alerts[0].type}"><i class="fa-solid fa-triangle-exclamation" style="color:${alerts[0].type === 'critical' ? 'var(--danger)' : 'var(--warning)'}"></i><div><div class="strong">${esc(alerts.length)} active alert(s)</div><div class="muted">${esc(alerts[0].title || '')}</div></div></div><br>` : ''}
+        <div class="kpi-grid">
+          ${kpiCard('Stock Value', money(k.totalStockValue), `${num(k.totalStockMtr)} total stock`, 'fa-indian-rupee-sign', 'green')}
+          ${kpiCard('Reorders', k.reorderCount || 0, `${(k.reorderItems || []).join(', ') || 'No critical item'}`, 'fa-triangle-exclamation', 'red')}
+          ${kpiCard('Open Orders', k.activeOrderCount || 0, `${k.overdueOrderCount || 0} overdue`, 'fa-book-open', 'blue')}
+          ${kpiCard('Pending Dispatch', num(k.pendingDispatchQty), 'metres still to ship', 'fa-truck-ramp-box', 'amber')}
+          ${kpiCard('Live Job Work', k.jwLiveCount || 0, `${k.overdueJobCount || 0} overdue batches`, 'fa-screwdriver-wrench', 'blue')}
+          ${kpiCard('Avg Wastage', `${k.avgWastagePct || 0}%`, `limit ${state.config?.criticalWastagePct || 4}%`, 'fa-scissors', 'red')}
+        </div>
+        <div class="grid-2">
+          <div class="card"><div class="card-title"><h3><i class="fa-solid fa-chart-column"></i> Stock by Category</h3></div><div class="card-pad"><canvas id="catChart"></canvas></div></div>
+          <div class="card"><div class="card-title"><h3><i class="fa-solid fa-chart-pie"></i> Order Status</h3></div><div class="card-pad"><canvas id="orderChart"></canvas></div></div>
+          <div class="card"><div class="card-title"><h3><i class="fa-solid fa-chart-line"></i> Monthly Dispatch</h3></div><div class="card-pad"><canvas id="dispatchChart"></canvas></div></div>
+          <div class="card"><div class="card-title"><h3><i class="fa-solid fa-ranking-star"></i> Top Stock Value Items</h3></div><div class="card-pad">${topItemsTable(k.topItems || [])}</div></div>
+        </div>
+      `;
+      const cat = k.categoryBreakdown || {};
+      chartBar('catChart', Object.keys(cat), Object.keys(cat).map(key => cat[key].totalStock), 'Stock');
+      chartDoughnut('orderChart', ['Pending', 'In Production', 'Ready', 'Completed'], [k.pendingOrderCount || 0, k.productionOrderCount || 0, k.readyOrderCount || 0, k.completedOrderCount || 0]);
+      const months = Object.keys(k.monthlyDispatch || {}).sort().slice(-8);
+      chartLine('dispatchChart', months, months.map(m => k.monthlyDispatch[m]), 'Dispatch Qty');
+    }
+
+    function renderInventory(el) {
+      const rows = state.master || [];
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-title">
+            <h3><i class="fa-solid fa-warehouse"></i> Inventory Master</h3>
+            <div class="toolbar">
+              <input id="invSearch" placeholder="Search item, category, color..." oninput="filterInventory()">
+              <select id="invStatus" onchange="filterInventory()">
+                <option value="">All status</option>
+                <option value="REORDER (LOW)">Reorder low</option>
+                <option value="NORMAL">Normal</option>
+                <option value="ABOVE LEVEL">Above level</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" onclick="openStockForm()"><i class="fa-solid fa-right-left"></i> Stock Entry</button>
+              <button class="btn btn-gold btn-sm" onclick="openItemForm()"><i class="fa-solid fa-plus"></i> Add Item</button>
+            </div>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Item</th><th>Category</th><th>Color/Width</th><th class="num">Opening</th><th class="num">In</th><th class="num">Out</th><th class="num">Allocated</th><th>Closing</th><th class="num">Value</th><th>Status</th></tr></thead>
+            <tbody id="inventoryBody">${inventoryRows(rows)}</tbody>
+          </table></div>
+        </div>`;
+    }
+
+    function inventoryRows(rows) {
+      if (!rows.length) return emptyRow(10, 'No inventory items yet.');
+      const max = Math.max(...rows.map(r => Number(r.TargetLevel || r.ClosingBalance || 1)));
+      return rows.map(item => {
+        const closing = Number(item.ClosingBalance || 0);
+        const pct = max ? Math.min(100, Math.round(closing / max * 100)) : 0;
+        return `<tr data-search="${searchText(item)}" data-status="${esc(item.ReorderStatus || '')}">
+          <td><div class="strong mono">${esc(item.ItemCode)}</div><div class="muted">${esc(item.ItemName)}</div></td>
+          <td>${esc(item.Category || '-')}</td>
+          <td>${esc([item.Color, item.Width].filter(Boolean).join(' / ') || '-')}</td>
+          <td class="num mono">${num(item.OpeningStock)}</td>
+          <td class="num mono" style="color:var(--success)">${num(item.TotalIn)}</td>
+          <td class="num mono" style="color:var(--danger)">${num(item.TotalOut)}</td>
+          <td class="num mono" style="color:var(--warning)">${num(item.AllocatedtoOrders)}</td>
+          <td><div class="strong">${num(closing)} ${esc(item.UOM || '')}</div><div class="progress"><span style="width:${pct}%;background:${stockColor(item.ReorderStatus)}"></span></div></td>
+          <td class="num strong">${money(item.StockValue)}</td>
+          <td>${statusBadge(item.ReorderStatus)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function filterInventory() {
+      const q = (document.getElementById('invSearch')?.value || '').toLowerCase();
+      const status = document.getElementById('invStatus')?.value || '';
+      document.querySelectorAll('#inventoryBody tr').forEach(row => {
+        const show = (!q || row.dataset.search.includes(q)) && (!status || row.dataset.status === status);
+        row.style.display = show ? '' : 'none';
+      });
+    }
+
+    function renderLedger(el) {
+      const rows = (state.ledger || []).slice().reverse();
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-title">
+            <h3><i class="fa-solid fa-right-left"></i> Stock Ledger</h3>
+            <div class="toolbar">
+              <input id="ledgerSearch" placeholder="Search movement, item, party..." oninput="filterRows('ledgerBody', this.value)">
+              <button class="btn btn-gold btn-sm" onclick="openStockForm()"><i class="fa-solid fa-plus"></i> New Movement</button>
+            </div>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Movement</th><th>Date</th><th>Item</th><th>Type</th><th class="num">Qty</th><th>Source</th><th>Reference</th><th>Party</th><th class="num">Amount</th></tr></thead>
+            <tbody id="ledgerBody">${rows.length ? rows.map(m => `<tr data-search="${searchText(m)}"><td class="mono strong">${esc(m.MovementID)}</td><td>${esc(m.Date)}</td><td class="mono">${esc(m.ItemCode)}</td><td>${movementBadge(m.Type)}</td><td class="num strong">${num(m.Qty)} ${esc(m.UOM || '')}</td><td>${esc(m.Source || '')}</td><td class="mono">${esc(m.ReferenceID || '')}</td><td>${esc(m.Party || '')}</td><td class="num">${money(m.Amount)}</td></tr>`).join('') : emptyRow(9, 'No stock movements yet.')}</tbody>
+          </table></div>
+        </div>`;
+    }
+
+    function renderOrders(el) {
+      const rows = state.orders || [];
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-title">
+            <h3><i class="fa-solid fa-book-open"></i> Order Book</h3>
+            <div class="toolbar">
+              <input id="orderSearch" placeholder="Search order, client, item..." oninput="filterRows('orderBody', this.value)">
+              <button class="btn btn-gold btn-sm" onclick="openOrderForm()"><i class="fa-solid fa-plus"></i> New Order</button>
+            </div>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Order</th><th>Date</th><th>Client</th><th>Item</th><th class="num">Qty</th><th class="num">Value</th><th>Due</th><th>Priority</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="orderBody">${rows.length ? rows.map(orderRow).join('') : emptyRow(10, 'No orders yet.')}</tbody>
+          </table></div>
+        </div>`;
+    }
+
+    function orderRow(o) {
+      return `<tr data-search="${searchText(o)}">
+        <td class="mono strong">${esc(o.OrderID)}</td>
+        <td>${esc(o.Date)}</td>
+        <td class="strong">${esc(o.ClientName)}</td>
+        <td class="mono">${esc(o.ItemCode)}</td>
+        <td class="num strong">${num(o.OrderedQty)}</td>
+        <td class="num">${money(Number(o.OrderedQty || 0) * Number(o.Rate || 0))}</td>
+        <td>${dueLabel(o.DueDate, o.Status)}</td>
+        <td>${priorityBadge(o.Priority)}</td>
+        <td>${orderStatusBadge(o.Status)}</td>
+        <td><select onchange="changeOrderStatus('${escAttr(o.OrderID)}', this.value)"><option value="">Change...</option><option>Pending</option><option>In Production</option><option>Ready</option><option>Completed</option><option>Cancelled</option></select></td>
+      </tr>`;
+    }
+
+    function renderJobs(el) {
+      const rows = state.jobWork || [];
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-title">
+            <h3><i class="fa-solid fa-screwdriver-wrench"></i> Job Work Tracker</h3>
+            <div class="toolbar">
+              <input placeholder="Search job, worker, order..." oninput="filterRows('jobBody', this.value)">
+              <button class="btn btn-gold btn-sm" onclick="openJobForm()"><i class="fa-solid fa-plus"></i> Add Job Work</button>
+            </div>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Job</th><th>Date</th><th>Order</th><th>Worker</th><th>Item</th><th class="num">Sent</th><th class="num">Received</th><th class="num">Balance</th><th class="num">Wastage</th><th class="num">Payment</th><th>Status</th></tr></thead>
+            <tbody id="jobBody">${rows.length ? rows.map(jobRow).join('') : emptyRow(11, 'No job work records yet.')}</tbody>
+          </table></div>
+        </div>`;
+    }
+
+    function jobRow(j) {
+      const sent = Number(j.SentQty || 0);
+      const received = Number(j.ReceivedQty || 0);
+      const wastage = Number(j.Wastage || 0);
+      const balance = Math.max(0, sent - received);
+      const wastePct = sent ? wastage / sent * 100 : 0;
+      return `<tr data-search="${searchText(j)}">
+        <td class="mono strong">${esc(j.JobID)}</td>
+        <td>${esc(j.Date)}</td>
+        <td class="mono">${esc(j.OrderID)}</td>
+        <td class="strong">${esc(j.WorkerName)}</td>
+        <td class="mono">${esc(j.ItemCode)}</td>
+        <td class="num">${num(sent)}</td>
+        <td class="num strong">${num(received)}</td>
+        <td class="num">${balance ? num(balance) : '<span style="color:var(--success)">Done</span>'}</td>
+        <td class="num">${wastePct > (state.config?.criticalWastagePct || 4) ? `<span class="badge badge-bad">${wastePct.toFixed(1)}%</span>` : `${wastePct.toFixed(1)}%`}</td>
+        <td class="num strong">${money(j.TotalPayment)}</td>
+        <td>${jobStatusBadge(j.Status)}</td>
+      </tr>`;
+    }
+
+    function renderDispatch(el) {
+      const rows = (state.dispatch || []).slice().reverse();
+      const total = rows.reduce((sum, row) => sum + Number(row.DispatchedQty || 0), 0);
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-title">
+            <h3><i class="fa-solid fa-truck-fast"></i> Dispatch Log <span class="badge badge-good">${num(total)} Mtr</span></h3>
+            <div class="toolbar">
+              <input placeholder="Search dispatch, challan, client..." oninput="filterRows('dispatchBody', this.value)">
+              <button class="btn btn-gold btn-sm" onclick="openDispatchForm()"><i class="fa-solid fa-plus"></i> Log Dispatch</button>
+            </div>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Dispatch</th><th>Date</th><th>Order</th><th>Client</th><th>Item</th><th class="num">Qty</th><th>Challan</th><th>Transport</th><th>LR No</th></tr></thead>
+            <tbody id="dispatchBody">${rows.length ? rows.map(d => `<tr data-search="${searchText(d)}"><td class="mono strong">${esc(d.DispatchID)}</td><td>${esc(d.DispatchDate)}</td><td class="mono">${esc(d.OrderID)}</td><td class="strong">${esc(d.ClientName)}</td><td class="mono">${esc(d.ItemCode)}</td><td class="num strong">${num(d.DispatchedQty)}</td><td class="mono">${esc(d.ChallanNo)}</td><td>${esc(d.Transporter)}</td><td class="mono">${esc(d.LRNo)}</td></tr>`).join('') : emptyRow(9, 'No dispatch records yet.')}</tbody>
+          </table></div>
+        </div>`;
+    }
+
+    function renderClients(el) {
+      const clients = state.clients || [];
+      const selected = clients[0] || '';
+      el.innerHTML = `
+        <div class="grid-3">
+          <div class="card card-pad"><div class="kpi-label">Total Clients</div><div class="kpi-value">${clients.length}</div><div class="kpi-sub">from client sheet and orders</div></div>
+          <div class="card card-pad"><div class="kpi-label">Top Client</div><div class="kpi-value" style="font-size:20px">${esc((state.kpis?.topClients || [])[0]?.client || '-')}</div><div class="kpi-sub">by order qty</div></div>
+          <div class="card card-pad"><div class="kpi-label">Order Qty</div><div class="kpi-value">${num((state.kpis?.topClients || [])[0]?.qty || 0)}</div><div class="kpi-sub">top client booked qty</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><h3><i class="fa-solid fa-users"></i> Client Portfolio</h3><select id="clientPicker" onchange="drawClientPortfolio()">${clients.map(c => `<option value="${escAttr(c)}">${esc(c)}</option>`).join('')}</select></div>
+          <div class="card-pad" id="clientPortfolio"></div>
+        </div>`;
+      if (selected) drawClientPortfolio();
+    }
+
+    function drawClientPortfolio() {
+      const client = document.getElementById('clientPicker')?.value;
+      const orders = (state.orders || []).filter(o => o.ClientName === client);
+      const dispatch = (state.dispatch || []).filter(d => d.ClientName === client);
+      const totalOrder = orders.reduce((s, o) => s + Number(o.OrderedQty || 0), 0);
+      const totalDispatch = dispatch.reduce((s, d) => s + Number(d.DispatchedQty || 0), 0);
+      document.getElementById('clientPortfolio').innerHTML = `
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+          ${kpiCard('Orders', orders.length, 'records booked', 'fa-book-open', 'blue')}
+          ${kpiCard('Ordered Qty', num(totalOrder), 'metres ordered', 'fa-ruler-horizontal', 'amber')}
+          ${kpiCard('Dispatched', num(totalDispatch), 'metres shipped', 'fa-truck', 'green')}
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Order</th><th>Date</th><th>Item</th><th class="num">Qty</th><th>Status</th><th>Due</th></tr></thead><tbody>${orders.length ? orders.map(o => `<tr><td class="mono strong">${esc(o.OrderID)}</td><td>${esc(o.Date)}</td><td>${esc(o.ItemCode)}</td><td class="num">${num(o.OrderedQty)}</td><td>${orderStatusBadge(o.Status)}</td><td>${dueLabel(o.DueDate, o.Status)}</td></tr>`).join('') : emptyRow(6, 'No orders for this client.')}</tbody></table></div>`;
+    }
+
+    function renderAlerts(el) {
+      const alerts = state.alerts || [];
+      el.innerHTML = `<div class="alert-list">${alerts.length ? alerts.map(a => `<div class="alert ${esc(a.type)}"><i class="fa-solid ${a.type === 'critical' ? 'fa-circle-exclamation' : 'fa-triangle-exclamation'}" style="color:${a.type === 'critical' ? 'var(--danger)' : 'var(--warning)'}"></i><div><div class="strong">${esc(a.title)}</div><div class="muted">${esc(a.area)} - ${esc(a.detail)}</div><div style="margin-top:6px">${esc(a.action)}</div></div></div>`).join('') : `<div class="card empty"><i class="fa-solid fa-circle-check" style="color:var(--success)"></i>No active alerts. Stock and production look healthy.</div>`}</div>`;
+    }
+
+    function renderGuide(el) {
+      const url = state.config?.spreadsheetUrl || '#';
+      el.innerHTML = `
+        <div class="grid-2">
+          <div class="card card-pad">
+            <h3>What this IMS now handles</h3>
+            <p class="muted">Inventory master, stock ledger, reorder alerts, client orders, job work, wastage, dispatch, client portfolios and KPI charts.</p>
+            <p><a href="${escAttr(url)}" target="_blank">Open connected Google Sheet</a></p>
+          </div>
+          <div class="card card-pad">
+            <h3>Recommended daily flow</h3>
+            <p class="muted">Add stock receipts in Ledger, create orders in Order Book, issue job work, log received quantities and wastage, then record dispatch against challan.</p>
+          </div>
+        </div>
+        <div class="guide-steps">
+          <div class="guide-step"><b>Install code:</b> Open the Google Sheet, go to Extensions -> Apps Script, then create Code.gs and Index.html with these files.</div>
+          <div class="guide-step"><b>Run setup:</b> In Apps Script, select <span class="mono">setupIMS</span>, run it once, and approve permissions. It creates/repairs all required tabs.</div>
+          <div class="guide-step"><b>Deploy:</b> Click Deploy -> New deployment -> Web app. Execute as yourself; access can be anyone in your organization or anyone with link.</div>
+          <div class="guide-step"><b>Operate:</b> Use Sync after sheet edits, or operate through dashboard forms so calculations and alerts stay consistent.</div>
+          <div class="guide-step"><b>Extend:</b> Add more columns to Clients/Vendors for GST, payments, credit limits, or buyer-wise pricing. Keep header names stable for system columns.</div>
+        </div>`;
+    }
+
+    function openItemForm() {
+      openModal('Add / Update Inventory Item', `
+        <div class="form-grid">
+          ${field('Item Code', 'itemCode', 'text', 'SATIN-3MM-WHT')}
+          ${field('Item Name', 'itemName', 'text', '3 MM Satin White')}
+          ${field('Category', 'category', 'text', 'Satin / Tape / Elastic')}
+          ${field('UOM', 'uom', 'text', 'Mtr')}
+          ${field('Color', 'color', 'text', 'White')}
+          ${field('Width', 'width', 'text', '3 MM / 44 in')}
+          ${field('GSM', 'gsm', 'number', '60')}
+          ${field('Weight/Mtr', 'weightMtr', 'number', '0')}
+          ${field('Opening Stock', 'openingStock', 'number', '0')}
+          ${field('Reorder Level', 'reorderLevel', 'number', '100')}
+          ${field('Target Level', 'targetLevel', 'number', '500')}
+          ${field('Rate', 'rate', 'number', '0')}
+          ${field('Location', 'location', 'text', 'Rack A1')}
+          ${field('Supplier', 'supplier', 'text', 'Supplier name')}
+        </div>`, () => submitForm('saveMasterItem', ['itemCode','itemName','category','uom','color','width','gsm','weightMtr','openingStock','reorderLevel','targetLevel','rate','location','supplier']));
+    }
+
+    function openStockForm() {
+      openModal('New Stock Movement', `
+        <div class="form-grid">
+          ${field('Date', 'date', 'date', '')}
+          ${selectField('Item Code', 'itemCode', state.items || [])}
+          ${selectField('Type', 'type', ['IN','OUT','ADJUSTMENT'])}
+          ${field('Qty', 'qty', 'number', '0')}
+          ${field('UOM', 'uom', 'text', 'Mtr')}
+          ${field('Source', 'source', 'text', 'Purchase / Return / Manual')}
+          ${field('Reference ID', 'referenceId', 'text', 'Invoice or challan')}
+          ${field('Party', 'party', 'text', 'Supplier / client')}
+          ${field('Rate', 'rate', 'number', '0')}
+          ${field('Remarks', 'remarks', 'text', 'Notes', true)}
+        </div>`, () => submitForm('saveStockMovement', ['date','itemCode','type','qty','uom','source','referenceId','party','rate','remarks']));
+      setToday('date');
+    }
+
+    function openOrderForm() {
+      openModal('New Client Order', `
+        <div class="form-grid">
+          ${field('Order Date', 'date', 'date', '')}
+          ${datalistField('Client Name', 'clientName', state.clients || [], 'Client')}
+          ${selectField('Item Code', 'itemCode', state.items || [])}
+          ${field('Ordered Qty', 'qty', 'number', '0')}
+          ${field('Rate', 'rate', 'number', '0')}
+          ${field('Due Date', 'dueDate', 'date', '')}
+          ${selectField('Priority', 'priority', ['Normal','High','Urgent','Low'])}
+          ${selectField('Status', 'status', ['Pending','In Production','Ready','Completed'])}
+          ${field('Remarks', 'remarks', 'text', 'Notes', true)}
+        </div>`, () => submitForm('saveNewOrder', ['date','clientName','itemCode','qty','rate','dueDate','priority','status','remarks']));
+      setToday('date');
+    }
+
+    function openJobForm() {
+      openModal('Add Job Work Entry', `
+        <div class="form-grid">
+          ${field('Date', 'date', 'date', '')}
+          ${selectField('Order ID', 'orderId', (state.orders || []).map(o => o.OrderID), true)}
+          ${datalistField('Worker Name', 'workerName', state.workers || [], 'Worker')}
+          ${selectField('Item Code', 'itemCode', state.items || [])}
+          ${field('Sent Qty', 'sentQty', 'number', '0')}
+          ${field('Received Qty', 'receivedQty', 'number', '0')}
+          ${field('Wastage', 'wastageMtr', 'number', '0')}
+          ${field('Rate', 'rate', 'number', String(state.config?.defaultJobRate || 0.25))}
+          ${selectField('Status', 'status', ['Out','Part Received','Completed','Hold'])}
+          ${field('Due Date', 'dueDate', 'date', '')}
+          ${field('Remarks', 'remarks', 'text', 'Notes', true)}
+        </div>`, () => submitForm('saveNewJobWork', ['date','orderId','workerName','itemCode','sentQty','receivedQty','wastageMtr','rate','status','dueDate','remarks']));
+      setToday('date');
+    }
+
+    function openDispatchForm() {
+      openModal('Log Dispatch / Challan', `
+        <div class="form-grid">
+          ${selectField('Order ID', 'orderId', (state.orders || []).map(o => o.OrderID))}
+          ${datalistField('Client Name', 'clientName', state.clients || [], 'Client')}
+          ${selectField('Item Code', 'itemCode', state.items || [])}
+          ${field('Dispatched Qty', 'dispatchedQty', 'number', '0')}
+          ${field('Dispatch Date', 'dispatchDate', 'date', '')}
+          ${field('Challan No', 'challanNo', 'text', 'CH-0001')}
+          ${field('Transporter', 'transporter', 'text', 'Transport name')}
+          ${field('LR No', 'lrNo', 'text', 'LR number')}
+          <div class="form-group full"><label><input type="checkbox" id="markCompleted" style="width:auto"> Mark order completed</label></div>
+          ${field('Remarks', 'remarks', 'text', 'Notes', true)}
+        </div>`, () => submitForm('saveNewDispatch', ['orderId','clientName','itemCode','dispatchedQty','dispatchDate','challanNo','transporter','lrNo','markCompleted','remarks']));
+      setToday('dispatchDate');
+    }
+
+    function submitForm(functionName, keys) {
+      const payload = {};
+      keys.forEach(key => {
+        const el = document.getElementById(key);
+        if (!el) return;
+        payload[key] = el.type === 'checkbox' ? el.checked : el.value;
+      });
+      showLoader(true);
+      google.script.run
+        .withSuccessHandler(result => {
+          showLoader(false);
+          if (result && result.success) {
+            closeModal();
+            toast(result.message || 'Saved.');
+            refreshAll();
+          } else {
+            toast((result && result.message) || 'Save failed.', true);
+          }
+        })
+        .withFailureHandler(err => {
+          showLoader(false);
+          toast(err.message || String(err), true);
+        })[functionName](payload);
+    }
+
+    function changeOrderStatus(orderId, status) {
+      if (!status) return;
+      showLoader(true);
+      google.script.run
+        .withSuccessHandler(result => {
+          showLoader(false);
+          toast(result.message || 'Updated.', !result.success);
+          if (result.success) refreshAll();
+        })
+        .withFailureHandler(err => {
+          showLoader(false);
+          toast(err.message || String(err), true);
+        })
+        .updateOrderStatus(orderId, status);
+    }
+
+    function openModal(title, body, onSave) {
+      document.getElementById('modalTitle').innerText = title;
+      document.getElementById('modalBody').innerHTML = body;
+      document.getElementById('modalFoot').innerHTML = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-gold" id="modalSave"><i class="fa-solid fa-floppy-disk"></i> Save</button>`;
+      document.getElementById('modalSave').onclick = onSave;
+      document.getElementById('modalBackdrop').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modalBackdrop').classList.remove('open');
+    }
+
+    function field(label, id, type, placeholder, full) {
+      return `<div class="form-group ${full ? 'full' : ''}"><label>${esc(label)}</label><input id="${escAttr(id)}" type="${escAttr(type)}" placeholder="${escAttr(placeholder || '')}" step="0.01"></div>`;
+    }
+
+    function selectField(label, id, options, optional) {
+      return `<div class="form-group"><label>${esc(label)}</label><select id="${escAttr(id)}">${optional ? '<option value="">Optional</option>' : ''}${(options || []).map(o => `<option value="${escAttr(o)}">${esc(o)}</option>`).join('')}</select></div>`;
+    }
+
+    function datalistField(label, id, options, placeholder) {
+      const listId = `${id}List`;
+      return `<div class="form-group"><label>${esc(label)}</label><input id="${escAttr(id)}" list="${escAttr(listId)}" placeholder="${escAttr(placeholder || '')}"><datalist id="${escAttr(listId)}">${(options || []).map(o => `<option value="${escAttr(o)}"></option>`).join('')}</datalist></div>`;
+    }
+
+    function setToday(id) {
+      const el = document.getElementById(id);
+      if (el && !el.value) el.value = new Date().toISOString().slice(0, 10);
+    }
+
+    function filterRows(tbodyId, value) {
+      const q = String(value || '').toLowerCase();
+      document.querySelectorAll(`#${tbodyId} tr`).forEach(row => {
+        row.style.display = !q || (row.dataset.search || '').includes(q) ? '' : 'none';
+      });
+    }
+
+    function kpiCard(label, value, sub, icon, color) {
+      return `<div class="kpi-card ${color || ''}"><div class="kpi-label">${esc(label)}</div><div class="kpi-value">${value}</div><div class="kpi-sub">${esc(sub || '')}</div><i class="fa-solid ${icon} kpi-icon"></i></div>`;
+    }
+
+    function topItemsTable(items) {
+      if (!items.length) return `<div class="empty"><i class="fa-solid fa-box-open"></i>No stock value data.</div>`;
+      return `<table><thead><tr><th>Item</th><th class="num">Balance</th><th class="num">Value</th></tr></thead><tbody>${items.map(i => `<tr><td><div class="mono strong">${esc(i.code)}</div><div class="muted">${esc(i.name || '')}</div></td><td class="num">${num(i.balance)}</td><td class="num strong">${money(i.value)}</td></tr>`).join('')}</tbody></table>`;
+    }
+
+    function chartBar(id, labels, data, label) {
+      const ctx = document.getElementById(id);
+      if (!ctx) return;
+      charts[id] = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label, data, backgroundColor: '#c9a84cdd', borderRadius: 8 }] }, options: chartOptions() });
+    }
+
+    function chartLine(id, labels, data, label) {
+      const ctx = document.getElementById(id);
+      if (!ctx) return;
+      charts[id] = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label, data, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.12)', tension: .35, fill: true }] }, options: chartOptions() });
+    }
+
+    function chartDoughnut(id, labels, data) {
+      const ctx = document.getElementById(id);
+      if (!ctx) return;
+      charts[id] = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: ['#d97706', '#2563eb', '#7c3aed', '#059669'] }] }, options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: textColor(), font: { size: 11 } } } } } });
+    }
+
+    function chartOptions() {
+      return {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { labels: { color: textColor(), font: { size: 11 } } } },
+        scales: {
+          x: { ticks: { color: textColor(), font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: textColor(), font: { size: 10 } }, grid: { color: document.body.classList.contains('dark') ? '#233044' : '#edf2f7' } }
+        }
+      };
+    }
+
+    function textColor() {
+      return document.body.classList.contains('dark') ? '#9aa7ba' : '#687386';
+    }
+
+    function movementBadge(type) {
+      if (type === 'IN') return '<span class="badge badge-good">IN</span>';
+      if (type === 'OUT') return '<span class="badge badge-bad">OUT</span>';
+      return '<span class="badge badge-warn">ADJUST</span>';
+    }
+
+    function statusBadge(status) {
+      if (status === 'REORDER (LOW)') return '<span class="badge badge-bad">Reorder</span>';
+      if (status === 'ABOVE LEVEL') return '<span class="badge badge-purple">Above</span>';
+      return '<span class="badge badge-good">Normal</span>';
+    }
+
+    function orderStatusBadge(status) {
+      const map = {
+        'Pending': 'badge-warn',
+        'In Production': 'badge-info',
+        'Ready': 'badge-purple',
+        'Completed': 'badge-good',
+        'Cancelled': 'badge-bad'
+      };
+      return `<span class="badge ${map[status] || 'badge-normal'}">${esc(status || '-')}</span>`;
+    }
+
+    function jobStatusBadge(status) {
+      const map = { 'Out': 'badge-warn', 'Part Received': 'badge-info', 'Completed': 'badge-good', 'Hold': 'badge-bad' };
+      return `<span class="badge ${map[status] || 'badge-normal'}">${esc(status || '-')}</span>`;
+    }
+
+    function priorityBadge(priority) {
+      if (priority === 'Urgent') return '<span class="badge badge-bad">Urgent</span>';
+      if (priority === 'High') return '<span class="badge badge-warn">High</span>';
+      if (priority === 'Low') return '<span class="badge badge-normal">Low</span>';
+      return '<span class="badge badge-info">Normal</span>';
+    }
+
+    function dueLabel(date, status) {
+      if (!date) return '<span class="muted">-</span>';
+      const overdue = date < new Date().toISOString().slice(0, 10) && status !== 'Completed';
+      return overdue ? `<span class="badge badge-bad">${esc(date)}</span>` : `<span class="mono">${esc(date)}</span>`;
+    }
+
+    function stockColor(status) {
+      if (status === 'REORDER (LOW)') return 'var(--danger)';
+      if (status === 'ABOVE LEVEL') return 'var(--violet)';
+      return 'var(--success)';
+    }
+
+    function emptyRow(cols, message) {
+      return `<tr><td colspan="${cols}" class="empty"><i class="fa-solid fa-box-open"></i>${esc(message)}</td></tr>`;
+    }
+
+    function searchText(row) {
+      return escAttr(Object.values(row || {}).join(' ').toLowerCase());
+    }
+
+    function num(value) {
+      return Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    }
+
+    function money(value) {
+      return `INR ${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+    }
+
+    function esc(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    }
+
+    function escAttr(value) {
+      return esc(value).replace(/`/g, '&#96;');
+    }
+
+    function toast(message, error) {
+      const wrap = document.getElementById('toast');
+      const node = document.createElement('div');
+      node.className = `toast ${error ? 'error' : ''}`;
+      node.innerHTML = esc(message);
+      wrap.appendChild(node);
+      setTimeout(() => node.remove(), 4500);
+    }
+
+    function showLoader(show) {
+      document.getElementById('loader').style.display = show ? 'flex' : 'none';
+    }
+
+    function toggleDark() {
+      document.body.classList.toggle('dark');
+      render();
+    }
+  </script>
+</body>
+</html>
