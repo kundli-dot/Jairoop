@@ -118,23 +118,7 @@ function getAllIMSData() {
     workers:  Object.keys(workerSet).sort(),
     kpis:     computeKPIs(masterRaw, ordersRaw, jobWorkRaw, dispatchRaw),
     lastSync: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd MMM yyyy, hh:mm a")
-    // NOTE: Logo is loaded separately via getLogo() to keep this fast
   };
-}
-
-// ============================================================
-//  SEPARATE LOGO LOADER — called independently after UI loads
-// ============================================================
-function getLogo() {
-  try {
-    var fileId = "12xaMnlUBwVFr_kdKYuJozypKuLWPyHmH";
-    var file   = DriveApp.getFileById(fileId);
-    var blob   = file.getBlob();
-    return "data:" + blob.getContentType() + ";base64," + Utilities.base64Encode(blob.getBytes());
-  } catch (e) {
-    Logger.log("Logo load failed: " + e.toString());
-    return "";
-  }
 }
 
 // ============================================================

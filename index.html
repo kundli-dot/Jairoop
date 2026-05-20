@@ -26,7 +26,6 @@
     aside{width:240px;flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;overflow:hidden;}
     .sidebar-logo{padding:16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;align-items:center;}
     .logo-box{width:100%;height:72px;background:rgba(255,255,255,.97);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:6px;margin-bottom:8px;}
-    .logo-box img{max-width:100%;max-height:100%;object-fit:contain;display:none;}
     .logo-text{font-size:11px;font-weight:700;letter-spacing:.12em;text-align:center;color:#1a202c;line-height:1.4;}
     .brand-sub{color:rgba(201,168,76,.9);font-size:9px;letter-spacing:.2em;font-weight:600;text-transform:uppercase;text-align:center;}
     nav{padding:10px 8px;flex-grow:1;overflow-y:auto;}
@@ -204,8 +203,7 @@
 <aside>
   <div class="sidebar-logo">
     <div class="logo-box">
-      <img id="companyLogo" src="" alt="Logo">
-      <div class="logo-text" id="logoFallback">JAI ROOP<br>TEXTILES</div>
+      <div class="logo-text">JAI ROOP<br>TEXTILES</div>
     </div>
     <div class="brand-sub">IMS Tracking System</div>
   </div>
@@ -557,7 +555,6 @@ function refreshAll(){
       renderTab();
       stopLoader();
       setSyncBusy(false);
-      loadLogoAsync();
     })
     .withFailureHandler(function(err){
       clearTimeout(safetyTimer);
@@ -566,21 +563,6 @@ function refreshAll(){
       toast('Sync failed: '+err.message,'error');
     })
     .getAllIMSData();
-}
-
-function loadLogoAsync(){
-  var img=document.getElementById('companyLogo');
-  if(img&&img.style.display==='block')return;
-  google.script.run
-    .withSuccessHandler(function(logoUrl){
-      if(logoUrl&&logoUrl.length>50){
-        img.src=logoUrl;
-        img.style.display='block';
-        document.getElementById('logoFallback').style.display='none';
-      }
-    })
-    .withFailureHandler(function(){})
-    .getLogo();
 }
 
 function setSyncBusy(busy){
