@@ -710,13 +710,6 @@ function createSalaryRegisterSheet(ss) {
   const TR = 205;
   sh.getRange(TR,1,1,2).merge().setValue("MONTHLY TOTAL")
     .setBackground(C.TOTAL_BG).setFontWeight("bold");
-  ["F","G","H","I","J","K",
-   "L","M","N","O","P","Q","R",
-   "S","T","U","V","W","X","Y","Z",
-   "AA","AB","AC","AD"].forEach(col => {
-    sh.getRange(TR + "!" + col).setFormula(`=IFERROR(SUM(${col}5:${col}204),0)`);
-  });
-  // Fix: use setFormula per column letter
   let colIdx = 6;
   ["F","G","H","I","J","K",
    "L","M","N","O","P","Q","R",
