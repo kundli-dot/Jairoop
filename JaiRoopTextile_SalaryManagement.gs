@@ -300,11 +300,11 @@ function createEmployeeMasterSheet(ss) {
     "Advance\nO/S (₹)","Loan\nO/S (₹)","Monthly\nLoan EMI (₹)","TDS\nMonthly (₹)","Status"
   ];
 
-  // Title
-  sh.getRange(1, 1, 1, hdrs.length).merge()
-    .setValue("👥  EMPLOYEE MASTER — " + CO_NAME)
+  // Title — no .merge() on full row; setFrozenColumns(2) cannot cross a merged cell boundary
+  sh.getRange(1, 1, 1, hdrs.length)
     .setBackground(C.DARK_BLUE).setFontColor(C.WHITE)
     .setFontSize(14).setFontWeight("bold").setHorizontalAlignment("center");
+  sh.getRange(1, 1).setValue("👥  EMPLOYEE MASTER — " + CO_NAME);
 
   sh.getRange(2, 1, 1, hdrs.length).setValues([hdrs])
     .setBackground(C.MID_BLUE).setFontColor(C.WHITE)
@@ -393,11 +393,11 @@ function createAttendanceSheet(ss) {
   const now  = new Date();
   const mLbl = Utilities.formatDate(now, tz, "MMMM yyyy");
 
-  // Title
-  sh.getRange(1,1,1,11).merge()
-    .setValue("📅  ATTENDANCE REGISTER — " + CO_NAME + " | " + mLbl)
+  // Title — no .merge() on full row; setFrozenColumns(2) cannot cross a merged cell boundary
+  sh.getRange(1,1,1,11)
     .setBackground(C.DARK_BLUE).setFontColor(C.WHITE)
     .setFontSize(13).setFontWeight("bold").setHorizontalAlignment("center");
+  sh.getRange(1,1).setValue("📅  ATTENDANCE REGISTER — " + CO_NAME + " | " + mLbl);
 
   // Control row
   sh.getRange(2,1).setValue("Month:");
@@ -545,29 +545,32 @@ function createSalaryRegisterSheet(ss) {
   const now  = new Date();
   const mLbl = Utilities.formatDate(now, tz, "MMMM yyyy");
 
-  // ── Row 1: Title ─────────────────────────────────────────
-  sh.getRange(1,1,1,30).merge()
-    .setValue("📊  SALARY REGISTER — " + CO_NAME + " | " + mLbl)
+  // ── Row 1: Title — no .merge(); setFrozenColumns(3) cannot cross a merged cell boundary ──
+  sh.getRange(1,1,1,30)
     .setBackground(C.DARK_BLUE).setFontColor(C.WHITE)
     .setFontSize(14).setFontWeight("bold").setHorizontalAlignment("center");
+  sh.getRange(1,1).setValue("📊  SALARY REGISTER — " + CO_NAME + " | " + mLbl);
 
-  // ── Row 2: Month info ────────────────────────────────────
-  sh.getRange(2,1,1,30).merge()
-    .setValue("Month: " + mLbl + "  |  Generated: " +
-              Utilities.formatDate(now, tz, "dd/MM/yyyy HH:mm"))
+  // ── Row 2: Month info — no .merge() ─────────────────────
+  sh.getRange(2,1,1,30)
     .setBackground(C.LIGHT_BLUE).setFontSize(10).setHorizontalAlignment("center");
+  sh.getRange(2,1).setValue("Month: " + mLbl + "  |  Generated: " +
+              Utilities.formatDate(now, tz, "dd/MM/yyyy HH:mm"));
 
   // ── Row 3: Group headers ─────────────────────────────────
-  const groups = [
-    [1, 5, "EMPLOYEE DETAILS",       "#0D47A1"],
-    [6, 6, "ATTENDANCE",             "#E65100"],
-    [12,7, "EARNINGS",               "#1B5E20"],
-    [19,8, "DEDUCTIONS",             "#B71C1C"],
-    [27,2, "NET PAY",                "#4A148C"],
-    [29,2, "EMPLOYER CONTRIBUTION",  "#006064"],
-  ];
-  groups.forEach(([col, span, label, bg]) => {
-    sh.getRange(3, col, 1, span).merge()
+  // NOTE: setFrozenColumns(3) freezes cols 1-3. Any merged cell that straddles col 3/4
+  // boundary causes an error. The first group (EMPLOYEE DETAILS) originally spanned cols 1-5;
+  // we split it: cols 1-3 get the label+merge (fully inside frozen region), cols 4-5 get
+  // the same colour with no merge.
+  sh.getRange(3,1,1,3).merge()
+    .setValue("EMPLOYEE DETAILS").setBackground("#0D47A1").setFontColor(C.WHITE)
+    .setFontWeight("bold").setHorizontalAlignment("center");
+  sh.getRange(3,4,1,2).setBackground("#0D47A1"); // Designation & Department cols — same colour
+  // Remaining groups start at col 6+ (all beyond the frozen boundary — safe to merge)
+  [[6,6,"ATTENDANCE","#E65100"],[12,7,"EARNINGS","#1B5E20"],
+   [19,8,"DEDUCTIONS","#B71C1C"],[27,2,"NET PAY","#4A148C"],
+   [29,2,"EMPLOYER CONTRIBUTION","#006064"]].forEach(([col,span,label,bg]) => {
+    sh.getRange(3,col,1,span).merge()
       .setValue(label).setBackground(bg).setFontColor(C.WHITE)
       .setFontWeight("bold").setHorizontalAlignment("center");
   });
