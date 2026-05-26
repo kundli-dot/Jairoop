@@ -24,13 +24,14 @@ const CO_SHORT  = "JRT";
 
 // ── Sheet names (emoji prefixes aid visual navigation) ──────
 const SH = {
-  SETTINGS : "⚙️ Settings",
-  EMP      : "👥 Employee Master",
-  ATTEND   : "📅 Attendance",
-  LOAN     : "💰 Loan & Advance",
-  SALARY   : "📊 Salary Register",
-  PAYSLIP  : "🧾 Payslip View",
-  SUMMARY  : "📈 Summary Dashboard",
+  SETTINGS  : "⚙️ Settings",
+  EMP       : "👥 Employee Master",
+  DAILY_ATT : "📋 Daily Attendance",
+  ATTEND    : "📅 Attendance",
+  LOAN      : "💰 Loan & Advance",
+  SALARY    : "📊 Salary Register",
+  PAYSLIP   : "🧾 Payslip View",
+  SUMMARY   : "📈 Summary Dashboard",
 };
 
 // ── Colour palette ──────────────────────────────────────────
@@ -90,19 +91,22 @@ const S = {
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("🏭 " + CO_SHORT + " Salary")
-    .addItem("🔧  Initial Setup / Reset Sheets",      "setupSalarySystem")
+    .addItem("🔧  Initial Setup / Reset Sheets",                 "setupSalarySystem")
     .addSeparator()
-    .addItem("📅  Generate Monthly Salary Register",  "generateMonthlySalary")
-    .addItem("🧾  Preview Payslip (enter Emp ID)",    "activatePayslip")
-    .addItem("📄  Export Payslip to PDF (Drive)",     "exportPayslipPDF")
+    .addItem("📋  Open Daily Attendance Sheet",                  "openDailyAttendance")
+    .addItem("🔄  Refresh Attendance Summary from Daily Sheet",  "refreshAttendanceSummary")
     .addSeparator()
-    .addItem("💰  Add New Loan / Advance Entry",      "addLoanAdvanceEntry")
-    .addItem("🔄  Post Month-End: Update Balances",   "updateLoanAdvanceBalances")
+    .addItem("📅  Generate Monthly Salary Register",             "generateMonthlySalary")
+    .addItem("🧾  Preview Payslip (enter Emp ID)",               "activatePayslip")
+    .addItem("📄  Export Payslip to PDF (Drive)",                "exportPayslipPDF")
     .addSeparator()
-    .addItem("📈  Open Summary Dashboard",            "openSummary")
-    .addItem("🗄️  Archive Current Month Salary",     "archiveCurrentMonth")
+    .addItem("💰  Add New Loan / Advance Entry",                 "addLoanAdvanceEntry")
+    .addItem("🔄  Post Month-End: Update Balances",              "updateLoanAdvanceBalances")
     .addSeparator()
-    .addItem("ℹ️  Help & Documentation",              "showHelp")
+    .addItem("📈  Open Summary Dashboard",                       "openSummary")
+    .addItem("🗄️  Archive Current Month Salary",                "archiveCurrentMonth")
+    .addSeparator()
+    .addItem("ℹ️  Help & Documentation",                         "showHelp")
     .addToUi();
 }
 
@@ -124,6 +128,7 @@ function setupSalarySystem() {
 
   createSettingsSheet(ss);
   createEmployeeMasterSheet(ss);
+  createDailyAttendanceSheet(ss);
   createAttendanceSheet(ss);
   createLoanAdvanceSheet(ss);
   createSalaryRegisterSheet(ss);
@@ -143,11 +148,12 @@ function setupSalarySystem() {
     "All sheets created for " + CO_NAME + ".\n\n" +
     "Next steps:\n" +
     "1. ⚙️ Settings  — update company details & statutory rates\n" +
-    "2. 👥 Employee Master — add all employees (set Fixed Working Hours per employee)\n" +
-    "3. 📅 Attendance — fill attendance each month\n" +
-    "4. 💰 Loan & Advance — record advances / loan EMIs\n" +
-    "5. Menu → Generate Monthly Salary Register\n" +
-    "6. Menu → Preview / Export Payslips",
+    "2. 👥 Employee Master — add all employees (Fixed Working Hours in col F)\n" +
+    "3. 📋 Daily Attendance — enter daily punch-in/out for each employee\n" +
+    "4. Menu → Refresh Attendance Summary — calculates monthly totals + Sunday eligibility\n" +
+    "5. 💰 Loan & Advance — record advances / loan EMIs\n" +
+    "6. Menu → Generate Monthly Salary Register\n" +
+    "7. Menu → Preview / Export Payslips",
     ui.ButtonSet.OK
   );
 }
@@ -405,22 +411,26 @@ function createAttendanceSheet(ss) {
   const now  = new Date();
   const mLbl = Utilities.formatDate(now, tz, "MMMM yyyy");
 
-  // 12 columns now: Fixed Working Hrs/Day added at col I(9)
+  // 12 columns: Fixed Working Hrs/Day at col I(9)
   sh.getRange(1, 1, 1, 12)
     .setBackground(C.DARK_BLUE).setFontColor(C.WHITE)
     .setFontSize(13).setFontWeight("bold").setHorizontalAlignment("center");
-  sh.getRange(1, 1).setValue("📅  ATTENDANCE REGISTER — " + CO_NAME + " | " + mLbl);
+  sh.getRange(1, 1).setValue("📅  ATTENDANCE SUMMARY — " + CO_NAME + " | " + mLbl);
 
-  // Control row
-  sh.getRange(2, 1).setValue("Month:");
-  sh.getRange(2, 2).setValue(now).setNumberFormat("MMMM yyyy").setBackground("#FFFF99").setFontWeight("bold");
-  sh.getRange(2, 3).setValue("Working Days:");
-  sh.getRange(2, 4).setValue(DEF.WORK_DAYS).setBackground("#FFFF99").setFontWeight("bold");
-  sh.getRange(2, 5).setValue("Default Work Hrs/Day:");
-  sh.getRange(2, 6).setValue(DEF.WORK_HRS).setBackground("#FFFF99").setFontWeight("bold");
+  // Control row — Month number + Year are READ BY refreshAttendanceSummary()
+  sh.getRange(2, 1).setValue("Month (1-12):");
+  sh.getRange(2, 2).setValue(now.getMonth() + 1)
+    .setBackground("#FFFF99").setFontWeight("bold")
+    .setDataValidation(SpreadsheetApp.newDataValidation()
+      .requireNumberBetween(1, 12).setHelpText("1=Jan, 2=Feb … 12=Dec").build());
+  sh.getRange(2, 3).setValue("Year:");
+  sh.getRange(2, 4).setValue(now.getFullYear()).setBackground("#FFFF99").setFontWeight("bold");
+  sh.getRange(2, 5).setValue("Late Cutoff (hh:mm):");
+  sh.getRange(2, 6).setValue(9.5 / 24).setNumberFormat("HH:mm")
+    .setBackground("#FFFF99").setFontWeight("bold");
   sh.getRange(2, 7, 1, 6).merge()
-    .setValue("📌 Fill: Emp ID, Days Present, Half Days, OT Hrs, Short Time Hrs. " +
-              "Fixed Working Hrs/Day (col I) auto-fills from Employee Master — use it as reference when entering Short Time.")
+    .setValue("📌 Set Month & Year above → Menu → Refresh Attendance Summary from Daily Sheet. " +
+              "Cols D/E/G/H/J/K are auto-calculated from 📋 Daily Attendance (incl. Sunday eligibility).")
     .setBackground("#FFF9C4").setFontStyle("italic").setFontSize(9).setWrap(true);
 
   // Column layout (12 cols):
@@ -440,25 +450,21 @@ function createAttendanceSheet(ss) {
   sh.getRange(3, 9).setBackground("#E65100");
 
   for (let r = 4; r <= 200; r++) {
+    // Cols B, C auto-fill from Employee Master; these remain as formulas
     sh.getRange(r, 2).setFormula(
       `=IFERROR(IF(A${r}="","",VLOOKUP(A${r},'👥 Employee Master'!$A:$B,2,0)),"")`);
     sh.getRange(r, 3).setFormula(
       `=IFERROR(IF(A${r}="","",VLOOKUP(A${r},'👥 Employee Master'!$A:$C,3,0)),"")`);
-    sh.getRange(r, 4).setFormula(`=IF(A${r}="","",$D$2)`);
+    // Col F (Days Absent) formula — D, E, G are written by the refresh script
     sh.getRange(r, 6).setFormula(`=IF(A${r}="","",D${r}-E${r}-G${r}/2)`);
-    // Fixed Working Hrs/Day — auto-filled from Employee Master col F(6)
+    // Col I (Fixed WH) auto-fills from Employee Master col F
     sh.getRange(r, 9).setFormula(
       `=IFERROR(IF(A${r}="","",VLOOKUP(A${r},'👥 Employee Master'!$A:$F,6,0)),"")`);
+    // D/E/G/H/J/K are populated by refreshAttendanceSummary() — left empty here
   }
 
-  // Pre-fill demo row (Short Time now at col 10, Late Count at col 11)
+  // Demo: pre-fill Emp ID only; all counts filled after first Refresh run
   sh.getRange(4, 1).setValue("JRT001");
-  sh.getRange(4, 5).setValue(25);
-  sh.getRange(4, 7).setValue(0);
-  sh.getRange(4, 8).setValue(2);
-  // col 9 (Fixed WH) auto-fills from formula
-  sh.getRange(4, 10).setValue(1);   // Short Time Hours
-  sh.getRange(4, 11).setValue(0);   // Late Count
 
   sh.setFrozenRows(3);
   sh.setFrozenColumns(2);
@@ -469,6 +475,135 @@ function createAttendanceSheet(ss) {
   [80, 180, 140, 90, 90, 90, 80, 80, 75, 100, 80, 160].forEach((w, i) => sh.setColumnWidth(i + 1, w));
 
   SpreadsheetApp.flush();
+}
+
+// ============================================================
+//  SHEET: 📋 Daily Attendance
+//
+//  Column map (9 cols):
+//  A(1) S.No (auto)        B(2) Date (manual)       C(3) Emp ID (manual)
+//  D(4) Employee Name(auto) E(5) In Time (manual)    F(6) Out Time (manual)
+//  G(7) Working Hours(auto) H(8) Day (auto)          I(9) Status (manual)
+//
+//  Status values: Present | Half Day | Absent | Leave | Holiday | Weekly Off
+//
+//  Sunday Pay Rules (applied by refreshAttendanceSummary):
+//   • Employee must work ≥ 4 days in Mon–Sat of that week AND must have
+//     worked on Saturday → eligible for Sunday pay
+//   • Worked 4 days but Saturday = Absent/Leave → NOT eligible
+//   • Worked < 4 days in Mon–Sat → NOT eligible
+// ============================================================
+function createDailyAttendanceSheet(ss) {
+  let sh = ss.getSheetByName(SH.DAILY_ATT);
+  if (!sh) { sh = ss.insertSheet(SH.DAILY_ATT, 2); }  // before Attendance Summary
+  sh.clear();
+  sh.setTabColor("#E65100");
+
+  const tz  = Session.getScriptTimeZone();
+  const now = new Date();
+  const mLbl = Utilities.formatDate(now, tz, "MMMM yyyy");
+
+  sh.getRange(1, 1, 1, 9)
+    .setBackground(C.DARK_BLUE).setFontColor(C.WHITE)
+    .setFontSize(13).setFontWeight("bold").setHorizontalAlignment("center");
+  sh.getRange(1, 1).setValue("📋  DAILY ATTENDANCE REGISTER — " + CO_NAME + " | " + mLbl);
+
+  // Control row
+  sh.getRange(2, 1).setValue("Month:");
+  sh.getRange(2, 2).setValue(now.getMonth() + 1).setBackground("#FFFF99").setFontWeight("bold");
+  sh.getRange(2, 3).setValue("Year:");
+  sh.getRange(2, 4).setValue(now.getFullYear()).setBackground("#FFFF99").setFontWeight("bold");
+  sh.getRange(2, 5, 1, 5).merge()
+    .setValue("📌 Enter Date, Emp ID, In Time, Out Time, Status. " +
+              "Working Hours & Day auto-fill. After all entries, run Menu → Refresh Attendance Summary.")
+    .setBackground("#FFF9C4").setFontStyle("italic").setFontSize(9).setWrap(true);
+
+  // Headers (matching screenshot layout)
+  const hdrs = [
+    "S.No", "Date", "Emp ID", "Employee Name", "In Time", "Out Time",
+    "Working Hours", "Day", "Status"
+  ];
+  sh.getRange(3, 1, 1, hdrs.length).setValues([hdrs])
+    .setBackground(C.MID_BLUE).setFontColor(C.WHITE)
+    .setFontWeight("bold").setHorizontalAlignment("center").setWrap(true);
+  sh.setRowHeight(3, 35);
+
+  // Formulas for rows 4–2003 (2000 data rows)
+  for (let r = 4; r <= 2003; r++) {
+    // S.No — auto-numbered based on Emp ID presence
+    sh.getRange(r, 1).setFormula(`=IF(C${r}="","",ROW()-3)`);
+    // Employee Name — auto from Employee Master
+    sh.getRange(r, 4).setFormula(
+      `=IFERROR(IF(C${r}="","",VLOOKUP(C${r},'👥 Employee Master'!$A:$B,2,0)),"")`);
+    // Working Hours = Out Time − In Time (formatted as [h]:mm)
+    sh.getRange(r, 7).setFormula(
+      `=IF(OR(E${r}="",F${r}=""),"",F${r}-E${r})`);
+    // Day abbreviation (Mon, Tue, … Sun)
+    sh.getRange(r, 8).setFormula(
+      `=IF(B${r}="","",TEXT(B${r},"ddd"))`);
+  }
+
+  // Status dropdown validation
+  const statusVal = SpreadsheetApp.newDataValidation()
+    .requireValueInList(["Present", "Half Day", "Absent", "Leave", "Holiday", "Weekly Off"], true)
+    .build();
+  sh.getRange(4, 9, 2000, 1).setDataValidation(statusVal);
+
+  // Formatting
+  sh.getRange(4, 2, 2000, 1).setNumberFormat("dd-mmm-yyyy");  // Date column
+  sh.getRange(4, 5, 2000, 2).setNumberFormat("HH:mm");         // In Time, Out Time
+  sh.getRange(4, 7, 2000, 1).setNumberFormat("[h]:mm");         // Working Hours
+
+  sh.setFrozenRows(3);
+  sh.setFrozenColumns(3);
+
+  // Colour band the auto-fill columns (D, G, H) differently to signal read-only
+  sh.getRange(3, 4).setBackground("#33691E");  // Name header
+  sh.getRange(3, 7).setBackground("#33691E");  // Working Hours header
+  sh.getRange(3, 8).setBackground("#33691E");  // Day header
+  sh.getRange(4, 4, 2000, 1).setBackground("#F1F8E9").setFontStyle("italic");
+  sh.getRange(4, 7, 2000, 1).setBackground("#F1F8E9").setFontStyle("italic");
+  sh.getRange(4, 8, 2000, 1).setBackground("#F1F8E9").setFontStyle("italic");
+
+  // Sunday rows — conditional styling via alternate banding (script handles logic)
+  sh.getRange(3, 9).setBackground("#B71C1C");  // Status header highlight
+
+  // Column widths
+  [55, 110, 80, 180, 80, 80, 100, 55, 100].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+
+  // Demo rows for JRT001 — representative week to illustrate the Sunday pay rule
+  const demoRows = _buildDemoRows(now);
+  if (demoRows.length > 0) {
+    demoRows.forEach((row, i) => {
+      const r = 4 + i;
+      // Only set manual columns (B=Date, C=EmpId, E=InTime, F=OutTime, I=Status)
+      sh.getRange(r, 2).setValue(row[0]).setNumberFormat("dd-mmm-yyyy");
+      sh.getRange(r, 3).setValue(row[1]);
+      sh.getRange(r, 5).setValue(row[2]).setNumberFormat("HH:mm");
+      sh.getRange(r, 6).setValue(row[3]).setNumberFormat("HH:mm");
+      sh.getRange(r, 9).setValue(row[4]);
+    });
+  }
+
+  SpreadsheetApp.flush();
+}
+
+// Build demo attendance rows for the current month (first 10 working days for JRT001)
+function _buildDemoRows(now) {
+  const rows = [];
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  let count = 0;
+  for (let d = 1; d <= 28 && count < 10; d++) {
+    const date = new Date(year, month, d);
+    const dow = date.getDay();
+    if (dow === 0) continue; // skip Sundays
+    const inT  = 9.5 / 24;      // 09:30
+    const outT = 18.5 / 24;     // 18:30
+    rows.push([date, "JRT001", inT, outT, "Present"]);
+    count++;
+  }
+  return rows;
 }
 
 // ============================================================
@@ -1094,6 +1229,10 @@ function generateMonthlySalary() {
   });
 
   SpreadsheetApp.flush();
+
+  // Auto-refresh attendance summary from daily data (includes Sunday eligibility)
+  refreshAttendanceSummary();
+
   const tz   = Session.getScriptTimeZone();
   const mLbl = Utilities.formatDate(new Date(), tz, "MMMM yyyy");
 
@@ -1103,11 +1242,12 @@ function generateMonthlySalary() {
     `Active employees: ${active.length}\n` +
     `Newly added to register: ${added}\n\n` +
     "Next:\n" +
-    "1. Verify attendance data in 📅 Attendance sheet.\n" +
-    "2. Update monthly TDS in 👥 Employee Master (col AD) if changed.\n" +
-    "3. Check 💰 Loan & Advance entries are current.\n" +
-    "4. Review 📊 Salary Register — all columns auto-calculate.\n" +
-    "5. View/export individual payslips from 🧾 Payslip View.",
+    "1. Attendance summary has been refreshed from 📋 Daily Attendance.\n" +
+    "2. Verify 📅 Attendance — check Days Present, OT, Short Time.\n" +
+    "3. Update monthly TDS in 👥 Employee Master (col AD) if changed.\n" +
+    "4. Check 💰 Loan & Advance entries are current.\n" +
+    "5. Review 📊 Salary Register — all columns auto-calculate.\n" +
+    "6. View/export individual payslips from 🧾 Payslip View.",
     ui.ButtonSet.OK
   );
 }
@@ -1302,6 +1442,213 @@ function archiveCurrentMonth() {
 }
 
 // ============================================================
+//  MENU ACTION: Open Daily Attendance Sheet
+// ============================================================
+function openDailyAttendance() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(SH.DAILY_ATT);
+  if (!sh) { SpreadsheetApp.getUi().alert("Run Setup first."); return; }
+  sh.activate();
+}
+
+// ============================================================
+//  MENU ACTION: Refresh Attendance Summary from Daily Sheet
+//
+//  Sunday Pay Rule:
+//   For each Sunday in the selected month:
+//     Look at Mon–Sat of that week (can span previous month).
+//     Count days with Status = "Present" or "Half Day" for the employee.
+//     If count ≥ 4 AND Saturday = "Present" → Sunday is an eligible paid day.
+//     Add eligible Sundays to both Days Present and Total Working Days.
+// ============================================================
+function refreshAttendanceSummary() {
+  const ss       = SpreadsheetApp.getActiveSpreadsheet();
+  const dailySh  = ss.getSheetByName(SH.DAILY_ATT);
+  const attSh    = ss.getSheetByName(SH.ATTEND);
+  const ui       = SpreadsheetApp.getUi();
+
+  if (!dailySh || !attSh) {
+    ui.alert("Required sheets not found. Please run Setup first.");
+    return;
+  }
+
+  // Read month/year from Attendance summary control row
+  const monthNum = parseInt(attSh.getRange(2, 2).getValue());
+  const yearNum  = parseInt(attSh.getRange(2, 4).getValue());
+  const lateCutoff = attSh.getRange(2, 6).getValue(); // fraction of day (e.g. 9.5/24)
+
+  if (!monthNum || !yearNum || monthNum < 1 || monthNum > 12 || yearNum < 2000) {
+    ui.alert("Invalid month/year in Attendance sheet row 2. Set Month (B2: 1–12) and Year (D2).");
+    return;
+  }
+
+  const monthStart = new Date(yearNum, monthNum - 1, 1);
+  const monthEnd   = new Date(yearNum, monthNum, 0);   // last day of month
+
+  // Read ALL daily attendance data (cross-month weeks need previous month rows too)
+  const dailyLastRow = Math.max(dailySh.getLastRow() - 3, 1);
+  const allDaily = dailySh.getRange(4, 1, dailyLastRow, 9).getValues();
+  // Index map: 0=SNo, 1=Date, 2=EmpId, 3=Name, 4=InTime, 5=OutTime, 6=WorkHrs, 7=Day, 8=Status
+
+  // Filter current-month rows (for most calculations)
+  const monthDaily = allDaily.filter(row => {
+    if (!row[1] || row[1] === "") return false;
+    const d = new Date(row[1]);
+    return d >= monthStart && d <= monthEnd;
+  });
+
+  // Count Mon–Sat days in the month (used for Total Working Days base)
+  const monSatCount = _countMonSatDays(yearNum, monthNum);
+
+  // Read employee list from Attendance sheet rows 4–203
+  const attLastRow = Math.max(attSh.getLastRow() - 3, 1);
+  const attRows    = attSh.getRange(4, 1, attLastRow, 12).getValues();
+
+  let processed = 0;
+
+  attRows.forEach((empRow, idx) => {
+    const empId = String(empRow[0]).trim();
+    if (!empId) return;
+
+    const r = idx + 4; // 1-indexed sheet row
+
+    // Employee's fixed working hours (col I has VLOOKUP formula — read it now)
+    const fixedWH = parseFloat(attSh.getRange(r, 9).getValue()) || DEF.WORK_HRS;
+    const fixedWHFrac = fixedWH / 24; // convert hours → fraction of day
+
+    // Filter daily rows for this employee in the current month
+    const empMonthRows = monthDaily.filter(row => String(row[2]).trim() === empId);
+
+    let daysPresent   = 0;
+    let halfDays      = 0;
+    let otHoursTotal  = 0;   // decimal hours
+    let stHoursTotal  = 0;   // decimal hours
+    let lateCount     = 0;
+
+    empMonthRows.forEach(row => {
+      const rowDate = new Date(row[1]);
+      if (rowDate.getDay() === 0) return; // skip Sundays (handled separately)
+
+      const status   = String(row[8]).trim();
+      const inTime   = typeof row[4] === "number" ? row[4] : 0;
+      const workFrac = typeof row[6] === "number" ? row[6] : 0;
+
+      if (status === "Present") {
+        daysPresent++;
+
+        // OT: worked more than fixed hours
+        if (workFrac > fixedWHFrac) {
+          otHoursTotal += (workFrac - fixedWHFrac) * 24;
+        }
+        // Short Time: worked fewer than fixed hours
+        if (workFrac > 0 && workFrac < fixedWHFrac) {
+          stHoursTotal += (fixedWHFrac - workFrac) * 24;
+        }
+        // Late: arrived after cutoff
+        if (typeof lateCutoff === "number" && inTime > lateCutoff) {
+          lateCount++;
+        }
+      } else if (status === "Half Day") {
+        halfDays++;
+      }
+    });
+
+    // Calculate eligible Sundays using ALL data (handles cross-month weeks)
+    const eligibleSundays = _calcEligibleSundays(empId, allDaily, yearNum, monthNum);
+
+    // Total Working Days = Mon-Sat days in month + eligible Sundays
+    const totalWD = monSatCount + eligibleSundays;
+    // Days Present includes eligible Sundays (company pays for them)
+    daysPresent += eligibleSundays;
+
+    // Write values to Attendance summary sheet
+    attSh.getRange(r, 4).setValue(totalWD);                                   // D: Total WD
+    attSh.getRange(r, 5).setValue(daysPresent);                               // E: Days Present
+    // F (Days Absent) is formula =D-E-G/2 — auto-updates
+    attSh.getRange(r, 7).setValue(halfDays);                                   // G: Half Days
+    attSh.getRange(r, 8).setValue(Math.round(otHoursTotal * 100) / 100);      // H: OT Hrs
+    // I (Fixed WH) is VLOOKUP formula — not overwritten
+    attSh.getRange(r, 10).setValue(Math.round(stHoursTotal * 100) / 100);     // J: Short Time
+    attSh.getRange(r, 11).setValue(lateCount);                                 // K: Late Count
+
+    processed++;
+  });
+
+  SpreadsheetApp.flush();
+
+  const tz   = Session.getScriptTimeZone();
+  const mLbl = Utilities.formatDate(new Date(yearNum, monthNum - 1, 1), tz, "MMMM yyyy");
+  ui.alert(
+    "✅  Attendance Summary Refreshed",
+    `Month: ${mLbl}\nEmployees processed: ${processed}\n\n` +
+    "Total Working Days now includes eligible Sundays per the Sunday-pay rule.\n" +
+    "Run 'Generate Monthly Salary Register' next to push these values to the Salary Register.",
+    ui.ButtonSet.OK
+  );
+}
+
+// ── Helper: count Mon–Sat days in a given month ──────────────
+function _countMonSatDays(yearNum, monthNum) {
+  const lastDay = new Date(yearNum, monthNum, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= lastDay; d++) {
+    if (new Date(yearNum, monthNum - 1, d).getDay() !== 0) count++;
+  }
+  return count;
+}
+
+// ── Helper: count eligible Sundays for one employee ──────────
+//
+//  For every Sunday in the target month:
+//    1. Identify the Mon–Sat window immediately before that Sunday.
+//    2. From allDailyData, count "Present" or "Half Day" days for
+//       the employee in that Mon–Sat window.
+//    3. Check whether the Saturday of that window was "Present".
+//    4. If days worked ≥ 4 AND Saturday present → Sunday is eligible.
+//
+function _calcEligibleSundays(empId, allDailyData, yearNum, monthNum) {
+  const firstDay = new Date(yearNum, monthNum - 1, 1);
+  const lastDay  = new Date(yearNum, monthNum, 0);
+  let eligible   = 0;
+
+  for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+    if (d.getDay() !== 0) continue; // only process Sundays
+
+    // Week window: Mon (6 days before Sunday) to Sat (1 day before Sunday)
+    const sunday   = new Date(d);
+    const monday   = new Date(sunday); monday.setDate(sunday.getDate() - 6);
+    const saturday = new Date(sunday); saturday.setDate(sunday.getDate() - 1);
+
+    let daysWorked    = 0;
+    let saturdayWorked = false;
+
+    allDailyData.forEach(row => {
+      if (!row[1] || String(row[2]).trim() !== empId) return;
+      const rowDate = new Date(row[1]);
+      if (rowDate < monday || rowDate > saturday) return;
+
+      const status = String(row[8]).trim();
+      const dow    = rowDate.getDay();
+
+      if (status === "Present") {
+        daysWorked++;
+        if (dow === 6) saturdayWorked = true;  // Saturday worked
+      } else if (status === "Half Day") {
+        daysWorked += 1;  // half day counts as a worked day for eligibility
+        if (dow === 6) saturdayWorked = true;  // half day on Saturday still counts
+      }
+      // "Leave" on Saturday = NOT eligible (rule: if someone has taken leave for Sat → not eligible)
+    });
+
+    if (daysWorked >= 4 && saturdayWorked) {
+      eligible++;
+    }
+  }
+
+  return eligible;
+}
+
+// ============================================================
 //  MENU ACTION: Open Summary
 // ============================================================
 function openSummary() {
@@ -1339,8 +1686,9 @@ function showHelp() {
   ✅ No EPS — full 12% employer EPF goes directly to EPF A/C (no Pension Scheme split)<br>
   ✅ No ESI Gross Ceiling — ESI applies to all ESI-enrolled employees regardless of salary<br>
   ✅ No EPF Wage Ceiling — EPF calculated on actual Basic + DA (no ₹15,000 cap)<br>
-  ✅ Per-employee Fixed Working Hours — set in Employee Master col F (different employees can have different hours)<br>
-  ✅ OT at standard rate (1×) — not double time
+  ✅ Per-employee Fixed Working Hours — set in Employee Master col F<br>
+  ✅ OT at standard rate (1×) — not double time<br>
+  ✅ Sunday paid only when: employee worked ≥ 4 days in Mon–Sat AND worked on Saturday
 </div>
 
 <h3>📋 Quick Start (First Time)</h3>
@@ -1348,13 +1696,13 @@ function showHelp() {
   <li>Run <b>Menu → Setup / Reset Sheets</b> — creates all sheets.</li>
   <li>Open <b>⚙️ Settings</b> — fill company details, verify statutory rates.</li>
   <li>Open <b>👥 Employee Master</b> — add each employee; set <b>col F (Fixed Working Hours)</b> per employee, fill salary, EPF/ESI flag, TDS (col AD).</li>
-  <li>Each month: open <b>📅 Attendance</b> — fill Emp IDs, Days Present, Half Days, OT, Short Time.</li>
-  <li>Open <b>💰 Loan & Advance</b> — add new loans/advances via menu or directly.</li>
-  <li>Run <b>Menu → Generate Monthly Salary Register</b>.</li>
+  <li>Each day: open <b>📋 Daily Attendance</b> — enter Date, Emp ID, In Time, Out Time, Status for each employee. Working Hours and Day auto-fill.</li>
+  <li>At month end: set <b>Month</b> and <b>Year</b> in <b>📅 Attendance</b> row 2, then run <b>Menu → Refresh Attendance Summary</b> — calculates totals including Sunday pay eligibility.</li>
+  <li>Open <b>💰 Loan & Advance</b> — add new loans/advances if any.</li>
+  <li>Run <b>Menu → Generate Monthly Salary Register</b> (also triggers attendance refresh).</li>
   <li>Review <b>📊 Salary Register</b> — all earnings, deductions, net pay auto-calculated.</li>
   <li>View payslip: open <b>🧾 Payslip View</b>, type Emp ID in B1.</li>
-  <li>End of month: run <b>Menu → Post Month-End: Update Balances</b>.</li>
-  <li>Archive: run <b>Menu → Archive Current Month Salary</b>.</li>
+  <li>End of month: run <b>Menu → Post Month-End: Update Balances</b>, then Archive.</li>
 </ol>
 
 <h3 class="red">💰 Deductions — Calculation Logic</h3>
@@ -1387,7 +1735,24 @@ function showHelp() {
       <td>Company policy (zero interest)</td></tr>
 </table>
 
-<h3 class="green">✅ Employer Contributions (not deducted from employee)</h3>
+  <h3>🌞 Sunday Pay Rules</h3>
+<table>
+  <tr><th>Scenario</th><th>Sunday Pay?</th></tr>
+  <tr><td>Worked ≥ 4 days (Mon–Sat) <b>including Saturday</b></td><td style="color:#1B5E20"><b>✅ YES — Sunday is a paid day</b></td></tr>
+  <tr><td>Worked ≥ 4 days (Mon–Sat) but <b>Saturday absent</b></td><td style="color:#B71C1C"><b>❌ NO</b></td></tr>
+  <tr><td>Worked ≥ 4 days but <b>Saturday = Leave</b></td><td style="color:#B71C1C"><b>❌ NO</b></td></tr>
+  <tr><td>Worked < 4 days in the week</td><td style="color:#B71C1C"><b>❌ NO</b></td></tr>
+  <tr><td>Half Day on Saturday counts as <b>worked Saturday</b></td><td style="color:#1B5E20">✅ eligible (if total ≥ 4 days)</td></tr>
+</table>
+<div class="note">
+  <b>How eligible Sundays affect salary:</b><br>
+  • Eligible Sundays are added to both <b>Total Working Days</b> and <b>Days Present</b> for the employee.<br>
+  • This means the per-day rate (Gross ÷ Total WD) accounts for Sunday pay fairly.<br>
+  • Run <b>Menu → Refresh Attendance Summary</b> after entering all daily attendance for the month.<br>
+  • The calculation uses the preceding Mon–Sat window for each Sunday (can span into the previous month for the first week).
+</div>
+
+  <h3 class="green">✅ Employer Contributions (not deducted from employee)</h3>
 <table>
   <tr><th>Contribution</th><th>Rate</th><th>Notes</th></tr>
   <tr><td>EPF Employer</td><td>12% × (Basic + DA) — <b>no wage ceiling</b></td>
@@ -1444,7 +1809,8 @@ function showHelp() {
   <tr><th>Sheet</th><th>Purpose</th><th>Who fills it</th></tr>
   <tr><td>⚙️ Settings</td><td>Company info, statutory rates, tax slabs</td><td>HR/Accounts (once)</td></tr>
   <tr><td>👥 Employee Master</td><td>All employee data, salary, working hours (col F), TDS (col AD)</td><td>HR</td></tr>
-  <tr><td>📅 Attendance</td><td>Monthly attendance, OT, short time. Col I shows each employee's Fixed Working Hrs for reference.</td><td>HR/Supervisor (monthly)</td></tr>
+  <tr><td>📋 Daily Attendance</td><td>Daily punch-in/out for all employees. Enter Date, Emp ID, In/Out Time, Status daily.</td><td>HR/Supervisor (daily)</td></tr>
+  <tr><td>📅 Attendance</td><td>Monthly summary — auto-calculated from Daily Attendance via Refresh. Includes Sunday eligibility.</td><td>Auto (run Refresh)</td></tr>
   <tr><td>💰 Loan & Advance</td><td>Loan & advance records, EMI tracking</td><td>Accounts</td></tr>
   <tr><td>📊 Salary Register</td><td>Auto-calculated salary — all deductions, net pay</td><td>Auto (read-only)</td></tr>
   <tr><td>🧾 Payslip View</td><td>Live payslip for any employee</td><td>Auto (enter Emp ID)</td></tr>
