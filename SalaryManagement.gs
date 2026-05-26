@@ -67,6 +67,7 @@ const DEF = {
   WORK_DAYS   : 26,       // standard working days per month
   WORK_HRS    : 8,        // default working hours per day (overridden per employee)
   OT_MULT     : 1,        // OT at standard rate (1×); change to 2 for double time
+  ST_MULT     : 1,        // Short Time deduction multiplier (1=proportional; >1=penalty)
 };
 
 // ── Settings sheet cell references (used in Salary Register formulas) ──
@@ -80,6 +81,7 @@ const S = {
   WORK_DAY : "'⚙️ Settings'!$B$29",
   WORK_HRS : "'⚙️ Settings'!$B$30",  // Default; overridden by per-employee col F
   OT_MULT  : "'⚙️ Settings'!$B$31",
+  ST_MULT  : "'⚙️ Settings'!$B$32",  // Short Time Deduction Multiplier
 };
 
 // ============================================================
@@ -162,6 +164,7 @@ function setupSalarySystem() {
 //  Row 29 : Standard Working Days  → S.WORK_DAY
 //  Row 30 : Default Working Hrs    → S.WORK_HRS
 //  Row 31 : Overtime Multiplier    → S.OT_MULT
+//  Row 32 : Short Time Mult.       → S.ST_MULT
 // ============================================================
 function createSettingsSheet(ss) {
   let sh = ss.getSheetByName(SH.SETTINGS);
@@ -201,29 +204,30 @@ function createSettingsSheet(ss) {
     /* 29 */ ["Standard Working Days",  DEF.WORK_DAYS,      "Days used for per-day salary calculation",                     "26 days standard for India"],
     /* 30 */ ["Default Working Hours/Day", DEF.WORK_HRS,    "Fallback hours/day when employee-specific hours are not set",  "Override per employee in Employee Master col F"],
     /* 31 */ ["Overtime Multiplier",    DEF.OT_MULT,        "OT = (Basic ÷ WD ÷ Emp.WH) × OT Hrs × Multiplier",            "1 = standard rate; set 2 for double time"],
-    /* 32 */ ["", "", "", ""],
-    /* 33 */ ["INCOME TAX SLABS — FY 2024-25 (NEW REGIME)", "", "", ""],
-    /* 34 */ ["Slab Description",       "Income From (₹)", "Income Up To (₹)", "Tax Rate (%)"],
-    /* 35 */ ["Nil Slab",               0,                 300000,              0],
-    /* 36 */ ["5% Slab",                300001,            700000,              5],
-    /* 37 */ ["10% Slab",               700001,            1000000,             10],
-    /* 38 */ ["15% Slab",               1000001,           1200000,             15],
-    /* 39 */ ["20% Slab",               1200001,           1500000,             20],
-    /* 40 */ ["30% Slab",               1500001,           99999999,            30],
-    /* 41 */ ["Standard Deduction (₹)", "75,000",          "(FY 2024-25)",      "Deduct before tax computation"],
-    /* 42 */ ["", "", "", ""],
-    /* 43 */ ["TDS CALCULATION NOTES", "", "", ""],
-    /* 44 */ ["Step 1", "Compute projected annual gross salary (×12)", "", ""],
-    /* 45 */ ["Step 2", "Deduct Standard Deduction ₹75,000", "", ""],
-    /* 46 */ ["Step 3", "Deduct EPF (employee) annual contribution", "", ""],
-    /* 47 */ ["Step 4", "Apply IT slabs above to get annual tax", "", ""],
-    /* 48 */ ["Step 5", "Add surcharge/cess if applicable (4% health & edu cess)", "", ""],
-    /* 49 */ ["Step 6", "Divide by 12 → enter monthly TDS in Employee Master col AD (TDS Monthly)", "", ""],
-    /* 50 */ ["", "", "", ""],
-    /* 51 */ ["IMPORTANT CONTACTS / FOOTER", "", "", ""],
-    /* 52 */ ["HR Email",               "hr@jairoop.com",              "", ""],
-    /* 53 */ ["Accounts Email",         "accounts@jairoop.com",        "", ""],
-    /* 54 */ ["Payslip Footer Note",    "This is a computer-generated payslip. No signature required.", "", ""],
+    /* 32 */ ["Short Time Deduction Multiplier", DEF.ST_MULT, "Short Time Dedn = (Gross ÷ WD ÷ Emp.WH) × ST Hrs × Multiplier", "1 = proportional hourly rate; >1 = penalty rate"],
+    /* 33 */ ["", "", "", ""],
+    /* 34 */ ["INCOME TAX SLABS — FY 2024-25 (NEW REGIME)", "", "", ""],
+    /* 35 */ ["Slab Description",       "Income From (₹)", "Income Up To (₹)", "Tax Rate (%)"],
+    /* 36 */ ["Nil Slab",               0,                 300000,              0],
+    /* 37 */ ["5% Slab",                300001,            700000,              5],
+    /* 38 */ ["10% Slab",               700001,            1000000,             10],
+    /* 39 */ ["15% Slab",               1000001,           1200000,             15],
+    /* 40 */ ["20% Slab",               1200001,           1500000,             20],
+    /* 41 */ ["30% Slab",               1500001,           99999999,            30],
+    /* 42 */ ["Standard Deduction (₹)", "75,000",          "(FY 2024-25)",      "Deduct before tax computation"],
+    /* 43 */ ["", "", "", ""],
+    /* 44 */ ["TDS CALCULATION NOTES", "", "", ""],
+    /* 45 */ ["Step 1", "Compute projected annual gross salary (×12)", "", ""],
+    /* 46 */ ["Step 2", "Deduct Standard Deduction ₹75,000", "", ""],
+    /* 47 */ ["Step 3", "Deduct EPF (employee) annual contribution", "", ""],
+    /* 48 */ ["Step 4", "Apply IT slabs above to get annual tax", "", ""],
+    /* 49 */ ["Step 5", "Add surcharge/cess if applicable (4% health & edu cess)", "", ""],
+    /* 50 */ ["Step 6", "Divide by 12 → enter monthly TDS in Employee Master col AD (TDS Monthly)", "", ""],
+    /* 51 */ ["", "", "", ""],
+    /* 52 */ ["IMPORTANT CONTACTS / FOOTER", "", "", ""],
+    /* 53 */ ["HR Email",               "hr@jairoop.com",              "", ""],
+    /* 54 */ ["Accounts Email",         "accounts@jairoop.com",        "", ""],
+    /* 55 */ ["Payslip Footer Note",    "This is a computer-generated payslip. No signature required.", "", ""],
   ];
 
   sh.getRange(1, 1, rows.length, 4).setValues(rows);
@@ -235,13 +239,13 @@ function createSettingsSheet(ss) {
     .setFontSize(12).setFontWeight("bold").setHorizontalAlignment("center");
 
   // Section headers
-  [4, 14, 24, 33, 43, 51].forEach(r => {
+  [4, 14, 24, 34, 44, 52].forEach(r => {
     sh.getRange(r, 1, 1, 4).merge().setBackground(C.MID_BLUE).setFontColor(C.WHITE)
       .setFontWeight("bold").setFontSize(11);
   });
 
   // Column sub-headers
-  [15, 25, 34].forEach(r => {
+  [15, 25, 35].forEach(r => {
     sh.getRange(r, 1, 1, 4).setBackground(C.LIGHT_BLUE).setFontWeight("bold");
   });
 
@@ -249,8 +253,8 @@ function createSettingsSheet(ss) {
   sh.getRange("B16:B17").setNumberFormat("0");
   sh.getRange("B18:B19").setNumberFormat("0.00");
   sh.getRange("B20:B21").setNumberFormat("₹#,##0");
-  sh.getRange("B29:B31").setNumberFormat("0");
-  sh.getRange("C35:D40").setNumberFormat("#,##0");
+  sh.getRange("B29:B32").setNumberFormat("0");
+  sh.getRange("C36:D41").setNumberFormat("#,##0");
 
   sh.setColumnWidth(1, 280); sh.setColumnWidth(2, 180);
   sh.setColumnWidth(3, 340); sh.setColumnWidth(4, 320);
@@ -385,10 +389,10 @@ function createEmployeeMasterSheet(ss) {
 //  SHEET: 📅 Attendance
 //
 //  Column map (used by Salary Register VLOOKUPs):
-//  A(1) Emp ID          B(2) Name (auto)       C(3) Desig (auto)
-//  D(4) Total Work Days E(5) Days Present       F(6) Days Absent (auto)
-//  G(7) Half Days       H(8) OT Hours           I(9) Short Time Hours
-//  J(10) Late Count     K(11) Notes
+//  A(1) Emp ID          B(2) Name (auto)        C(3) Desig (auto)
+//  D(4) Total Work Days E(5) Days Present        F(6) Days Absent (auto)
+//  G(7) Half Days       H(8) OT Hours            I(9) Fixed WH/Day (auto) ← NEW
+//  J(10) Short Time Hrs  K(11) Late Count        L(12) Notes
 // ============================================================
 function createAttendanceSheet(ss) {
   let sh = ss.getSheetByName(SH.ATTEND);
@@ -401,7 +405,8 @@ function createAttendanceSheet(ss) {
   const now  = new Date();
   const mLbl = Utilities.formatDate(now, tz, "MMMM yyyy");
 
-  sh.getRange(1, 1, 1, 11)
+  // 12 columns now: Fixed Working Hrs/Day added at col I(9)
+  sh.getRange(1, 1, 1, 12)
     .setBackground(C.DARK_BLUE).setFontColor(C.WHITE)
     .setFontSize(13).setFontWeight("bold").setHorizontalAlignment("center");
   sh.getRange(1, 1).setValue("📅  ATTENDANCE REGISTER — " + CO_NAME + " | " + mLbl);
@@ -413,19 +418,26 @@ function createAttendanceSheet(ss) {
   sh.getRange(2, 4).setValue(DEF.WORK_DAYS).setBackground("#FFFF99").setFontWeight("bold");
   sh.getRange(2, 5).setValue("Default Work Hrs/Day:");
   sh.getRange(2, 6).setValue(DEF.WORK_HRS).setBackground("#FFFF99").setFontWeight("bold");
-  sh.getRange(2, 7, 1, 5).merge()
+  sh.getRange(2, 7, 1, 6).merge()
     .setValue("📌 Fill: Emp ID, Days Present, Half Days, OT Hrs, Short Time Hrs. " +
-              "Working hours per employee are set in Employee Master (col F).")
+              "Fixed Working Hrs/Day (col I) auto-fills from Employee Master — use it as reference when entering Short Time.")
     .setBackground("#FFF9C4").setFontStyle("italic").setFontSize(9).setWrap(true);
 
+  // Column layout (12 cols):
+  // A(1) Emp ID   B(2) Name    C(3) Desig   D(4) Total WD   E(5) Present
+  // F(6) Absent   G(7) Half    H(8) OT Hrs  I(9) Fixed WH   J(10) Short Time
+  // K(11) Late    L(12) Notes
   const hdrs = [
     "Emp ID", "Employee Name", "Designation",
     "Total Working\nDays", "Days\nPresent", "Days\nAbsent", "Half\nDays",
-    "OT Hours", "Short Time\nHours", "Late\nCount", "Notes"
+    "OT Hours", "Fixed Working\nHrs/Day\n(auto)", "Short Time\nHours", "Late\nCount", "Notes"
   ];
   sh.getRange(3, 1, 1, hdrs.length).setValues([hdrs])
     .setBackground(C.MID_BLUE).setFontColor(C.WHITE)
     .setFontWeight("bold").setHorizontalAlignment("center").setWrap(true);
+
+  // Highlight Fixed WH header to distinguish it as read-only auto-fill
+  sh.getRange(3, 9).setBackground("#E65100");
 
   for (let r = 4; r <= 200; r++) {
     sh.getRange(r, 2).setFormula(
@@ -434,20 +446,27 @@ function createAttendanceSheet(ss) {
       `=IFERROR(IF(A${r}="","",VLOOKUP(A${r},'👥 Employee Master'!$A:$C,3,0)),"")`);
     sh.getRange(r, 4).setFormula(`=IF(A${r}="","",$D$2)`);
     sh.getRange(r, 6).setFormula(`=IF(A${r}="","",D${r}-E${r}-G${r}/2)`);
+    // Fixed Working Hrs/Day — auto-filled from Employee Master col F(6)
+    sh.getRange(r, 9).setFormula(
+      `=IFERROR(IF(A${r}="","",VLOOKUP(A${r},'👥 Employee Master'!$A:$F,6,0)),"")`);
   }
 
-  // Pre-fill demo row
+  // Pre-fill demo row (Short Time now at col 10, Late Count at col 11)
   sh.getRange(4, 1).setValue("JRT001");
   sh.getRange(4, 5).setValue(25);
   sh.getRange(4, 7).setValue(0);
   sh.getRange(4, 8).setValue(2);
-  sh.getRange(4, 9).setValue(1);
-  sh.getRange(4, 10).setValue(0);
+  // col 9 (Fixed WH) auto-fills from formula
+  sh.getRange(4, 10).setValue(1);   // Short Time Hours
+  sh.getRange(4, 11).setValue(0);   // Late Count
 
   sh.setFrozenRows(3);
   sh.setFrozenColumns(2);
 
-  [80, 180, 140, 90, 90, 90, 80, 80, 100, 80, 160].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  // Shade Fixed WH column to indicate it's auto-filled (read-only reference)
+  sh.getRange(4, 9, 197, 1).setBackground("#FFF3E0").setFontStyle("italic");
+
+  [80, 180, 140, 90, 90, 90, 80, 80, 75, 100, 80, 160].forEach((w, i) => sh.setColumnWidth(i + 1, w));
 
   SpreadsheetApp.flush();
 }
@@ -622,8 +641,9 @@ function createSalaryRegisterSheet(ss) {
       `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${ATT}!$A:$G,7,0)),0)`);
     sh.getRange(r, 10).setFormula(
       `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${ATT}!$A:$H,8,0)),0)`);
+    // Short Time Hours now at ATT col J(10) — col I(9) is Fixed WH auto-fill
     sh.getRange(r, 11).setFormula(
-      `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${ATT}!$A:$I,9,0)),0)`);
+      `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${ATT}!$A:$J,10,0)),0)`);
 
     // ── EARNINGS ──────────────────────────────────────────
     // Basic is now EMP col G(7)
@@ -677,10 +697,10 @@ function createSalaryRegisterSheet(ss) {
       `=IFERROR(IF(B${n}="","",` +
       `IF(H${n}=0,0,ROUND(R${n}/IF(F${n}=0,${S.WORK_DAY},F${n})*H${n},2))),"")`);
 
-    // Short Time Deduction: (Gross ÷ WD ÷ EmpWorkingHours) × Short Time Hrs
+    // Short Time Deduction: (Gross ÷ WD ÷ EmpWorkingHours) × Short Time Hrs × ST Multiplier
     sh.getRange(r, 24).setFormula(
       `=IFERROR(IF(B${n}="","",` +
-      `IF(K${n}=0,0,ROUND(R${n}/IF(F${n}=0,${S.WORK_DAY},F${n})/(${empWH})*K${n},2))),"")`);
+      `IF(K${n}=0,0,ROUND(R${n}/IF(F${n}=0,${S.WORK_DAY},F${n})/(${empWH})*K${n}*${S.ST_MULT},2))),"")`);
 
     // Advance Recovery
     sh.getRange(r, 25).setFormula(
@@ -919,7 +939,7 @@ function createPayslipSheet(ss) {
     if (lbl) sh.getRange(SR, i + 1).setValue(lbl).setHorizontalAlignment("center").setFontWeight("bold");
   });
   sh.getRange(SR + 2, 1, 1, 8).merge()
-    .setFormula(`='⚙️ Settings'!$B$54`)
+    .setFormula(`='⚙️ Settings'!$B$55`)
     .setBackground("#F5F5F5").setFontStyle("italic")
     .setFontSize(9).setHorizontalAlignment("center");
 
@@ -1357,8 +1377,8 @@ function showHelp() {
       <td>Gross ÷ Working Days × Absent Days</td>
       <td>Company policy</td></tr>
   <tr><td><b>Short Time Deduction</b></td>
-      <td>Gross ÷ WD ÷ <b>Employee's Fixed Working Hours</b> × Short Hours</td>
-      <td>Company policy (per-employee hours from col F)</td></tr>
+      <td>Gross ÷ WD ÷ <b>Employee's Fixed Working Hours</b> × Short Hours × <b>ST Multiplier</b></td>
+      <td>Per-employee hours from Emp Master col F; multiplier from Settings B32</td></tr>
   <tr><td><b>Advance Recovery</b></td>
       <td>Monthly deduction from active Advance records</td>
       <td>Company policy (zero interest)</td></tr>
@@ -1396,6 +1416,9 @@ function showHelp() {
   <tr><td><b>OT Multiplier</b></td>
       <td>Settings B31 (currently 1)</td>
       <td>Change to 2 for double time; 1.5 for time-and-a-half</td></tr>
+  <tr><td><b>Short Time Deduction Multiplier</b></td>
+      <td>Settings B32 (currently 1)</td>
+      <td>1 = deduct at standard hourly rate; 1.5 or 2 = penalty rate for short time</td></tr>
 </table>
 
 <div class="note">
@@ -1421,7 +1444,7 @@ function showHelp() {
   <tr><th>Sheet</th><th>Purpose</th><th>Who fills it</th></tr>
   <tr><td>⚙️ Settings</td><td>Company info, statutory rates, tax slabs</td><td>HR/Accounts (once)</td></tr>
   <tr><td>👥 Employee Master</td><td>All employee data, salary, working hours (col F), TDS (col AD)</td><td>HR</td></tr>
-  <tr><td>📅 Attendance</td><td>Monthly attendance, OT, short time</td><td>HR/Supervisor (monthly)</td></tr>
+  <tr><td>📅 Attendance</td><td>Monthly attendance, OT, short time. Col I shows each employee's Fixed Working Hrs for reference.</td><td>HR/Supervisor (monthly)</td></tr>
   <tr><td>💰 Loan & Advance</td><td>Loan & advance records, EMI tracking</td><td>Accounts</td></tr>
   <tr><td>📊 Salary Register</td><td>Auto-calculated salary — all deductions, net pay</td><td>Auto (read-only)</td></tr>
   <tr><td>🧾 Payslip View</td><td>Live payslip for any employee</td><td>Auto (enter Emp ID)</td></tr>
