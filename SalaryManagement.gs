@@ -97,6 +97,7 @@ function onOpen() {
     .addSeparator()
     .addItem("📋  Open Daily Attendance Sheet",                  "openDailyAttendance")
     .addItem("🔄  Refresh Attendance Summary from Daily Sheet",  "refreshAttendanceSummary")
+    .addItem("🛠️  Fix Night Shift Working Hours Formula",        "repairNightShiftFormulas")
     .addSeparator()
     .addItem("📲  Send WhatsApp Notifications to HODs",          "showSendNotificationsDialog")
     .addSeparator()
@@ -1466,6 +1467,41 @@ function openDailyAttendance() {
 }
 
 // ============================================================
+//  MENU ACTION: Repair Night Shift Working Hours Formula
+//  Updates all Working Hours cells in the Daily Attendance sheet
+//  to use the overnight-aware formula: IF(Out<In, Out-In+1, Out-In)
+//  Run this ONCE on any sheet created before the night-shift fix.
+// ============================================================
+function repairNightShiftFormulas() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(SH.DAILY_ATT);
+  const ui = SpreadsheetApp.getUi();
+  if (!sh) { ui.alert("Daily Attendance sheet not found. Run Setup first."); return; }
+
+  ui.alert(
+    "🛠️  Repair Night Shift Formulas",
+    "This will update the Working Hours formula in all 2000 rows of 📋 Daily Attendance " +
+    "to correctly handle overnight punches (In: 8 PM → Out: 6 AM).\n\n" +
+    "Existing punch data is NOT affected. This may take ~15 seconds.",
+    ui.ButtonSet.OK
+  );
+
+  // Build all 2000 corrected formulas in one array and apply in a single call
+  const formulas = [];
+  for (let r = 4; r <= 2003; r++) {
+    formulas.push([
+      `=IF(OR(E${r}="",F${r}=""),"",IF(F${r}<E${r},F${r}-E${r}+1,F${r}-E${r}))`
+    ]);
+  }
+  sh.getRange(4, 7, 2000, 1).setFormulas(formulas);
+  SpreadsheetApp.flush();
+
+  ui.alert("✅  Done!", "Night shift Working Hours formula repaired for all rows.\n" +
+    "Now run Menu → Refresh Attendance Summary to recalculate OT, Short Time, etc.",
+    ui.ButtonSet.OK);
+}
+
+// ============================================================
 //  MENU ACTION: Refresh Attendance Summary from Daily Sheet
 //
 //  Sunday Pay Rule:
@@ -1551,7 +1587,9 @@ function refreshAttendanceSummary() {
 
       const status   = String(row[8]).trim();
       const inTime   = typeof row[4] === "number" ? row[4] : 0;
-      const workFrac = typeof row[6] === "number" ? row[6] : 0;
+      // Normalise working hours: old formula gives negative for overnight shifts
+      let workFrac = typeof row[6] === "number" ? row[6] : 0;
+      if (workFrac < 0) workFrac += 1;  // add 1 day for cross-midnight shifts
 
       // Auto-classify as Half Day based on In Time (overrides "Present")
       let effectiveStatus = status;
@@ -2093,7 +2131,7 @@ function _sendDailyWhatsApp(dateStr) {
   }
 
   // Send one message per HOD
-  let sent = 0, failed = 0;
+  let sent = 0, failed = 0, failedNums = [];
   Object.entries(hodMap).forEach(([mobile, info]) => {
     let absentList = "";
     let stList     = "";
@@ -2115,10 +2153,12 @@ function _sendDailyWhatsApp(dateStr) {
       `Please take necessary action.\n— HR Team | ${CO_NAME}`;
 
     const ok = _sendWhatsAppMessage(mobile, msg);
-    ok ? sent++ : failed++;
+    if (ok) { sent++; } else { failed++; failedNums.push(mobile); }
   });
 
-  return `✅ Daily alerts sent to ${sent} HOD(s)` + (failed > 0 ? `, ❌ ${failed} failed.` : ".");
+  let result = `✅ Daily alerts sent to ${sent} HOD(s).`;
+  if (failed > 0) result += ` ❌ ${failed} failed (${failedNums.join(", ")}). Check Apps Script Logs for API error details.`;
+  return result;
 }
 
 // ============================================================
@@ -2188,7 +2228,7 @@ function _sendWeeklyWhatsApp(weekStartStr, weekEndStr) {
     return `✅ No issues found for week ${rangeLbl}. No messages sent.`;
   }
 
-  let sent = 0, failed = 0;
+  let sent = 0, failed = 0, failedNums = [];
   Object.entries(hodMap).forEach(([mobile, info]) => {
     let details = "";
     info.employees.forEach(emp => {
@@ -2203,37 +2243,53 @@ function _sendWeeklyWhatsApp(weekStartStr, weekEndStr) {
       `Please review and follow up as needed.\n— HR Team | ${CO_NAME}`;
 
     const ok = _sendWhatsAppMessage(mobile, msg);
-    ok ? sent++ : failed++;
+    if (ok) { sent++; } else { failed++; failedNums.push(mobile); }
   });
 
-  return `✅ Weekly summaries sent to ${sent} HOD(s)` + (failed > 0 ? `, ❌ ${failed} failed.` : ".");
+  let result = `✅ Weekly summaries sent to ${sent} HOD(s).`;
+  if (failed > 0) result += ` ❌ ${failed} failed (${failedNums.join(", ")}). Check Apps Script Logs for API error details.`;
+  return result;
 }
 
 // ── WhatsApp API helper ──────────────────────────────────────
+// API: POST https://yourdigisathi.in/api/whatsapp-web/send-message
+// Sends as application/x-www-form-urlencoded (standard for this gateway type).
 function _sendWhatsAppMessage(toNumber, message) {
   const API_URL  = "https://yourdigisathi.in/api/whatsapp-web/send-message";
   const APP_KEY  = "c0a32d45-887c-48a7-8a35-1977773f0ebb";
   const AUTH_KEY = "abcJnOSJ7zs71D110EXwaS9OkuuS9bEI11";
 
-  // Normalise number: ensure +91 prefix for Indian numbers
-  let mobile = String(toNumber).replace(/\s/g, "");
+  // Normalise: strip spaces; add +91 for bare 10-digit Indian numbers
+  let mobile = String(toNumber).replace(/[\s\-]/g, "");
   if (!mobile.startsWith("+")) {
     mobile = mobile.length === 10 ? "+91" + mobile : "+" + mobile;
   }
 
+  // Build form-encoded body (most WhatsApp gateway APIs prefer this over JSON)
+  const body = "app_key="   + encodeURIComponent(APP_KEY)  +
+               "&auth_key=" + encodeURIComponent(AUTH_KEY) +
+               "&to="       + encodeURIComponent(mobile)   +
+               "&message="  + encodeURIComponent(message);
+
   try {
     const resp = UrlFetchApp.fetch(API_URL, {
-      method          : "post",
-      contentType     : "application/json",
-      payload         : JSON.stringify({ app_key: APP_KEY, auth_key: AUTH_KEY,
-                                          to: mobile, message: message }),
-      muteHttpExceptions: true
+      method             : "post",
+      contentType        : "application/x-www-form-urlencoded",
+      payload            : body,
+      muteHttpExceptions : true,
+      followRedirects    : true
     });
-    const code = resp.getResponseCode();
-    Logger.log("WhatsApp → " + mobile + " | HTTP " + code + " | " + resp.getContentText().substring(0, 120));
-    return code === 200 || code === 201;
+    const code    = resp.getResponseCode();
+    const resBody = resp.getContentText();
+    Logger.log("WhatsApp → " + mobile + " | HTTP " + code + " | " + resBody.substring(0, 200));
+
+    if (code === 200 || code === 201) return true;
+
+    // Log readable error for debugging
+    Logger.log("WhatsApp FAILED — to: " + mobile + " | status: " + code + " | body: " + resBody);
+    return false;
   } catch (e) {
-    Logger.log("WhatsApp error: " + e.message);
+    Logger.log("WhatsApp fetch exception — to: " + mobile + " | " + e.message);
     return false;
   }
 }
