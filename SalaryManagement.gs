@@ -1585,10 +1585,10 @@ function refreshAttendanceSummary() {
       const rowDate = new Date(row[1]);
       if (rowDate.getDay() === 0) return; // skip Sundays (handled separately)
 
-      const status   = String(row[8]).trim();
-      const inTime   = typeof row[4] === "number" ? row[4] : 0;
-      // Normalise working hours: old formula gives negative for overnight shifts
-      let workFrac = typeof row[6] === "number" ? row[6] : 0;
+      const status = String(row[8]).trim();
+      // Use _asTimeFrac() — getValues() returns time cells as Date objects, not numbers
+      const inTime = _asTimeFrac(row[4]);
+      let workFrac = _asTimeFrac(row[6]);
       if (workFrac < 0) workFrac += 1;  // add 1 day for cross-midnight shifts
 
       // Auto-classify as Half Day based on In Time (overrides "Present")
@@ -2091,8 +2091,8 @@ function _sendDailyWhatsApp(dateStr) {
     empDay[id] = {
       name    : String(row[3]).trim(),
       status  : String(row[8]).trim(),
-      workFrac: typeof row[6] === "number" ? row[6] : 0,
-      inTime  : typeof row[4] === "number" ? row[4] : 0
+      workFrac: _asTimeFrac(row[6]),
+      inTime  : _asTimeFrac(row[4])
     };
   });
 
@@ -2194,7 +2194,7 @@ function _sendWeeklyWhatsApp(weekStartStr, weekEndStr) {
     const id      = String(row[2]).trim();
     const name    = String(row[3]).trim();
     const status  = String(row[8]).trim();
-    const wkFrac  = typeof row[6] === "number" ? row[6] : 0;
+    const wkFrac  = _asTimeFrac(row[6]);
     const stdFrac = 8 / 24;
 
     if (!empStats[id]) empStats[id] = { name, absent: 0, halfDay: 0, stHrs: 0 };
@@ -2253,43 +2253,49 @@ function _sendWeeklyWhatsApp(weekStartStr, weekEndStr) {
 
 // ── WhatsApp API helper ──────────────────────────────────────
 // API: POST https://yourdigisathi.in/api/whatsapp-web/send-message
-// Sends as application/x-www-form-urlencoded (standard for this gateway type).
+// Parameters (multipart/form-data per portal docs):
+//   app_key, auth_key, to (full number with country code, no +),
+//   type = "text", message
 function _sendWhatsAppMessage(toNumber, message) {
   const API_URL  = "https://yourdigisathi.in/api/whatsapp-web/send-message";
   const APP_KEY  = "c0a32d45-887c-48a7-8a35-1977773f0ebb";
   const AUTH_KEY = "abcJnOSJ7zs71D110EXwaS9OkuuS9bEI11";
 
-  // Normalise: strip spaces; add +91 for bare 10-digit Indian numbers
-  let mobile = String(toNumber).replace(/[\s\-]/g, "");
-  if (!mobile.startsWith("+")) {
-    mobile = mobile.length === 10 ? "+91" + mobile : "+" + mobile;
-  }
+  // Normalise number: full number with country code, NO leading +
+  // (API portal shows bare numeric format e.g. 918588930331)
+  let mobile = String(toNumber).replace(/[\s\-\(\)]/g, "");
+  if (mobile.startsWith("+")) mobile = mobile.substring(1);   // strip leading +
+  if (mobile.length === 10)   mobile = "91" + mobile;          // add India code
 
-  // Build form-encoded body (most WhatsApp gateway APIs prefer this over JSON)
-  const body = "app_key="   + encodeURIComponent(APP_KEY)  +
-               "&auth_key=" + encodeURIComponent(AUTH_KEY) +
-               "&to="       + encodeURIComponent(mobile)   +
-               "&message="  + encodeURIComponent(message);
+  // Build multipart/form-data body (matches portal's --form cURL example)
+  const boundary = "WASBoundary" + Math.floor(Math.random() * 1e9);
+  const nl = "\r\n";
+  const part = (name, val) =>
+    "--" + boundary + nl +
+    "Content-Disposition: form-data; name=\"" + name + "\"" + nl + nl +
+    val + nl;
+
+  const body = part("app_key",  APP_KEY)  +
+               part("auth_key", AUTH_KEY) +
+               part("to",       mobile)   +
+               part("type",     "text")   +   // REQUIRED field per API docs
+               part("message",  message)  +
+               "--" + boundary + "--";
 
   try {
     const resp = UrlFetchApp.fetch(API_URL, {
-      method             : "post",
-      contentType        : "application/x-www-form-urlencoded",
-      payload            : body,
+      method          : "post",
+      contentType     : "multipart/form-data; boundary=" + boundary,
+      payload         : Utilities.newBlob(body, "text/plain; charset=UTF-8").getBytes(),
       muteHttpExceptions : true,
-      followRedirects    : true
+      followRedirects : true
     });
     const code    = resp.getResponseCode();
     const resBody = resp.getContentText();
-    Logger.log("WhatsApp → " + mobile + " | HTTP " + code + " | " + resBody.substring(0, 200));
-
-    if (code === 200 || code === 201) return true;
-
-    // Log readable error for debugging
-    Logger.log("WhatsApp FAILED — to: " + mobile + " | status: " + code + " | body: " + resBody);
-    return false;
+    Logger.log("WhatsApp → " + mobile + " | HTTP " + code + " | " + resBody.substring(0, 300));
+    return code === 200 || code === 201;
   } catch (e) {
-    Logger.log("WhatsApp fetch exception — to: " + mobile + " | " + e.message);
+    Logger.log("WhatsApp exception → " + mobile + " | " + e.message);
     return false;
   }
 }
@@ -2299,6 +2305,23 @@ function _fmtHours(hrs) {
   const h = Math.floor(hrs);
   const m = Math.round((hrs - h) * 60);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+// ── Convert a sheet time value to a 0–1 day-fraction ────────
+// Google Apps Script getValues() returns time-formatted cells as Date
+// objects (e.g. "Dec 30 1899 12:00:00"), not plain numbers.
+// This helper handles both the number case (pure fraction) and the
+// Date object case (time extracted via getHours/getMinutes/getSeconds).
+function _asTimeFrac(val) {
+  if (!val && val !== 0) return 0;
+  if (typeof val === "number") return val;
+  if (val instanceof Date) {
+    const h = val.getHours();
+    const m = val.getMinutes();
+    const s = val.getSeconds();
+    return (h * 3600 + m * 60 + s) / 86400;
+  }
+  return 0;
 }
 
 // ============================================================
