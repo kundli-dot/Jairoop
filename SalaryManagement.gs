@@ -1909,7 +1909,7 @@ function createHodNotifySheet(ss) {
   }
 
   sh.setFrozenRows(4);
-  sh.setFrozenColumns(1);
+  // Note: setFrozenColumns not used here — merged title rows prevent it
 
   // Shade auto-fill cols
   sh.getRange(4, 2).setBackground("#33691E");
