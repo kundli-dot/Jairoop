@@ -24,14 +24,15 @@ const CO_SHORT  = "JRT";
 
 // ── Sheet names (emoji prefixes aid visual navigation) ──────
 const SH = {
-  SETTINGS  : "⚙️ Settings",
-  EMP       : "👥 Employee Master",
-  DAILY_ATT : "📋 Daily Attendance",
-  ATTEND    : "📅 Attendance",
-  LOAN      : "💰 Loan & Advance",
-  SALARY    : "📊 Salary Register",
-  PAYSLIP   : "🧾 Payslip View",
-  SUMMARY   : "📈 Summary Dashboard",
+  SETTINGS   : "⚙️ Settings",
+  EMP        : "👥 Employee Master",
+  DAILY_ATT  : "📋 Daily Attendance",
+  ATTEND     : "📅 Attendance",
+  LOAN       : "💰 Loan & Advance",
+  SALARY     : "📊 Salary Register",
+  PAYSLIP    : "🧾 Payslip View",
+  SUMMARY    : "📈 Summary Dashboard",
+  HOD_NOTIFY : "📲 HOD Notifications",
 };
 
 // ── Colour palette ──────────────────────────────────────────
@@ -82,7 +83,8 @@ const S = {
   WORK_DAY : "'⚙️ Settings'!$B$29",
   WORK_HRS : "'⚙️ Settings'!$B$30",  // Default; overridden by per-employee col F
   OT_MULT  : "'⚙️ Settings'!$B$31",
-  ST_MULT  : "'⚙️ Settings'!$B$32",  // Short Time Deduction Multiplier
+  ST_MULT      : "'⚙️ Settings'!$B$32",  // Short Time Deduction Multiplier
+  ST_THRESHOLD : "'⚙️ Settings'!$B$61",  // Monthly ST grace hrs; deduct only if ST > this
 };
 
 // ============================================================
@@ -95,6 +97,8 @@ function onOpen() {
     .addSeparator()
     .addItem("📋  Open Daily Attendance Sheet",                  "openDailyAttendance")
     .addItem("🔄  Refresh Attendance Summary from Daily Sheet",  "refreshAttendanceSummary")
+    .addSeparator()
+    .addItem("📲  Send WhatsApp Notifications to HODs",          "showSendNotificationsDialog")
     .addSeparator()
     .addItem("📅  Generate Monthly Salary Register",             "generateMonthlySalary")
     .addItem("🧾  Preview Payslip (enter Emp ID)",               "activatePayslip")
@@ -131,6 +135,7 @@ function setupSalarySystem() {
   createDailyAttendanceSheet(ss);
   createAttendanceSheet(ss);
   createLoanAdvanceSheet(ss);
+  createHodNotifySheet(ss);
   createSalaryRegisterSheet(ss);
   createPayslipSheet(ss);
   createSummarySheet(ss);
@@ -234,6 +239,12 @@ function createSettingsSheet(ss) {
     /* 53 */ ["HR Email",               "hr@jairoop.com",              "", ""],
     /* 54 */ ["Accounts Email",         "accounts@jairoop.com",        "", ""],
     /* 55 */ ["Payslip Footer Note",    "This is a computer-generated payslip. No signature required.", "", ""],
+    /* 56 */ ["", "", "", ""],
+    /* 57 */ ["ATTENDANCE POLICY", "", "", ""],
+    /* 58 */ ["Day Shift Half Day Cutoff",       0.5,           "If In Time > this (default 12:00 PM) on a day shift → auto Half Day",        "Fraction of day: 0.5 = noon, 0.333 = 8AM"],
+    /* 59 */ ["Night Shift Start Time",          0.75,          "If In Time ≥ this (default 18:00 / 6 PM) → employee is on night shift",     "0.75 = 18:00"],
+    /* 60 */ ["Night Shift Half Day Cutoff",     1/24,          "Night shift: if In Time < this after midnight (default 01:00) → auto Half Day","0.0417 = 01:00 AM"],
+    /* 61 */ ["Short Time Grace Period (Hrs/Mo)",3,             "Deduct short time ONLY when monthly total exceeds this (default 3 hrs)",     "Set 0 to always deduct"],
   ];
 
   sh.getRange(1, 1, rows.length, 4).setValues(rows);
@@ -245,7 +256,7 @@ function createSettingsSheet(ss) {
     .setFontSize(12).setFontWeight("bold").setHorizontalAlignment("center");
 
   // Section headers
-  [4, 14, 24, 34, 44, 52].forEach(r => {
+  [4, 14, 24, 34, 44, 52, 57].forEach(r => {
     sh.getRange(r, 1, 1, 4).merge().setBackground(C.MID_BLUE).setFontColor(C.WHITE)
       .setFontWeight("bold").setFontSize(11);
   });
@@ -261,6 +272,8 @@ function createSettingsSheet(ss) {
   sh.getRange("B20:B21").setNumberFormat("₹#,##0");
   sh.getRange("B29:B32").setNumberFormat("0");
   sh.getRange("C36:D41").setNumberFormat("#,##0");
+  sh.getRange("B58:B60").setNumberFormat("HH:mm");   // Time cutoffs
+  sh.getRange("B61").setNumberFormat("0.0");          // Short time grace hours
 
   sh.setColumnWidth(1, 280); sh.setColumnWidth(2, 180);
   sh.setColumnWidth(3, 340); sh.setColumnWidth(4, 320);
@@ -535,9 +548,9 @@ function createDailyAttendanceSheet(ss) {
     // Employee Name — auto from Employee Master
     sh.getRange(r, 4).setFormula(
       `=IFERROR(IF(C${r}="","",VLOOKUP(C${r},'👥 Employee Master'!$A:$B,2,0)),"")`);
-    // Working Hours = Out Time − In Time (formatted as [h]:mm)
+    // Working Hours = Out − In; +1 day for night shift (Out < In = crosses midnight)
     sh.getRange(r, 7).setFormula(
-      `=IF(OR(E${r}="",F${r}=""),"",F${r}-E${r})`);
+      `=IF(OR(E${r}="",F${r}=""),"",IF(F${r}<E${r},F${r}-E${r}+1,F${r}-E${r}))`);
     // Day abbreviation (Mon, Tue, … Sun)
     sh.getRange(r, 8).setFormula(
       `=IF(B${r}="","",TEXT(B${r},"ddd"))`);
@@ -832,10 +845,11 @@ function createSalaryRegisterSheet(ss) {
       `=IFERROR(IF(B${n}="","",` +
       `IF(H${n}=0,0,ROUND(R${n}/IF(F${n}=0,${S.WORK_DAY},F${n})*H${n},2))),"")`);
 
-    // Short Time Deduction: (Gross ÷ WD ÷ EmpWorkingHours) × Short Time Hrs × ST Multiplier
+    // Short Time Deduction — only applies if monthly ST > grace threshold (Settings B61)
+    // Formula: if K (ST hrs) ≤ threshold → 0; else deduct all ST hrs at hourly rate × multiplier
     sh.getRange(r, 24).setFormula(
       `=IFERROR(IF(B${n}="","",` +
-      `IF(K${n}=0,0,ROUND(R${n}/IF(F${n}=0,${S.WORK_DAY},F${n})/(${empWH})*K${n}*${S.ST_MULT},2))),"")`);
+      `IF(K${n}<=${S.ST_THRESHOLD},0,ROUND(R${n}/IF(F${n}=0,${S.WORK_DAY},F${n})/(${empWH})*K${n}*${S.ST_MULT},2))),"")`);
 
     // Advance Recovery
     sh.getRange(r, 25).setFormula(
@@ -1485,6 +1499,12 @@ function refreshAttendanceSummary() {
   const monthStart = new Date(yearNum, monthNum - 1, 1);
   const monthEnd   = new Date(yearNum, monthNum, 0);   // last day of month
 
+  // Read attendance policy from Settings
+  const stSh          = ss.getSheetByName(SH.SETTINGS);
+  const dayHDCutoff   = stSh ? (stSh.getRange(58, 2).getValue() || 0.5)   : 0.5;   // 12:00 noon
+  const nightStart    = stSh ? (stSh.getRange(59, 2).getValue() || 0.75)  : 0.75;  // 18:00
+  const nightHDCutoff = stSh ? (stSh.getRange(60, 2).getValue() || 1/24)  : 1/24;  // 01:00 AM
+
   // Read ALL daily attendance data (cross-month weeks need previous month rows too)
   const dailyLastRow = Math.max(dailySh.getLastRow() - 3, 1);
   const allDaily = dailySh.getRange(4, 1, dailyLastRow, 9).getValues();
@@ -1533,22 +1553,32 @@ function refreshAttendanceSummary() {
       const inTime   = typeof row[4] === "number" ? row[4] : 0;
       const workFrac = typeof row[6] === "number" ? row[6] : 0;
 
-      if (status === "Present") {
-        daysPresent++;
+      // Auto-classify as Half Day based on In Time (overrides "Present")
+      let effectiveStatus = status;
+      if (status === "Present" && inTime > 0) {
+        const isDayShiftLate  = (inTime >= dayHDCutoff) && (inTime < nightStart);
+        const isNightShiftLate = (inTime > 0) && (inTime <= nightHDCutoff);
+        if (isDayShiftLate || isNightShiftLate) {
+          effectiveStatus = "Half Day";
+        }
+      }
 
+      if (effectiveStatus === "Present") {
+        daysPresent++;
         // OT: worked more than fixed hours
         if (workFrac > fixedWHFrac) {
           otHoursTotal += (workFrac - fixedWHFrac) * 24;
         }
-        // Short Time: worked fewer than fixed hours
+        // Short Time: worked fewer than fixed hours (only for full-day present)
         if (workFrac > 0 && workFrac < fixedWHFrac) {
           stHoursTotal += (fixedWHFrac - workFrac) * 24;
         }
-        // Late: arrived after cutoff
-        if (typeof lateCutoff === "number" && inTime > lateCutoff) {
+        // Late: day shift only (In Time > cutoff but before night shift start)
+        if (typeof lateCutoff === "number" && inTime > 0
+            && inTime > lateCutoff && inTime < nightStart) {
           lateCount++;
         }
-      } else if (status === "Half Day") {
+      } else if (effectiveStatus === "Half Day" || status === "Half Day") {
         halfDays++;
       }
     });
@@ -1688,7 +1718,11 @@ function showHelp() {
   ✅ No EPF Wage Ceiling — EPF calculated on actual Basic + DA (no ₹15,000 cap)<br>
   ✅ Per-employee Fixed Working Hours — set in Employee Master col F<br>
   ✅ OT at standard rate (1×) — not double time<br>
-  ✅ Sunday paid only when: employee worked ≥ 4 days in Mon–Sat AND worked on Saturday
+  ✅ Sunday paid only when: employee worked ≥ 4 days in Mon–Sat AND worked on Saturday<br>
+  ✅ Night shift support: In at 7–9 PM, Out next morning — Working Hours formula adds 1 day automatically<br>
+  ✅ Auto Half Day: Day shift In after 12:00 PM, or Night shift In after midnight → auto-classified as Half Day<br>
+  ✅ Short Time grace: No deduction if total monthly short time ≤ 3 hrs (configurable in Settings B61)<br>
+  ✅ HOD WhatsApp alerts: Daily and Weekly attendance reports sent to HODs via WhatsApp API
 </div>
 
 <h3>📋 Quick Start (First Time)</h3>
@@ -1809,8 +1843,9 @@ function showHelp() {
   <tr><th>Sheet</th><th>Purpose</th><th>Who fills it</th></tr>
   <tr><td>⚙️ Settings</td><td>Company info, statutory rates, tax slabs</td><td>HR/Accounts (once)</td></tr>
   <tr><td>👥 Employee Master</td><td>All employee data, salary, working hours (col F), TDS (col AD)</td><td>HR</td></tr>
-  <tr><td>📋 Daily Attendance</td><td>Daily punch-in/out for all employees. Enter Date, Emp ID, In/Out Time, Status daily.</td><td>HR/Supervisor (daily)</td></tr>
+  <tr><td>📋 Daily Attendance</td><td>Daily punch-in/out. Night shift auto-corrects negative hours. Auto Half Day detection.</td><td>HR daily</td></tr>
   <tr><td>📅 Attendance</td><td>Monthly summary — auto-calculated from Daily Attendance via Refresh. Includes Sunday eligibility.</td><td>Auto (run Refresh)</td></tr>
+  <tr><td>📲 HOD Notifications</td><td>Map employees to HOD name + mobile. Use Send button for Daily or Weekly WhatsApp alerts.</td><td>HR (on demand)</td></tr>
   <tr><td>💰 Loan & Advance</td><td>Loan & advance records, EMI tracking</td><td>Accounts</td></tr>
   <tr><td>📊 Salary Register</td><td>Auto-calculated salary — all deductions, net pay</td><td>Auto (read-only)</td></tr>
   <tr><td>🧾 Payslip View</td><td>Live payslip for any employee</td><td>Auto (enter Emp ID)</td></tr>
@@ -1821,6 +1856,393 @@ function showHelp() {
 `).setWidth(800).setHeight(580).setTitle("📖 Help — " + CO_NAME + " Salary System");
 
   SpreadsheetApp.getUi().showModelessDialog(html, "📖 Help & Documentation");
+}
+
+// ============================================================
+//  SHEET: 📲 HOD Notifications
+//
+//  Column map (6 cols):
+//  A(1) Emp ID          B(2) Employee Name (auto)   C(3) Department (auto)
+//  D(4) HOD Name        E(5) HOD Mobile (+91…)      F(6) Notes
+//
+//  Buttons (via menu "Send WhatsApp Notifications"):
+//  • Daily  — sends each HOD a message listing their team's absent/short-time today
+//  • Weekly — sends each HOD a weekly summary of absences and short time
+// ============================================================
+function createHodNotifySheet(ss) {
+  let sh = ss.getSheetByName(SH.HOD_NOTIFY);
+  if (!sh) { sh = ss.insertSheet(SH.HOD_NOTIFY); }
+  sh.clear();
+  sh.setTabColor("#00838F");
+
+  sh.getRange(1, 1, 1, 6).merge()
+    .setValue("📲  HOD NOTIFICATIONS — " + CO_NAME)
+    .setBackground(C.DARK_BLUE).setFontColor(C.WHITE)
+    .setFontSize(14).setFontWeight("bold").setHorizontalAlignment("center");
+
+  sh.getRange(2, 1, 1, 6).merge()
+    .setValue("📌 Fill HOD Name and HOD Mobile for each employee. " +
+              "Then use Menu → 📲 Send WhatsApp Notifications to HODs to send Daily or Weekly alerts.")
+    .setBackground("#E0F7FA").setFontSize(9).setFontStyle("italic").setWrap(true);
+
+  // API Config row
+  sh.getRange(3, 1).setValue("WhatsApp API:").setFontWeight("bold");
+  sh.getRange(3, 2, 1, 5).merge()
+    .setValue("https://yourdigisathi.in/api/whatsapp-web/send-message  |  " +
+              "App Key & Auth Key are stored securely in the script.")
+    .setBackground("#F3E5F5").setFontSize(9);
+
+  const hdrs = [
+    "Emp ID", "Employee Name\n(auto)", "Department\n(auto)", "HOD Name", "HOD Mobile\n(+91XXXXXXXXXX)", "Notes"
+  ];
+  sh.getRange(4, 1, 1, hdrs.length).setValues([hdrs])
+    .setBackground(C.MID_BLUE).setFontColor(C.WHITE)
+    .setFontWeight("bold").setHorizontalAlignment("center").setWrap(true);
+  sh.setRowHeight(4, 40);
+
+  // Auto-fill formulas for rows 5–200
+  for (let r = 5; r <= 200; r++) {
+    sh.getRange(r, 2).setFormula(
+      `=IFERROR(IF(A${r}="","",VLOOKUP(A${r},'👥 Employee Master'!$A:$B,2,0)),"")`);
+    sh.getRange(r, 3).setFormula(
+      `=IFERROR(IF(A${r}="","",VLOOKUP(A${r},'👥 Employee Master'!$A:$D,4,0)),"")`);
+  }
+
+  sh.setFrozenRows(4);
+  sh.setFrozenColumns(1);
+
+  // Shade auto-fill cols
+  sh.getRange(4, 2).setBackground("#33691E");
+  sh.getRange(4, 3).setBackground("#33691E");
+  sh.getRange(5, 2, 196, 2).setBackground("#F1F8E9").setFontStyle("italic");
+
+  // Validation for mobile number format hint
+  sh.getRange(5, 5, 196, 1).setNumberFormat("@");  // text format for mobile
+
+  [80, 180, 130, 160, 160, 200].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  sh.setRowHeight(2, 45);
+  sh.setRowHeight(3, 30);
+
+  SpreadsheetApp.flush();
+}
+
+// ============================================================
+//  MENU ACTION: Show WhatsApp Notifications Dialog
+// ============================================================
+function showSendNotificationsDialog() {
+  const tz   = Session.getScriptTimeZone();
+  const now  = new Date();
+  const today = Utilities.formatDate(now, tz, "yyyy-MM-dd");
+
+  // Week start (Mon) and end (Sun) of current week
+  const dow = now.getDay() === 0 ? 7 : now.getDay();  // 1=Mon … 7=Sun
+  const wStart = new Date(now); wStart.setDate(now.getDate() - dow + 1);
+  const wEnd   = new Date(now); wEnd.setDate(now.getDate() + (7 - dow));
+  const weekStartStr = Utilities.formatDate(wStart, tz, "yyyy-MM-dd");
+  const weekEndStr   = Utilities.formatDate(wEnd,   tz, "yyyy-MM-dd");
+
+  const html = HtmlService.createHtmlOutput(`
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<style>
+  body{font-family:Arial,sans-serif;font-size:13px;padding:16px;color:#212121;background:#fafafa}
+  h3{color:#0D47A1;margin:0 0 12px}
+  .card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px;margin-bottom:14px}
+  .card h4{margin:0 0 8px;color:#1565C0}
+  label{font-weight:bold;font-size:12px}
+  input[type=date]{width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;margin:4px 0 10px;font-size:13px}
+  button{width:100%;padding:10px;border:none;border-radius:6px;color:#fff;font-size:14px;font-weight:bold;cursor:pointer}
+  .btn-daily{background:#1565C0}
+  .btn-weekly{background:#2E7D32}
+  .btn-daily:hover{background:#0D47A1}
+  .btn-weekly:hover{background:#1B5E20}
+  #status{margin-top:12px;padding:10px;border-radius:6px;font-size:12px;display:none}
+  .ok{background:#E8F5E9;color:#2E7D32;border:1px solid #A5D6A7}
+  .err{background:#FFEBEE;color:#B71C1C;border:1px solid #EF9A9A}
+  .loading{background:#E3F2FD;color:#1565C0;border:1px solid #90CAF9}
+</style>
+</head><body>
+<h3>📲 WhatsApp Notifications — HOD Alerts</h3>
+
+<div class="card">
+  <h4>📋 Daily Short Time & Absent Alert</h4>
+  <p style="font-size:11px;color:#666">Sends each HOD a message listing their employees who were absent or had short time on the selected date.</p>
+  <label>Select Date:</label>
+  <input type="date" id="dailyDate" value="${today}">
+  <button class="btn-daily" onclick="sendDaily()">📨 Send Daily Alerts to HODs</button>
+</div>
+
+<div class="card">
+  <h4>📊 Weekly Summary Report</h4>
+  <p style="font-size:11px;color:#666">Sends each HOD a weekly summary of their team's absences and total short time.</p>
+  <label>Week Start (Mon):</label>
+  <input type="date" id="weekStart" value="${weekStartStr}">
+  <label>Week End (Sun):</label>
+  <input type="date" id="weekEnd" value="${weekEndStr}">
+  <button class="btn-weekly" onclick="sendWeekly()">📊 Send Weekly Summary to HODs</button>
+</div>
+
+<div id="status"></div>
+
+<script>
+  function setStatus(msg, type) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = type;
+    el.style.display = 'block';
+  }
+  function sendDaily() {
+    const d = document.getElementById('dailyDate').value;
+    if (!d) { setStatus('Please select a date.', 'err'); return; }
+    setStatus('Sending daily alerts… please wait.', 'loading');
+    google.script.run
+      .withSuccessHandler(r => setStatus(r, 'ok'))
+      .withFailureHandler(e => setStatus('Error: ' + e.message, 'err'))
+      ._sendDailyWhatsApp(d);
+  }
+  function sendWeekly() {
+    const s = document.getElementById('weekStart').value;
+    const e = document.getElementById('weekEnd').value;
+    if (!s || !e) { setStatus('Please select week start and end dates.', 'err'); return; }
+    setStatus('Sending weekly summaries… please wait.', 'loading');
+    google.script.run
+      .withSuccessHandler(r => setStatus(r, 'ok'))
+      .withFailureHandler(e => setStatus('Error: ' + e.message, 'err'))
+      ._sendWeeklyWhatsApp(s, e);
+  }
+</script>
+</body></html>
+`).setWidth(420).setHeight(500).setTitle("📲 WhatsApp Notifications");
+
+  SpreadsheetApp.getUi().showModelessDialog(html, "📲 Send WhatsApp Notifications");
+}
+
+// ============================================================
+//  WHATSAPP: Send Daily Alerts
+//  Finds employees with Absent or Short Time on the given date
+//  and notifies their respective HODs.
+// ============================================================
+function _sendDailyWhatsApp(dateStr) {
+  const ss       = SpreadsheetApp.getActiveSpreadsheet();
+  const dailySh  = ss.getSheetByName(SH.DAILY_ATT);
+  const hodSh    = ss.getSheetByName(SH.HOD_NOTIFY);
+  if (!dailySh || !hodSh) return "❌ Required sheets missing. Run Setup first.";
+
+  const targetDate = new Date(dateStr);
+  const tz    = Session.getScriptTimeZone();
+  const dateLbl = Utilities.formatDate(targetDate, tz, "dd-MMM-yyyy (EEE)");
+  const fixedWH = 8; // default; per-employee is handled per row
+
+  // Read daily attendance
+  const dailyLastRow = Math.max(dailySh.getLastRow() - 3, 1);
+  const dailyData    = dailySh.getRange(4, 1, dailyLastRow, 9).getValues();
+
+  // Filter rows for target date
+  const dateRows = dailyData.filter(row => {
+    if (!row[1]) return false;
+    const d = new Date(row[1]);
+    return Utilities.formatDate(d, tz, "yyyy-MM-dd") === dateStr && row[2];
+  });
+
+  if (dateRows.length === 0) return `ℹ️ No attendance data found for ${dateLbl}.`;
+
+  // Build map: empId → { status, workHrs, inTime }
+  const empDay = {};
+  dateRows.forEach(row => {
+    const id = String(row[2]).trim();
+    empDay[id] = {
+      name    : String(row[3]).trim(),
+      status  : String(row[8]).trim(),
+      workFrac: typeof row[6] === "number" ? row[6] : 0,
+      inTime  : typeof row[4] === "number" ? row[4] : 0
+    };
+  });
+
+  // Read HOD data (rows 5–200, cols A–E)
+  const hodLastRow = Math.max(hodSh.getLastRow() - 4, 1);
+  const hodData    = hodSh.getRange(5, 1, hodLastRow, 5).getValues();
+
+  // Group employees by HOD mobile
+  const hodMap = {};   // key = HOD mobile, value = { hodName, employees: [] }
+  hodData.forEach(row => {
+    const empId    = String(row[0]).trim();
+    const hodName  = String(row[3]).trim();
+    const hodMobile = String(row[4]).trim();
+    if (!empId || !hodMobile) return;
+
+    const dayInfo = empDay[empId];
+    if (!dayInfo) return;
+
+    const isAbsent    = dayInfo.status === "Absent" || dayInfo.status === "Leave";
+    const empWHFrac   = fixedWH / 24;
+    const stHrs       = (dayInfo.workFrac > 0 && dayInfo.workFrac < empWHFrac)
+                        ? Math.round((empWHFrac - dayInfo.workFrac) * 24 * 100) / 100 : 0;
+    const isHalfDay   = dayInfo.status === "Half Day";
+    const isShortTime = stHrs > 0;
+
+    if (!isAbsent && !isShortTime && !isHalfDay) return; // nothing to report
+
+    if (!hodMap[hodMobile]) hodMap[hodMobile] = { hodName, employees: [] };
+    hodMap[hodMobile].employees.push({
+      name: dayInfo.name, id: empId, status: dayInfo.status, stHrs
+    });
+  });
+
+  if (Object.keys(hodMap).length === 0) {
+    return `✅ No absent or short time found for ${dateLbl}. No messages sent.`;
+  }
+
+  // Send one message per HOD
+  let sent = 0, failed = 0;
+  Object.entries(hodMap).forEach(([mobile, info]) => {
+    let absentList = "";
+    let stList     = "";
+    info.employees.forEach(emp => {
+      if (emp.status === "Absent" || emp.status === "Leave") {
+        absentList += `\n• ${emp.name} (${emp.id}) — ${emp.status}`;
+      } else if (emp.status === "Half Day") {
+        absentList += `\n• ${emp.name} (${emp.id}) — Half Day`;
+      }
+      if (emp.stHrs > 0) {
+        stList += `\n• ${emp.name} (${emp.id}) — ${_fmtHours(emp.stHrs)} short`;
+      }
+    });
+
+    const msg = `📋 *Daily Attendance Alert — ${dateLbl}*\n${CO_NAME}\n\n` +
+      `Dear ${info.hodName},\n\n` +
+      (absentList  ? `🚫 *Absent / Half Day:*${absentList}\n\n` : "") +
+      (stList      ? `⏱️ *Short Time:*${stList}\n\n` : "") +
+      `Please take necessary action.\n— HR Team | ${CO_NAME}`;
+
+    const ok = _sendWhatsAppMessage(mobile, msg);
+    ok ? sent++ : failed++;
+  });
+
+  return `✅ Daily alerts sent to ${sent} HOD(s)` + (failed > 0 ? `, ❌ ${failed} failed.` : ".");
+}
+
+// ============================================================
+//  WHATSAPP: Send Weekly Summary
+//  Aggregates absences and short time per employee over the week
+//  and notifies their HODs.
+// ============================================================
+function _sendWeeklyWhatsApp(weekStartStr, weekEndStr) {
+  const ss      = SpreadsheetApp.getActiveSpreadsheet();
+  const dailySh = ss.getSheetByName(SH.DAILY_ATT);
+  const hodSh   = ss.getSheetByName(SH.HOD_NOTIFY);
+  if (!dailySh || !hodSh) return "❌ Required sheets missing. Run Setup first.";
+
+  const tz   = Session.getScriptTimeZone();
+  const wStart  = new Date(weekStartStr);
+  const wEnd    = new Date(weekEndStr); wEnd.setHours(23, 59, 59);
+  const rangeLbl = `${Utilities.formatDate(wStart, tz, "dd-MMM")} to ${Utilities.formatDate(wEnd, tz, "dd-MMM-yyyy")}`;
+
+  // Read daily attendance
+  const dailyLastRow = Math.max(dailySh.getLastRow() - 3, 1);
+  const dailyData    = dailySh.getRange(4, 1, dailyLastRow, 9).getValues();
+  const weekRows     = dailyData.filter(row => {
+    if (!row[1] || !row[2]) return false;
+    const d = new Date(row[1]);
+    return d >= wStart && d <= wEnd;
+  });
+
+  if (weekRows.length === 0) return `ℹ️ No attendance data found for week ${rangeLbl}.`;
+
+  // Aggregate per employee
+  const empStats = {};
+  weekRows.forEach(row => {
+    const id      = String(row[2]).trim();
+    const name    = String(row[3]).trim();
+    const status  = String(row[8]).trim();
+    const wkFrac  = typeof row[6] === "number" ? row[6] : 0;
+    const stdFrac = 8 / 24;
+
+    if (!empStats[id]) empStats[id] = { name, absent: 0, halfDay: 0, stHrs: 0 };
+    if (status === "Absent" || status === "Leave") empStats[id].absent++;
+    else if (status === "Half Day") empStats[id].halfDay++;
+    else if (status === "Present" && wkFrac > 0 && wkFrac < stdFrac) {
+      empStats[id].stHrs += (stdFrac - wkFrac) * 24;
+    }
+  });
+
+  // Read HOD data
+  const hodLastRow = Math.max(hodSh.getLastRow() - 4, 1);
+  const hodData    = hodSh.getRange(5, 1, hodLastRow, 5).getValues();
+
+  // Group by HOD
+  const hodMap = {};
+  hodData.forEach(row => {
+    const empId    = String(row[0]).trim();
+    const hodName  = String(row[3]).trim();
+    const hodMobile = String(row[4]).trim();
+    if (!empId || !hodMobile || !empStats[empId]) return;
+
+    const s = empStats[empId];
+    if (s.absent === 0 && s.halfDay === 0 && s.stHrs < 0.1) return;
+
+    if (!hodMap[hodMobile]) hodMap[hodMobile] = { hodName, employees: [] };
+    hodMap[hodMobile].employees.push({ id: empId, ...s });
+  });
+
+  if (Object.keys(hodMap).length === 0) {
+    return `✅ No issues found for week ${rangeLbl}. No messages sent.`;
+  }
+
+  let sent = 0, failed = 0;
+  Object.entries(hodMap).forEach(([mobile, info]) => {
+    let details = "";
+    info.employees.forEach(emp => {
+      details += `\n• ${emp.name} (${emp.id}):`;
+      if (emp.absent > 0) details += ` 🚫 Absent ${emp.absent} day(s)`;
+      if (emp.halfDay > 0) details += ` 🔶 Half Day ${emp.halfDay}`;
+      if (emp.stHrs >= 0.1) details += ` ⏱️ Short Time ${_fmtHours(Math.round(emp.stHrs * 100) / 100)}`;
+    });
+
+    const msg = `📊 *Weekly Attendance Report — ${rangeLbl}*\n${CO_NAME}\n\n` +
+      `Dear ${info.hodName},\n\nWeekly summary for your team:\n${details}\n\n` +
+      `Please review and follow up as needed.\n— HR Team | ${CO_NAME}`;
+
+    const ok = _sendWhatsAppMessage(mobile, msg);
+    ok ? sent++ : failed++;
+  });
+
+  return `✅ Weekly summaries sent to ${sent} HOD(s)` + (failed > 0 ? `, ❌ ${failed} failed.` : ".");
+}
+
+// ── WhatsApp API helper ──────────────────────────────────────
+function _sendWhatsAppMessage(toNumber, message) {
+  const API_URL  = "https://yourdigisathi.in/api/whatsapp-web/send-message";
+  const APP_KEY  = "c0a32d45-887c-48a7-8a35-1977773f0ebb";
+  const AUTH_KEY = "abcJnOSJ7zs71D110EXwaS9OkuuS9bEI11";
+
+  // Normalise number: ensure +91 prefix for Indian numbers
+  let mobile = String(toNumber).replace(/\s/g, "");
+  if (!mobile.startsWith("+")) {
+    mobile = mobile.length === 10 ? "+91" + mobile : "+" + mobile;
+  }
+
+  try {
+    const resp = UrlFetchApp.fetch(API_URL, {
+      method          : "post",
+      contentType     : "application/json",
+      payload         : JSON.stringify({ app_key: APP_KEY, auth_key: AUTH_KEY,
+                                          to: mobile, message: message }),
+      muteHttpExceptions: true
+    });
+    const code = resp.getResponseCode();
+    Logger.log("WhatsApp → " + mobile + " | HTTP " + code + " | " + resp.getContentText().substring(0, 120));
+    return code === 200 || code === 201;
+  } catch (e) {
+    Logger.log("WhatsApp error: " + e.message);
+    return false;
+  }
+}
+
+// ── Format decimal hours → "Xh Ym" ─────────────────────────
+function _fmtHours(hrs) {
+  const h = Math.floor(hrs);
+  const m = Math.round((hrs - h) * 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
 // ============================================================
