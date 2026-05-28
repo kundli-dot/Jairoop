@@ -169,6 +169,23 @@ function checkAndSendWhatsApp() {
   var allData     = fmsSheet.getRange(1, 1, lastRow, lastCol).getValues();
   var allFormulas = fmsSheet.getRange(1, 1, lastRow, lastCol).getFormulas();
 
+  // ── getRichTextValues for form-link columns only ───────────────────
+  // getLinkUrl() returns the EVALUATED URL from a HYPERLINK() formula,
+  // even when the URL is built dynamically with CONCATENATE / & operator.
+  // This is more reliable than parsing the formula string.
+  // Range: rows DATA_START_ROW→lastRow, cols T(20)→BC(55) = 36 cols.
+  var RT_START = WA_CFG.FLOW_START_COL + WA_CFG.FORM_LINK_OFFSET;          // col T = 20
+  var RT_END   = WA_CFG.FLOW_START_COL +
+                 (WA_CFG.NUM_FLOWS - 1) * WA_CFG.FLOW_SIZE +
+                 WA_CFG.FORM_LINK_OFFSET;                                   // col BC = 55
+  var allRichText = null;
+  var numDataRows_ = lastRow - WA_CFG.DATA_START_ROW + 1;
+  if (numDataRows_ > 0 && RT_END <= lastCol) {
+    allRichText = fmsSheet
+      .getRange(WA_CFG.DATA_START_ROW, RT_START, numDataRows_, RT_END - RT_START + 1)
+      .getRichTextValues();
+  }
+
   // ── HOD directory: name → phone ──────────────────────────────
   var hodMap = {};
   var hodLR  = hodSheet.getLastRow();
@@ -233,9 +250,27 @@ function checkAndSendWhatsApp() {
         continue;
       }
 
-      var formLinkValue   = fci < allData[ri].length    ? allData[ri][fci]    : "";
-      var formLinkFormula = fci < allFormulas[ri].length ? allFormulas[ri][fci] : "";
-      var formLink = extractHyperlink_(formLinkValue, formLinkFormula);
+      // Extract the actual URL from the HYPERLINK cell:
+      //   1st choice: getLinkUrl() on the rendered rich text (works for
+      //               dynamic HYPERLINK formulas like HYPERLINK(CONCAT(...), "BOM"))
+      //   2nd choice: parse literal URL from formula string
+      //   3rd choice: display text fallback ("BOM" etc.)
+      var formLink = "";
+      var rtRowIdx_ = ri - (WA_CFG.DATA_START_ROW - 1); // 0-based from DATA_START_ROW
+      var rtColIdx_ = fi * WA_CFG.FLOW_SIZE;             // offset: 0, 5, 10 ... 35
+      if (allRichText &&
+          rtRowIdx_ >= 0 && rtRowIdx_ < allRichText.length &&
+          rtColIdx_ < allRichText[rtRowIdx_].length) {
+        var rt_  = allRichText[rtRowIdx_][rtColIdx_];
+        var url_ = rt_ ? rt_.getLinkUrl() : null;
+        if (url_) formLink = url_;
+      }
+      if (!formLink) {
+        // Fallback: try parsing formula string
+        var flVal = fci < allData[ri].length     ? allData[ri][fci]     : "";
+        var flFml = fci < allFormulas[ri].length ? allFormulas[ri][fci] : "";
+        formLink = extractHyperlink_(flVal, flFml);
+      }
       var dateStr  = (plannedVal instanceof Date)
         ? Utilities.formatDate(plannedVal, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm")
         : plannedVal.toString();
