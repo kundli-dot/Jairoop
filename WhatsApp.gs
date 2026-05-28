@@ -162,8 +162,12 @@ function checkAndSendWhatsApp() {
     WA_CFG.FLOW_START_COL + WA_CFG.NUM_FLOWS * WA_CFG.FLOW_SIZE
   );
 
-  // ── Batch-read entire sheet (one API call) ────────────────────
-  var allData = fmsSheet.getRange(1, 1, lastRow, lastCol).getValues();
+  // ── Batch-read entire sheet — values AND formulas ────────────
+  // Formulas are needed because form link cells use =HYPERLINK("url","BOM").
+  // getValue() returns "BOM" (display text); getFormulas() gives the full
+  // formula so we can parse out the actual https://... URL.
+  var allData     = fmsSheet.getRange(1, 1, lastRow, lastCol).getValues();
+  var allFormulas = fmsSheet.getRange(1, 1, lastRow, lastCol).getFormulas();
 
   // ── HOD directory: name → phone ──────────────────────────────
   var hodMap = {};
@@ -229,7 +233,9 @@ function checkAndSendWhatsApp() {
         continue;
       }
 
-      var formLink = fci < allData[ri].length ? allData[ri][fci] : "";
+      var formLinkValue   = fci < allData[ri].length    ? allData[ri][fci]    : "";
+      var formLinkFormula = fci < allFormulas[ri].length ? allFormulas[ri][fci] : "";
+      var formLink = extractHyperlink_(formLinkValue, formLinkFormula);
       var dateStr  = (plannedVal instanceof Date)
         ? Utilities.formatDate(plannedVal, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm")
         : plannedVal.toString();
@@ -253,6 +259,26 @@ function checkAndSendWhatsApp() {
   } else {
     Logger.log("No new messages to send.");
   }
+}
+
+
+// ─────────────────────────────────────────────────────────────────
+//  Extract actual URL from a HYPERLINK formula cell
+//  Handles: =HYPERLINK("https://...","BOM")  → returns "https://..."
+//  Also handles plain URL values and plain text fallback
+// ─────────────────────────────────────────────────────────────────
+function extractHyperlink_(value, formula) {
+  // Already a plain URL
+  if (typeof value === "string" && /^https?:\/\//i.test(value)) return value;
+
+  // Parse HYPERLINK formula: =HYPERLINK("url","label") or =HYPERLINK("url",label)
+  if (formula) {
+    var match = formula.match(/HYPERLINK\s*\(\s*"([^"]+)"/i);
+    if (match) return match[1];
+  }
+
+  // Fallback: return display text (e.g. "BOM") if no URL found
+  return value ? value.toString() : "";
 }
 
 
@@ -322,7 +348,8 @@ function diagnoseFMSSheet() {
   var lastRow = sheet.getLastRow();
   var lastCol = Math.max(sheet.getLastColumn(),
     WA_CFG.FLOW_START_COL + WA_CFG.NUM_FLOWS * WA_CFG.FLOW_SIZE);
-  var allData = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+  var allData     = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+  var allFormulas = sheet.getRange(1, 1, lastRow, lastCol).getFormulas();
 
   // HOD names
   Logger.log("\n── HOD names read from row " + WA_CFG.HOD_NAME_ROW + " ──");
@@ -364,10 +391,12 @@ function diagnoseFMSSheet() {
     for (var fi = 0; fi < WA_CFG.NUM_FLOWS; fi++) {
       var pci = (WA_CFG.FLOW_START_COL - 1) + fi * WA_CFG.FLOW_SIZE + WA_CFG.PLANNED_OFFSET;
       var fci = (WA_CFG.FLOW_START_COL - 1) + fi * WA_CFG.FLOW_SIZE + WA_CFG.FORM_LINK_OFFSET;
-      var planned  = pci < allData[ri].length ? allData[ri][pci]  : "";
-      var formLink = fci < allData[ri].length ? allData[ri][fci]  : "";
+      var planned    = pci < allData[ri].length    ? allData[ri][pci]    : "";
+      var flValue    = fci < allData[ri].length    ? allData[ri][fci]    : "";
+      var flFormula  = fci < allFormulas[ri].length ? allFormulas[ri][fci] : "";
+      var formLink   = extractHyperlink_(flValue, flFormula);
       if (planned || formLink) {
-        Logger.log("    Flow " + (fi+1) + " → PI='" + planned + "' | Form(col " + colLetter_(fci+1) + ")='" + formLink + "'");
+        Logger.log("    Flow " + (fi+1) + " → PI='" + planned + "' | Form URL='" + formLink + "' (display='" + flValue + "')");
       }
     }
     shown++;
