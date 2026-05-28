@@ -59,6 +59,7 @@ var WA_CFG = {
   HOD_NAME_ROW:     3,    // Row 3 = "Who" row = HOD name (Sumit Mishra etc.)
   DATA_START_ROW:   7,    // First actual data row (rows 2-6 are headers)
   PLANNED_OFFSET:   0,
+  STATUS_OFFSET:    2,    // Q(17)+2 = S(19) — Status column (same offset for all flows)
   FORM_LINK_OFFSET: 3,    // Q(17)+3 = T(20) ✓
 
   // ── WhatsApp API ─────────────────────────────────────────────────
@@ -90,10 +91,10 @@ function setupWhatsAppTriggers() {
   }
   Logger.log("Removed " + removed + " old trigger(s).");
 
-  // ── Install ONE 5-minute time-based trigger ────────────────────
+  // ── Install ONE daily time-based trigger ────────────────────────
   ScriptApp.newTrigger("checkAndSendWhatsApp")
     .timeBased()
-    .everyMinutes(5)
+    .everyDays(1)
     .create();
 
   // ── Record activation date ─────────────────────────────────────
@@ -106,7 +107,7 @@ function setupWhatsAppTriggers() {
 
   Logger.log("════════════════════════════════════════");
   Logger.log("✅ Setup complete.");
-  Logger.log("   Trigger: checkAndSendWhatsApp every 5 minutes");
+  Logger.log("   Trigger: checkAndSendWhatsApp once per day");
   Logger.log("   Activation date: " + activationDate);
   Logger.log("   Only rows with Timestamp (col A) AFTER this date will");
   Logger.log("   trigger WhatsApp messages. All existing rows are ignored.");
@@ -229,7 +230,12 @@ function checkAndSendWhatsApp() {
 
     for (var fi = 0; fi < WA_CFG.NUM_FLOWS; fi++) {
       var pci = (WA_CFG.FLOW_START_COL - 1) + fi * WA_CFG.FLOW_SIZE + WA_CFG.PLANNED_OFFSET;
+      var sci = (WA_CFG.FLOW_START_COL - 1) + fi * WA_CFG.FLOW_SIZE + WA_CFG.STATUS_OFFSET;
       var fci = (WA_CFG.FLOW_START_COL - 1) + fi * WA_CFG.FLOW_SIZE + WA_CFG.FORM_LINK_OFFSET;
+
+      // Skip this flow if the Status column already says "Yes" (task completed)
+      var statusVal = sci < allData[ri].length ? allData[ri][sci].toString().trim() : "";
+      if (statusVal.toLowerCase() === "yes") continue;
 
       var plannedVal = pci < allData[ri].length ? allData[ri][pci] : "";
       if (!plannedVal) continue; // No planned date yet for this flow
@@ -351,7 +357,16 @@ function wa_send_(phone, hodName, taskId, itemName, customerName, formLink, plan
     var body = res.getContentText();
     Logger.log("WA → " + phone + " | HTTP " + code + " | " + body);
     if (code === 200) {
-      return JSON.parse(body).status === "Success";
+      // Return true on any HTTP 200 — do NOT gate on JSON body.
+      // If JSON parsing fails the message was already delivered;
+      // we must still log it or the next run will re-send.
+      try {
+        var json_ = JSON.parse(body);
+        if (json_.status !== "Success") {
+          Logger.log("API note (message may still be delivered): " + body);
+        }
+      } catch (pe_) { Logger.log("JSON parse note: " + pe_); }
+      return true;
     }
     return false;
   } catch (err) {
