@@ -4,163 +4,148 @@
 
 | File | Purpose | Trigger type |
 |---|---|---|
-| `WhatsApp.gs` | Auto-sends WhatsApp to HODs when a Planned Date appears | **Time-based** (hourly) |
+| `WhatsApp.gs` | Auto-sends WhatsApp to HODs when a Planned Date appears | **onChange** (instant) + **Time-based** (hourly backup) |
 | `FMSAutofill.gs` | Company → Person cascading dropdown autofill | **onEdit** (simple) |
 
-> Your existing `Code.gs` (the one with `onChange_new`, `onOpen`, TAT formulas, etc.) is **not touched**. These two new files live alongside it in the same Apps Script project.
+> Your existing `Code.gs` (with `onChange_new`, `onOpen`, TAT formulas, etc.) is **not touched**.
 
 ---
 
 ## Why onEdit Doesn't Work for Planned Dates
 
-Your planned date cells are populated by **formulas** (e.g. `=IF(...)`, `WORKDAY.INTL(...)`, etc.).
+Your planned date cells are populated by **formulas** (e.g. `WORKDAY.INTL`, `IF`, etc.).
 
 | Trigger | Fires when… | Works for formula cells? |
 |---|---|---|
 | `onEdit` | User directly types in a cell | ❌ No |
-| `onChange` | Any structural change | ❌ No |
+| **`onChange` (installable)** | ANY change to spreadsheet content | ✅ Yes |
 | **Time-based** | Every X minutes/hours | ✅ Yes |
 
-`onEdit` and `onChange` only fire on *user-initiated* direct edits. Formula recalculations are invisible to both. This is why your previous WhatsApp attempts produced no messages.
+Both an `onChange` installable trigger AND a 60-minute backup trigger are installed by `setupWhatsAppTriggers()`.
+
+---
+
+## Bug That Was Fixed (v2)
+
+**`HOD_NAME_ROW` was set to `2` — this pointed at the flow name ("BOM"), not the HOD's name.**
+
+The sheet header structure for flow columns is:
+
+| Sheet Row | Col A label | Flow column content |
+|---|---|---|
+| 2 | What | Flow name → **BOM** / CRM / System … |
+| **3** | **Who** | **HOD name → Sumit Mishra** ← correct row |
+| 4 | How | System / … |
+| 5 | When | 24:00:00 |
+| 6 | — | Column headers (PI, Act, Status, Form Link, …) |
+| 7+ | — | Data rows |
+
+With `HOD_NAME_ROW: 2`, the script read "BOM", looked it up in the HOD sheet, found nothing, and silently skipped every row. Fixed to `HOD_NAME_ROW: 3`.
 
 ---
 
 ## How WhatsApp.gs Works
 
-1. A **time-based trigger** calls `checkAndSendWhatsApp()` every hour.
-2. It batch-reads the entire FMS sheet in one API call (fast, won't time out).
-3. For every task row, it checks each of the 8 flow blocks for a populated Planned Date.
-4. It looks up the HOD name (from row 2 of that flow's column) in the **HOD sheet** to get their phone number.
-5. It sends a WhatsApp message with Task ID, Item Name, Customer, Planned Date, and the Form Link.
-6. Every successful send is recorded in a sheet called **WA_Log** — so each task+flow combination is sent **only once**, no matter how many times the trigger runs.
+1. **onChange trigger** → fires within seconds of any sheet change (including formula recalculations that generate planned dates)
+2. **Hourly backup trigger** → catches anything the onChange might have missed
+3. Both call `checkAndSendWhatsApp()` which:
+   - Batch-reads the entire FMS sheet in one call
+   - Checks all 8 flow blocks per row for populated Planned Dates
+   - Looks up HOD name from row 3 of that flow's column → finds their phone in HOD sheet
+   - Sends WhatsApp: Task ID + Item + Customer + Planned Date + Form Link
+   - Logs to **WA_Log** sheet — each Task ID + Flow is notified **exactly once**
 
 ---
 
-## Sheet Structure Required
+## Sheet Structure
 
-### FMS Sheet — flow block layout
+### FMS flow blocks (starting column Q)
 
 | Flow | Columns | HOD name location |
 |---|---|---|
-| Flow 1 | Q–U (cols 17–21) | Q2 |
-| Flow 2 | V–Z (cols 22–26) | V2 |
-| Flow 3 | AA–AE (cols 27–31) | AA2 |
-| Flow 4 | AF–AJ (cols 32–36) | AF2 |
-| Flow 5 | AK–AO (cols 37–41) | AK2 |
-| Flow 6 | AP–AT (cols 42–46) | AP2 |
-| Flow 7 | AU–AY (cols 47–51) | AU2 |
-| Flow 8 | AZ–BD (cols 52–56) | AZ2 |
+| Flow 1 | Q–U (17–21) | **Q3** |
+| Flow 2 | V–Z (22–26) | **V3** |
+| Flow 3 | AA–AE (27–31) | **AA3** |
+| Flow 4 | AF–AJ (32–36) | **AF3** |
+| Flow 5 | AK–AO (37–41) | **AK3** |
+| Flow 6 | AP–AT (42–46) | **AP3** |
+| Flow 7 | AU–AY (47–51) | **AU3** |
+| Flow 8 | AZ–BD (52–56) | **AZ3** |
 
 Within each 5-column block:
 
-| Offset | Column (example Flow 1) | Content |
-|---|---|---|
-| +0 | Q | Planned Date (PI) |
-| +1 | R | Actual Date (Act) |
-| +2 | S | Status |
-| +3 | T | **Form Link** ← sent in WhatsApp |
-| +4 | U | Time Delay |
+| Offset | Content |
+|---|---|
+| +0 | Planned Date (PI) ← triggers WhatsApp |
+| +1 | Actual Date (Act) |
+| +2 | Status |
+| +3 | **Form Link** ← sent in message |
+| +4 | Time Delay |
 
 ### HOD Sheet
 
 | Column A | Column B |
 |---|---|
-| HOD Name (must match exactly what is in row 2 of FMS) | WhatsApp number — international format, no `+`, no spaces |
-| Rahul Sharma | 919876543210 |
-| Priya Singh | 918765432109 |
-
-> Indian numbers: prefix `91` followed by the 10-digit mobile number.
-
-### WA_Log Sheet (auto-created)
-
-Created automatically the first time `setupWhatsAppTrigger()` runs. Columns:
-
-| Task ID | Flow # | HOD Name | Phone | Planned Date | Sent At |
-
-**Never delete rows from WA_Log** unless you want messages to be re-sent.
+| HOD Name (exact match with row 3 of FMS) | Phone — international format, no `+`, no spaces |
+| Sumit Mishra | 919876543210 |
 
 ---
 
 ## Setup — Step by Step
 
-### Step 1 — Add files to your Apps Script project
-1. Open your Google Sheet.
-2. Go to **Extensions → Apps Script**.
-3. Click the **+** next to "Files" to add a new script file.
-4. Name it `WhatsApp` and paste the full contents of `WhatsApp.gs`.
-5. Add another file named `FMSAutofill` and paste `FMSAutofill.gs`.
-   - **Skip this step** if you already have the `onEdit` autofill logic in your project.
+### Step 1 — Add files to Apps Script
+1. Open your Google Sheet → **Extensions → Apps Script**
+2. Click **+** next to Files → name it `WhatsApp` → paste `WhatsApp.gs`
+3. Add another file `FMSAutofill` → paste `FMSAutofill.gs` *(skip if already in project)*
 
-### Step 2 — Verify configuration
-Open `WhatsApp.gs` and check the `WA_CFG` block at the top:
-- `FMS_SHEET` — must match your flow tracking sheet's tab name exactly
-- `HOD_SHEET` — must match your HOD directory sheet's tab name exactly
-- Column numbers — adjust if your layout differs from the defaults
+### Step 2 — Verify WA_CFG
+- `FMS_SHEET` and `HOD_SHEET` must match your sheet tab names exactly
+- `HOD_NAME_ROW: 3` ← must stay 3
+- `TASK_ID_COL` — run `diagnoseFMSSheet()` to confirm
 
-### Step 3 — Run setup (once only)
-1. In the Apps Script editor, select `setupWhatsAppTrigger` from the function dropdown.
-2. Click **Run**.
-3. Grant permissions when prompted (the script needs access to the spreadsheet and internet for the API).
-4. Check the **Execution log** — you should see: `✅ WhatsApp trigger installed. Runs every 1 hour(s).`
-5. You will also see a new **WA_Log** tab appear in your spreadsheet.
+### Step 3 — Run setup (once)
+Select **`setupWhatsAppTriggers`** → Run → grant permissions
 
-### Step 4 — Test the API
-1. Open `WhatsApp.gs`, find `testWhatsAppSend()`.
-2. Replace `"91XXXXXXXXXX"` with a real phone number you can verify.
-3. Select `testWhatsAppSend` from the dropdown and click **Run**.
-4. Check **Execution log** for `✅ Test message sent successfully!`
-5. Check that phone for the WhatsApp message.
+### Step 4 — Run the diagnostic
+Select `diagnoseFMSSheet` → Run → check Execution Log:
+- Confirm HOD names read per flow match names in HOD sheet
+- Confirm Task IDs are being read from the right column
+- Adjust `WA_CFG` column numbers if anything looks wrong
 
-### Step 5 — Verify the trigger exists
-1. In Apps Script, click the **clock icon** (Triggers) in the left sidebar.
-2. You should see `checkAndSendWhatsApp` listed with type `Time-driven`, interval `1 hour`.
-3. You will also still see your existing `onChange_new` trigger — leave it alone.
+### Step 5 — Test the API
+Edit `testWhatsAppSend()` with a real phone → Run → check that phone receives the test message
 
----
-
-## WhatsApp Message Format
-
-```
-Dear [HOD Name],
-
-A new task has been assigned to you in FMS (Flow X).
-
-Task ID      : TASK-001
-Item         : Product Name
-Customer     : Customer Name
-Planned Date : 28/05/2026 10:00
-
-Please fill the Google Form:
-https://forms.gle/your-form-link
-
-Regards,
-FMS System
-```
-
----
-
-## Troubleshooting
-
-| Symptom | Likely cause | Fix |
-|---|---|---|
-| No messages ever sent | Trigger not installed | Run `setupWhatsAppTrigger()` |
-| `testWhatsAppSend` fails | Wrong API credentials or phone format | Verify credentials in `WA_CFG`; phone must be `91XXXXXXXXXX` |
-| HOD not found in log | Name mismatch between FMS row 2 and HOD sheet col A | Remove extra spaces; names must match exactly |
-| Message sent but not received | Wrong phone number format | Use digits only, no `+`, no dashes, no spaces |
-| Same message sent multiple times | WA_Log was cleared or rows were deleted | Check WA_Log sheet; never delete its rows |
-| Trigger runs but skips some rows | Planned date column is blank (formula returned `""`) | Normal — those rows are skipped until the date populates |
+### Step 6 — Verify triggers
+Triggers panel (clock icon) should show:
+- `onChange_WhatsApp` — From spreadsheet / On change
+- `checkAndSendWhatsApp` — Time-driven / Every hour
+- Your existing `onChange_new` — leave it alone
 
 ---
 
 ## Utility Functions
 
-| Function | How to use | What it does |
+| Function | Purpose |
+|---|---|
+| `setupWhatsAppTriggers()` | Install both triggers (run once) |
+| `removeWhatsAppTriggers()` | Pause all WhatsApp notifications |
+| `checkAndSendWhatsApp()` | Run a manual scan right now |
+| `diagnoseFMSSheet()` | Log what the script is reading — use to verify config |
+| `testWhatsAppSend()` | Send a test message to verify API |
+| `clearWASentLog()` | Reset log (next run re-sends everything — use with caution) |
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
 |---|---|---|
-| `setupWhatsAppTrigger()` | Run once from editor | Installs the hourly trigger |
-| `removeWhatsAppTrigger()` | Run from editor to pause | Stops future automatic runs |
-| `checkAndSendWhatsApp()` | Run manually to test | Runs a full scan right now |
-| `testWhatsAppSend()` | Run from editor | Sends a test message to a number you specify |
-| `clearWASentLog()` | **Use with caution** | Clears WA_Log — next run will re-send all messages |
+| No messages ever | HOD_NAME_ROW wrong | Run `diagnoseFMSSheet()` — check HOD names read per flow |
+| No messages ever | Trigger not installed | Run `setupWhatsAppTriggers()` |
+| HOD not found in log | Name mismatch | Names must match exactly (no extra spaces) |
+| Wrong task details | Wrong column numbers | Run `diagnoseFMSSheet()` and adjust `WA_CFG` |
+| Same message re-sent | WA_Log rows deleted | Never delete rows from WA_Log |
+| Delay of ~1 hour | onChange trigger missing | Re-run `setupWhatsAppTriggers()` |
 
 ---
 
