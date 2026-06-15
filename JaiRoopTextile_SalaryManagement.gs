@@ -46,22 +46,19 @@ const C = {
 const DEF = {
   EPF_EMP     : 12,       // %  employee EPF
   EPF_EMP_LBL : "12%",
-  EPF_EMPR    : 12,       // %  employer EPF
+  EPF_EMPR    : 12,       // %  employer EPF (no EPS; full 12% goes to EPF A/C)
   EPF_EMPR_LBL: "12%",
-  EPS         : 8.33,     // %  employer EPS (subset of employer EPF)
-  ESI_EMP     : 0.75,     // %  employee ESI
+  ESI_EMP     : 0.75,     // %  employee ESI (no gross ceiling; applies to all)
   ESI_EMP_LBL : "0.75%",
   ESI_EMPR    : 3.25,     // %  employer ESI
   ESI_EMPR_LBL: "3.25%",
-  ESI_CEIL    : 21000,    // ₹  gross ceiling for ESI applicability
-  EPF_WAGE    : 15000,    // ₹  wage ceiling for EPF calculation
   LWF_EMP     : 25,       // ₹  LWF employee (state-specific)
   LWF_EMPR    : 75,       // ₹  LWF employer (state-specific)
   HRA_PCT     : 40,       // %  HRA of basic (40% non-metro, 50% metro)
   DA_PCT      : 0,        // %  DA of basic
-  WORK_DAYS   : 26,       // standard working days per month
-  WORK_HRS    : 8,        // standard working hours per day
-  OT_MULT     : 2,        // overtime multiplier
+  WORK_DAYS   : 26,       // fallback working days (actual = calendar days)
+  WORK_HRS    : 8,        // default working hours per day (per-employee override in Master)
+  OT_MULT     : 1,        // OT at standard rate (1×); no double OT
 };
 
 // ── Settings sheet cell references (used in Salary Register formulas) ──
@@ -71,12 +68,10 @@ const S = {
   EPF_EMPR : "'⚙️ Settings'!$B$17",
   ESI_EMP  : "'⚙️ Settings'!$B$19",
   ESI_EMPR : "'⚙️ Settings'!$B$20",
-  ESI_CEIL : "'⚙️ Settings'!$B$21",
-  EPF_WAGE : "'⚙️ Settings'!$B$22",
   LWF_EMP  : "'⚙️ Settings'!$B$23",
   WORK_DAY : "'⚙️ Settings'!$B$32",
   WORK_HRS : "'⚙️ Settings'!$B$33",
-  OT_MULT  : "'⚙️ Settings'!$B$34",
+  // ESI_CEIL, EPF_WAGE, OT_MULT removed — not applicable per company policy
 };
 
 // ============================================================
@@ -187,13 +182,13 @@ function createSettingsSheet(ss) {
     /* 13 */ ["", "", "", ""],
     /* 14 */ ["STATUTORY DEDUCTION RATES", "", "", ""],
     /* 15 */ ["Parameter",             "Rate / Amount",     "Applicability Rule",                              "Notes / Reference"],
-    /* 16 */ ["EPF Employee Rate (%)", DEF.EPF_EMP,         "12% on Basic + DA (up to ₹15,000 wage ceiling)",  "Section 6 — EPF Act 1952"],
-    /* 17 */ ["EPF Employer Rate (%)", DEF.EPF_EMPR,        "12% on Basic + DA (up to ₹15,000)",               "8.33% → EPS; balance → EPF A/C"],
-    /* 18 */ ["EPS % (of employer 12)","8.33",              "Capped at ₹1,250/month (₹15,000 × 8.33%)",       "Employee Pension Scheme"],
-    /* 19 */ ["ESI Employee Rate (%)", DEF.ESI_EMP,         "0.75% of Gross Salary",                           "If Gross ≤ ESI ceiling below"],
-    /* 20 */ ["ESI Employer Rate (%)", DEF.ESI_EMPR,        "3.25% of Gross Salary",                           "ESI Act 1948"],
-    /* 21 */ ["ESI Gross Ceiling (₹)", DEF.ESI_CEIL,        "Employees above ₹21,000 gross are exempt",        "Notify 01/Oct/2019"],
-    /* 22 */ ["EPF Wage Ceiling (₹)",  DEF.EPF_WAGE,        "EPF computed on actual if basic+DA < ceiling",    "Statutory ceiling"],
+    /* 16 */ ["EPF Employee Rate (%)", DEF.EPF_EMP,         "12% on actual Basic + DA (no wage ceiling)",      "Section 6 — EPF Act 1952"],
+    /* 17 */ ["EPF Employer Rate (%)", DEF.EPF_EMPR,        "12% on actual Basic + DA (no wage ceiling)",      "Full 12% credited to EPF A/C; EPS not applicable"],
+    /* 18 */ ["EPS",                   "Not Applicable",    "EPS not provided as per company policy",          "If activated later, update row 17 split formula"],
+    /* 19 */ ["ESI Employee Rate (%)", DEF.ESI_EMP,         "0.75% of Gross Salary — applies to all employees","No gross ceiling; ESI Act 1948"],
+    /* 20 */ ["ESI Employer Rate (%)", DEF.ESI_EMPR,        "3.25% of Gross Salary — applies to all employees","No gross ceiling"],
+    /* 21 */ ["ESI Gross Ceiling",     "Not Applicable",    "All employees covered regardless of gross salary", "Company policy — no ceiling"],
+    /* 22 */ ["EPF Wage Ceiling",      "Not Applicable",    "EPF calculated on full actual Basic + DA",         "Company policy — no ceiling"],
     /* 23 */ ["LWF Employee (₹/month)",DEF.LWF_EMP,         "Fixed per employee per month",                    "Update as per your state rules"],
     /* 24 */ ["LWF Employer (₹/month)",DEF.LWF_EMPR,        "Fixed per employee per month",                    "Update as per your state rules"],
     /* 25 */ ["LWF Deduction Cycle",   "Monthly",           "Monthly / Half-Yearly / Yearly",                  "As applicable in your state"],
@@ -203,9 +198,9 @@ function createSettingsSheet(ss) {
     /* 29 */ ["HRA % of Basic",        DEF.HRA_PCT,         "40% for non-metro; 50% for metro cities",         "Used in Employee Master auto-fill"],
     /* 30 */ ["DA % of Basic",         DEF.DA_PCT,          "0% currently; update if DA is paid",              ""],
     /* 31 */ ["Special Allow. Mode",   "Auto",              "'Auto' = Gross − Basic − HRA − DA; else enter ₹",""],
-    /* 32 */ ["Standard Working Days", DEF.WORK_DAYS,       "Days used for per-day salary calculation",        "26 days standard for India"],
-    /* 33 */ ["Standard Working Hours",DEF.WORK_HRS,        "Hours per working day",                           "Used for short-time deduction"],
-    /* 34 */ ["Overtime Multiplier",   DEF.OT_MULT,         "OT pay = (basic/WD/WH) × OT hrs × multiplier",   "2× is the legal minimum"],
+    /* 32 */ ["Standard Working Days", DEF.WORK_DAYS,       "Fallback if attendance sheet not filled",         "Actual denominator = calendar days of the month"],
+    /* 33 */ ["Default Working Hrs/Day",DEF.WORK_HRS,       "Default if employee has no per-employee hours",   "Per-employee hours set in Employee Master col AE"],
+    /* 34 */ ["Overtime Rate",         DEF.OT_MULT,         "OT paid at standard hourly rate (1×)",            "No double OT; per company policy"],
     /* 35 */ ["", "", "", ""],
     /* 36 */ ["INCOME TAX SLABS — FY 2024-25 (NEW REGIME)", "", "", ""],
     /* 37 */ ["Slab Description",      "Income From (₹)", "Income Up To (₹)", "Tax Rate (%)"],
@@ -254,8 +249,9 @@ function createSettingsSheet(ss) {
   // Number format for numeric rate cells
   sh.getRange("B16:B17").setNumberFormat("0");
   sh.getRange("B19:B20").setNumberFormat("0.00");
-  sh.getRange("B21:B24").setNumberFormat("₹#,##0");
-  sh.getRange("B32:B34").setNumberFormat("0");
+  sh.getRange("B23:B24").setNumberFormat("₹#,##0");  // B21/B22 are now text (Not Applicable)
+  sh.getRange("B32:B33").setNumberFormat("0");
+  sh.getRange("B34").setNumberFormat("0");            // OT multiplier = 1
   sh.getRange("C38:D43").setNumberFormat("#,##0");
 
   sh.setColumnWidth(1, 280); sh.setColumnWidth(2, 180);
@@ -281,6 +277,7 @@ function createSettingsSheet(ss) {
 //  V(22) Account No.      W(23) IFSC             X(24) EPF UAN
 //  Y(25) ESI IP No.       Z(26) Advance O/S      AA(27) Loan O/S
 //  AB(28) Loan EMI        AC(29) TDS Monthly     AD(30) Status
+//  AE(31) Working Hours/Day (employee-specific; overrides Settings default)
 // ============================================================
 function createEmployeeMasterSheet(ss) {
   let sh = ss.getSheetByName(SH.EMP);
@@ -297,7 +294,8 @@ function createEmployeeMasterSheet(ss) {
     "Father's / Husband's Name","Gender","Date of Birth","Mobile No.",
     "Email ID","PAN Number","Aadhaar Number",
     "Bank Name","Account Number","IFSC Code","EPF UAN","ESI IP No.",
-    "Advance\nO/S (₹)","Loan\nO/S (₹)","Monthly\nLoan EMI (₹)","TDS\nMonthly (₹)","Status"
+    "Advance\nO/S (₹)","Loan\nO/S (₹)","Monthly\nLoan EMI (₹)","TDS\nMonthly (₹)","Status",
+    "Working\nHours/Day"
   ];
 
   // Title — no .merge() on full row; setFrozenColumns(2) cannot cross a merged cell boundary
@@ -320,7 +318,7 @@ function createEmployeeMasterSheet(ss) {
       "ramesh@example.com","ABCDE1234F","123456789012",
       "SBI","00000000000","SBIN0001234",
       "100000000001","1001234567",
-      0, 0, 2000, 0, "Active"
+      0, 0, 2000, 0, "Active", 8
     ];
     sh.getRange(3, 1, 1, hdrs.length).setValues([demo]);
   }
@@ -363,7 +361,7 @@ function createEmployeeMasterSheet(ss) {
   // Column widths
   [80,180,140,130,110,100,80,70,120,110,100,70,70,
    170,70,100,110,170,120,140,130,150,100,140,110,
-   90,80,100,80,80].forEach((w,i) => sh.setColumnWidth(i+1, w));
+   90,80,100,80,80,80].forEach((w,i) => sh.setColumnWidth(i+1, w));
 
   // Alternate row shading
   for (let r = 3; r <= 200; r += 2) {
@@ -377,10 +375,15 @@ function createEmployeeMasterSheet(ss) {
 //  SHEET: 📅 Attendance
 //
 //  Column map (used by Salary Register VLOOKUPs):
-//  A(1) Emp ID          B(2) Name (auto)       C(3) Desig (auto)
-//  D(4) Total Work Days E(5) Days Present       F(6) Days Absent (auto)
-//  G(7) Half Days       H(8) OT Hours           I(9) Short Time Hours
-//  J(10) Late Count     K(11) Notes
+//  A(1) Emp ID             B(2) Name (auto)        C(3) Desig (auto)
+//  D(4) Total Calendar Days E(5) Days Present       F(6) Eligible Sundays (auto)
+//  G(7) Days Absent (auto)  H(8) Half Days          I(9) OT Hours
+//  J(10) Short Time Hours   K(11) Late Count        L(12) Notes
+//
+//  Eligible Sundays rule:
+//  — First Sunday of the month: always paid (no 4-day condition)
+//  — Subsequent Sundays: paid if employee worked ≥4 days in that week
+//  Formula: =IF(E=0,0, MIN(TotalSundays, 1+FLOOR(MAX(0,Present-DaysBeforeFirstSun)/4)))
 // ============================================================
 function createAttendanceSheet(ss) {
   let sh = ss.getSheetByName(SH.ATTEND);
@@ -393,28 +396,32 @@ function createAttendanceSheet(ss) {
   const now  = new Date();
   const mLbl = Utilities.formatDate(now, tz, "MMMM yyyy");
 
-  // Title — no .merge() on full row; setFrozenColumns(2) cannot cross a merged cell boundary
-  sh.getRange(1,1,1,11)
+  // Title — no .merge(); setFrozenColumns(2) cannot cross a merged cell boundary
+  sh.getRange(1,1,1,12)
     .setBackground(C.DARK_BLUE).setFontColor(C.WHITE)
     .setFontSize(13).setFontWeight("bold").setHorizontalAlignment("center");
   sh.getRange(1,1).setValue("📅  ATTENDANCE REGISTER — " + CO_NAME + " | " + mLbl);
 
-  // Control row
+  // Control row — D2 auto total calendar days; H2 total Sundays in month
   sh.getRange(2,1).setValue("Month:");
   sh.getRange(2,2).setValue(now).setNumberFormat("MMMM yyyy").setBackground("#FFFF99").setFontWeight("bold");
-  sh.getRange(2,3).setValue("Working Days:");
-  sh.getRange(2,4).setValue(DEF.WORK_DAYS).setBackground("#FFFF99").setFontWeight("bold");
-  sh.getRange(2,5).setValue("Work Hrs/Day:");
-  sh.getRange(2,6).setValue(DEF.WORK_HRS).setBackground("#FFFF99").setFontWeight("bold");
-  sh.getRange(2,7,1,5).merge()
-    .setValue("📌 Fill: Emp ID, Days Present, Half Days, OT Hrs, Short Time Hrs. Other columns auto-fill.")
+  sh.getRange(2,3).setValue("Cal Days:");
+  sh.getRange(2,4).setFormula("=DAY(EOMONTH(B2,0))").setBackground("#C8E6C9").setFontWeight("bold");
+  sh.getRange(2,5).setValue("Total Sundays:");
+  sh.getRange(2,6).setFormula(
+    '=NETWORKDAYS.INTL(DATE(YEAR(B2),MONTH(B2),1),EOMONTH(B2,0),"1111110")')
+    .setBackground("#C8E6C9").setFontWeight("bold");
+  sh.getRange(2,7).setValue("Work Hrs/Day:");
+  sh.getRange(2,8).setFormula("='⚙️ Settings'!$B$33").setBackground("#C8E6C9").setFontWeight("bold");
+  sh.getRange(2,9,1,4).merge()
+    .setValue("📌 Fill: Emp ID, Days Present (working days only, excl. Sundays), Half Days, OT Hrs, Short Time. Other cols auto-fill.")
     .setBackground("#FFF9C4").setFontStyle("italic").setFontSize(9).setWrap(true);
 
   // Headers
   const hdrs = [
     "Emp ID","Employee Name","Designation",
-    "Total Working\nDays","Days\nPresent","Days\nAbsent","Half\nDays",
-    "OT Hours","Short Time\nHours","Late\nCount","Notes"
+    "Total Calendar\nDays","Days\nPresent","Eligible\nSundays","Days\nAbsent",
+    "Half\nDays","OT Hours","Short Time\nHours","Late\nCount","Notes"
   ];
   sh.getRange(3,1,1,hdrs.length).setValues([hdrs])
     .setBackground(C.MID_BLUE).setFontColor(C.WHITE)
@@ -422,26 +429,36 @@ function createAttendanceSheet(ss) {
 
   // Formulas for rows 4–200
   for (let r = 4; r <= 200; r++) {
+    // Col B: Name auto-fill
     sh.getRange(r,2).setFormula(
       `=IFERROR(IF(A${r}="","",VLOOKUP(A${r},'👥 Employee Master'!$A:$B,2,0)),"")`);
+    // Col C: Designation auto-fill
     sh.getRange(r,3).setFormula(
       `=IFERROR(IF(A${r}="","",VLOOKUP(A${r},'👥 Employee Master'!$A:$C,3,0)),"")`);
-    sh.getRange(r,4).setFormula(`=IF(A${r}="","",$D$2)`);
-    sh.getRange(r,6).setFormula(`=IF(A${r}="","",D${r}-E${r}-G${r}/2)`);
+    // Col D: Total Calendar Days (auto from month in B2)
+    sh.getRange(r,4).setFormula(`=IF(A${r}="","",DAY(EOMONTH($B$2,0)))`);
+    // Col F: Eligible Sundays — first Sunday always paid; subsequent every 4 working days
+    sh.getRange(r,6).setFormula(
+      `=IF(A${r}="","",IF(E${r}=0,0,MIN(` +
+      `NETWORKDAYS.INTL(DATE(YEAR($B$2),MONTH($B$2),1),EOMONTH($B$2,0),"1111110"),` +
+      `1+FLOOR(MAX(0,E${r}-MOD(8-WEEKDAY(DATE(YEAR($B$2),MONTH($B$2),1),1),7))/4)` +
+      `)))`);
+    // Col G: Days Absent (for display) = CalDays - Present - EligibleSundays - HalfDays×0.5
+    sh.getRange(r,7).setFormula(`=IF(A${r}="","",MAX(0,D${r}-E${r}-F${r}-H${r}*0.5))`);
   }
 
   // Pre-fill demo row
   sh.getRange(4,1).setValue("JRT001");
-  sh.getRange(4,5).setValue(25);
-  sh.getRange(4,7).setValue(0);
-  sh.getRange(4,8).setValue(2);
-  sh.getRange(4,9).setValue(1);
-  sh.getRange(4,10).setValue(0);
+  sh.getRange(4,5).setValue(25);   // Days Present
+  sh.getRange(4,8).setValue(0);    // Half Days
+  sh.getRange(4,9).setValue(2);    // OT Hours
+  sh.getRange(4,10).setValue(1);   // Short Time Hours
+  sh.getRange(4,11).setValue(0);   // Late Count
 
   sh.setFrozenRows(3);
   sh.setFrozenColumns(2);
 
-  [80,180,140,90,90,90,80,80,100,80,160].forEach((w,i) => sh.setColumnWidth(i+1, w));
+  [80,180,140,95,85,90,80,75,80,100,75,160].forEach((w,i) => sh.setColumnWidth(i+1, w));
 
   SpreadsheetApp.flush();
 }
@@ -578,7 +595,7 @@ function createSalaryRegisterSheet(ss) {
   // ── Row 4: Column headers ────────────────────────────────
   const hdrs = [
     "S.No.","Emp ID","Employee Name","Designation","Department",
-    "Total\nWD","Days\nPresent","Days\nAbsent","Half\nDays","OT\nHrs","Short\nTime Hrs",
+    "Total Cal\nDays","Days\nPresent","Eligible\nSundays","Half\nDays","OT\nHrs","Short\nTime Hrs",
     "Basic (₹)","HRA (₹)","DA (₹)","Special\nAllow (₹)","Other\nAllow (₹)","OT\nAmount (₹)","Gross\nSalary (₹)",
     "EPF Emp\n(₹)","ESI Emp\n(₹)","LWF\n(₹)","TDS\n(₹)","Absent\nDedn (₹)","Short Time\nDedn (₹)","Advance\nRecov (₹)","Loan EMI\nRecov (₹)",
     "Total\nDeductions (₹)","NET\nPAY (₹)",
@@ -605,19 +622,25 @@ function createSalaryRegisterSheet(ss) {
     sh.getRange(r,4).setFormula(`=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${EMP}!$A:$C,3,0)),"")`);
     sh.getRange(r,5).setFormula(`=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${EMP}!$A:$D,4,0)),"")`);
 
-    // Attendance (auto from attendance sheet)
+    // Attendance (auto from attendance sheet — new column map)
+    // ATT col D(4)=TotalCalDays  E(5)=Present  F(6)=EligibleSundays
+    //     H(8)=HalfDays          I(9)=OT Hours  J(10)=ShortTime
     sh.getRange(r,6).setFormula(
       `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${ATT}!$A:$D,4,0)),${S.WORK_DAY})`);
     sh.getRange(r,7).setFormula(
       `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${ATT}!$A:$E,5,0)),"")`);
+    // col 8: Eligible Sundays (ATT col F = index 6)
     sh.getRange(r,8).setFormula(
-      `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${ATT}!$A:$F,6,0)),"")`);
+      `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${ATT}!$A:$F,6,0)),0)`);
+    // col 9: Half Days (ATT col H = index 8 — shifted)
     sh.getRange(r,9).setFormula(
-      `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${ATT}!$A:$G,7,0)),0)`);
-    sh.getRange(r,10).setFormula(
       `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${ATT}!$A:$H,8,0)),0)`);
-    sh.getRange(r,11).setFormula(
+    // col 10: OT Hours (ATT col I = index 9 — shifted)
+    sh.getRange(r,10).setFormula(
       `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${ATT}!$A:$I,9,0)),0)`);
+    // col 11: Short Time Hours (ATT col J = index 10 — shifted)
+    sh.getRange(r,11).setFormula(
+      `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${ATT}!$A:$J,10,0)),0)`);
 
     // ── EARNINGS ─────────────────────────────────────────
     // Full salary shown; absence deducted in Deductions section
@@ -631,25 +654,25 @@ function createSalaryRegisterSheet(ss) {
       `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${EMP}!$A:$I,9,0)),"")`);
     sh.getRange(r,16).setFormula(   // Other Allow
       `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${EMP}!$A:$J,10,0)),"")`);
-    sh.getRange(r,17).setFormula(   // OT Amount
+    sh.getRange(r,17).setFormula(   // OT Amount — 1× standard hourly rate, per-employee hours
       `=IFERROR(IF(B${n}="","",IF(J${n}=0,0,ROUND(` +
       `VLOOKUP(B${n},${EMP}!$A:$F,6,0)/` +
       `IF(F${n}=0,${S.WORK_DAY},F${n})/` +
-      `${S.WORK_HRS}*J${n}*${S.OT_MULT},2))),"")`);
+      `IFERROR(VLOOKUP(B${n},${EMP}!$A:$AE,31,0),${S.WORK_HRS})*J${n},2))),"")`);
     sh.getRange(r,18).setFormula(   // Gross
       `=IF(B${n}="","",SUM(L${n}:Q${n}))`);
 
     // ── DEDUCTIONS ────────────────────────────────────────
-    // EPF Employee: 12% of min(Basic+DA, EPF wage ceiling)
+    // EPF Employee: 12% of actual Basic+DA (no wage ceiling per company policy)
     sh.getRange(r,19).setFormula(
       `=IFERROR(IF(B${n}="","",` +
       `IF(VLOOKUP(B${n},${EMP}!$A:$L,12,0)="YES",` +
-      `ROUND(MIN(L${n}+N${n},${S.EPF_WAGE})*${S.EPF_EMP}/100,0),0)),"")`);
+      `ROUND((L${n}+N${n})*${S.EPF_EMP}/100,0),0)),"")`);
 
-    // ESI Employee: 0.75% of Gross if Gross ≤ 21,000
+    // ESI Employee: 0.75% of Gross (no gross ceiling per company policy)
     sh.getRange(r,20).setFormula(
       `=IFERROR(IF(B${n}="","",` +
-      `IF(AND(VLOOKUP(B${n},${EMP}!$A:$M,13,0)="YES",R${n}<=${S.ESI_CEIL}),` +
+      `IF(VLOOKUP(B${n},${EMP}!$A:$M,13,0)="YES",` +
       `ROUND(R${n}*${S.ESI_EMP}/100,0),0)),"")`);
 
     // LWF Employee: Fixed ₹ per month
@@ -661,15 +684,17 @@ function createSalaryRegisterSheet(ss) {
     sh.getRange(r,22).setFormula(
       `=IFERROR(IF(B${n}="","",VLOOKUP(B${n},${EMP}!$A:$AC,29,0)),"")`);
 
-    // Absent Deduction: (Gross / WD) × Absent Days
+    // Absent Deduction: Gross × (CalDays - Present - EligibleSundays - HalfDays×0.5) / CalDays
+    // F=TotalCalDays, G=DaysPresent, H=EligibleSundays, I=HalfDays
     sh.getRange(r,23).setFormula(
       `=IFERROR(IF(B${n}="","",` +
-      `IF(H${n}=0,0,ROUND(R${n}/IF(F${n}=0,${S.WORK_DAY},F${n})*H${n},2))),"")`);
+      `IF(F${n}=0,"",MAX(0,ROUND(R${n}*(F${n}-G${n}-H${n}-I${n}*0.5)/F${n},2)))),"")`);
 
-    // Short Time Deduction: (Gross / WD / WH) × Short Time Hours
+    // Short Time Deduction — uses per-employee working hours (col 31), falls back to Settings
     sh.getRange(r,24).setFormula(
       `=IFERROR(IF(B${n}="","",` +
-      `IF(K${n}=0,0,ROUND(R${n}/IF(F${n}=0,${S.WORK_DAY},F${n})/${S.WORK_HRS}*K${n},2))),"")`);
+      `IF(K${n}=0,0,ROUND(R${n}/IF(F${n}=0,${S.WORK_DAY},F${n})/` +
+      `IFERROR(VLOOKUP(B${n},${EMP}!$A:$AE,31,0),${S.WORK_HRS})*K${n},2))),"")`);
 
     // Advance Recovery: sum of active Advance EMIs for this employee
     sh.getRange(r,25).setFormula(
@@ -693,16 +718,16 @@ function createSalaryRegisterSheet(ss) {
     // NET PAY
     sh.getRange(r,28).setFormula(`=IF(B${n}="","",R${n}-AA${n})`);
 
-    // EPF Employer: 12% of min(Basic+DA, EPF ceiling)
+    // EPF Employer: 12% of actual Basic+DA (no ceiling; full 12% to EPF, no EPS split)
     sh.getRange(r,29).setFormula(
       `=IFERROR(IF(B${n}="","",` +
       `IF(VLOOKUP(B${n},${EMP}!$A:$L,12,0)="YES",` +
-      `ROUND(MIN(L${n}+N${n},${S.EPF_WAGE})*${S.EPF_EMPR}/100,0),0)),"")`);
+      `ROUND((L${n}+N${n})*${S.EPF_EMPR}/100,0),0)),"")`);
 
-    // ESI Employer: 3.25% of Gross if Gross ≤ 21,000
+    // ESI Employer: 3.25% of Gross (no gross ceiling per company policy)
     sh.getRange(r,30).setFormula(
       `=IFERROR(IF(B${n}="","",` +
-      `IF(AND(VLOOKUP(B${n},${EMP}!$A:$M,13,0)="YES",R${n}<=${S.ESI_CEIL}),` +
+      `IF(VLOOKUP(B${n},${EMP}!$A:$M,13,0)="YES",` +
       `ROUND(R${n}*${S.ESI_EMPR}/100,0),0)),"")`);
   }
 
@@ -810,9 +835,9 @@ function createPayslipSheet(ss) {
     ["Date of Joining:", em("E",5), "PAN No.:", em("S",19)],
     ["Bank Name:",    em("U",21), "Account No.:", em("V",22)],
     ["EPF UAN:",      em("X",24), "ESI IP No.:",  em("Y",25)],
-    ["Total Working Days:", sl(6), "Days Present:", sl(7)],
-    ["Days Absent:",  sl(8),  "OT Hours:",        sl(10)],
-    ["Half Days:",    sl(9),  "Short Time (Hrs):", sl(11)],
+    ["Total Calendar Days:", sl(6), "Days Present:",        sl(7)],
+    ["Eligible Sundays:", sl(8), "OT Hours:",              sl(10)],
+    ["Half Days:",    sl(9),  "Short Time (Hrs):",          sl(11)],
   ];
   empInfo.forEach((row, i) => {
     const r = P + 4 + i;
@@ -1338,11 +1363,11 @@ function showHelp() {
 <table>
   <tr><th>Deduction</th><th>Formula / Rule</th><th>Statutory Reference</th></tr>
   <tr><td><b>EPF (Employee)</b></td>
-      <td>12% × MIN(Basic+DA, ₹15,000 ceiling)</td>
-      <td>EPF & MP Act 1952, Section 6</td></tr>
+      <td>12% × (Basic + DA) — no wage ceiling</td>
+      <td>EPF &amp; MP Act 1952, Sec 6 (company policy: no ceiling)</td></tr>
   <tr><td><b>ESI (Employee)</b></td>
-      <td>0.75% × Gross Salary (only if Gross ≤ ₹21,000/mo)</td>
-      <td>ESI Act 1948; Notification Oct-2019</td></tr>
+      <td>0.75% × Gross Salary — all employees (no gross ceiling)</td>
+      <td>ESI Act 1948 (company policy: no gross ceiling)</td></tr>
   <tr><td><b>LWF (Employee)</b></td>
       <td>Fixed ₹ (see Settings B23) per month</td>
       <td>State-specific Labour Welfare Fund Act</td></tr>
@@ -1351,11 +1376,11 @@ function showHelp() {
           Calculate: Annual Tax ÷ 12 (see Settings for slabs)</td>
       <td>Income Tax Act 1961, Sec 192</td></tr>
   <tr><td><b>Absent Deduction</b></td>
-      <td>Gross ÷ Working Days × Absent Days</td>
-      <td>Company policy (industry standard)</td></tr>
+      <td>Gross × (CalDays − Present − EligibleSundays − HalfDays×0.5) ÷ CalDays</td>
+      <td>Company policy; denominator = actual calendar days of month</td></tr>
   <tr><td><b>Short Time Deduction</b></td>
-      <td>Gross ÷ WD ÷ WH × Short Hours</td>
-      <td>Company policy</td></tr>
+      <td>Gross ÷ CalDays ÷ EmpWorkHours × Short Hours</td>
+      <td>Company policy; uses per-employee working hours from Master</td></tr>
   <tr><td><b>Advance Recovery</b></td>
       <td>Monthly deduction from active Advance records</td>
       <td>Company policy (zero interest)</td></tr>
@@ -1367,9 +1392,9 @@ function showHelp() {
 <h3 class="green">✅ Employer Contributions (not deducted from employee)</h3>
 <table>
   <tr><th>Contribution</th><th>Rate</th><th>Notes</th></tr>
-  <tr><td>EPF Employer</td><td>12% × MIN(Basic+DA, ₹15,000)</td>
-      <td>8.33% → EPS; balance → EPF. Shown in payslip as part of CTC.</td></tr>
-  <tr><td>ESI Employer</td><td>3.25% × Gross (if Gross ≤ ₹21,000)</td>
+  <tr><td>EPF Employer</td><td>12% × (Basic + DA) — no ceiling; full 12% to EPF</td>
+      <td>EPS not applicable per company policy. Shown in payslip as part of CTC.</td></tr>
+  <tr><td>ESI Employer</td><td>3.25% × Gross — all employees, no ceiling</td>
       <td>Paid by employer. Shown in CTC.</td></tr>
   <tr><td>LWF Employer</td><td>₹75/month (Settings B24)</td>
       <td>State-specific. Update in Settings.</td></tr>
